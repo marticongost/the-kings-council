@@ -1,5 +1,5 @@
 <script lang="ts" module>
-	import * as css from '$lib/styles';
+	import * as css from '#lib/styles';
 
 	const styles = css.styles({
 		effectsText: {}
@@ -7,7 +7,7 @@
 </script>
 
 <script lang="ts">
-	import { parse } from '$lib/models/effects';
+	import { parse } from '#lib/models/effects';
 	import EffectsChunks from './EffectsChunks.svelte';
 	import { standardAttributes, type StandardAttributeProps } from './utils';
 

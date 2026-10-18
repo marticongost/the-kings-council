@@ -1,6 +1,6 @@
 <script lang="ts" module>
 	/* eslint-disable svelte/no-navigation-without-resolve */
-	import * as css from '$lib/styles';
+	import * as css from '#lib/styles';
 
 	const styles = css.styles({
 		layout: {
@@ -24,10 +24,10 @@
 </script>
 
 <script lang="ts">
-	import favicon from '$lib/assets/favicon.svg?url';
-	import Navigation from '$lib/components/Navigation.svelte';
-	import { entries } from '$lib/navigation';
-	import { globalStyles } from '$lib/styles';
+	import favicon from '#lib/assets/favicon.svg?url';
+	import Navigation from '#lib/components/Navigation.svelte';
+	import { entries } from '#lib/navigation';
+	import { globalStyles } from '#lib/styles';
 	import { injectGlobal } from '@emotion/css';
 
 	injectGlobal(globalStyles);

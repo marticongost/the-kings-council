@@ -1,6 +1,6 @@
 <script lang="ts" module>
-	import type { ResourceSet } from '$lib/models/resourcesets';
-	import * as css from '$lib/styles';
+	import type { ResourceSet } from '#lib/models/resourcesets';
+	import * as css from '#lib/styles';
 
 	const styles = css.styles({
 		cost: {
@@ -14,7 +14,7 @@
 <script lang="ts">
 	import { standardAttributes, type StandardAttributeProps } from './utils';
 	import ResourceDisplay from './ResourceDisplay.svelte';
-	import { resourceTypes } from '$lib/models/resources';
+	import { resourceTypes } from '#lib/models/resources';
 
 	interface Props extends StandardAttributeProps {
 		cost: ResourceSet;

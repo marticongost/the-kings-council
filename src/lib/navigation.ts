@@ -1,4 +1,4 @@
-import { type RouteId, type ResolvedPathname } from '$app/types';
+import type { RouteId, ResolvedPathname } from '$app/types';
 import { resolve } from '$app/paths';
 
 export interface NavigationEntryProps {

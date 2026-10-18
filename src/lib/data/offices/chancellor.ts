@@ -1,5 +1,5 @@
-import type { OfficeData } from '$lib/models/cards';
-import { getOfficeName } from '$lib/models/offices';
+import type { OfficeData } from '#lib/models/cards';
+import { getOfficeName } from '#lib/models/offices';
 
 export default {
 	title: getOfficeName('chancellor'),

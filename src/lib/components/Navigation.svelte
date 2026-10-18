@@ -1,6 +1,6 @@
 <script lang="ts" module>
 	/* eslint-disable svelte/no-navigation-without-resolve */
-	import * as css from '$lib/styles';
+	import * as css from '#lib/styles';
 
 	const styles = css.styles({
 		navigation: {},
@@ -41,7 +41,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { standardAttributes, type StandardAttributeProps } from './utils';
-	import type { NavigationEntry } from '$lib/navigation';
+	import type { NavigationEntry } from '#lib/navigation';
 	import { cx } from '@emotion/css';
 
 	interface Props extends StandardAttributeProps {

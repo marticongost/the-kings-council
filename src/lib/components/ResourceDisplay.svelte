@@ -1,7 +1,7 @@
 <script lang="ts" module>
-	import type { ResourceType } from '$lib/models/resources';
-	import { type ResourceSpec } from '$lib/models/resourcesets';
-	import * as css from '$lib/styles';
+	import type { ResourceType } from '#lib/models/resources';
+	import { type ResourceSpec } from '#lib/models/resourcesets';
+	import * as css from '#lib/styles';
 	import EffectsText from './EffectsText.svelte';
 	import InlineSvg from './InlineSvg.svelte';
 

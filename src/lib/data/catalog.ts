@@ -18,7 +18,7 @@ import {
 	type LawData,
 	type OfficeData,
 	type TacticData
-} from '$lib/models/cards';
+} from '#lib/models/cards';
 
 class CardsCatalog {
 	private cards: Record<string, Card> = {};

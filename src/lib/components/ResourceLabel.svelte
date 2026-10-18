@@ -1,6 +1,6 @@
 <script lang="ts" module>
-	import { getResource, type ResourceType } from '$lib/models/resources';
-	import * as css from '$lib/styles';
+	import { getResource, type ResourceType } from '#lib/models/resources';
+	import * as css from '#lib/styles';
 	import InlineSvg from './InlineSvg.svelte';
 
 	const styles = css.styles({

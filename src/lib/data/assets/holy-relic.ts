@@ -1,4 +1,4 @@
-import type { AssetData } from '$lib/models/cards';
+import type { AssetData } from '#lib/models/cards';
 
 export default {
 	title: 'Relíquia sagrada',

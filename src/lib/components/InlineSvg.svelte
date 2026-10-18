@@ -1,5 +1,5 @@
 <script lang="ts" module>
-	import * as css from '$lib/styles';
+	import * as css from '#lib/styles';
 
 	const styles = css.styles({
 		inlineSvg: {
@@ -16,8 +16,8 @@
 </script>
 
 <script lang="ts">
-	import { svgs } from '$lib/assets/svg';
-	import { standardAttributes, type StandardAttributeProps } from '$lib/components/utils';
+	import { svgs } from '#lib/assets/svg';
+	import { standardAttributes, type StandardAttributeProps } from '#lib/components/utils';
 	import { cx } from '@emotion/css';
 
 	interface Props extends StandardAttributeProps {

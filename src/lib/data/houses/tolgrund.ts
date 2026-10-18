@@ -1,4 +1,4 @@
-import type { HouseData } from '$lib/models/cards';
+import type { HouseData } from '#lib/models/cards';
 
 export default {
 	title: 'Casa Tolgrund',

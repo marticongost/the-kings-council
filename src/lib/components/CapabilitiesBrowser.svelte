@@ -1,5 +1,5 @@
 <script lang="ts" module>
-	import * as css from '$lib/styles';
+	import * as css from '#lib/styles';
 
 	const styles = css.styles({
 		browser: {
@@ -30,12 +30,12 @@
 
 <script lang="ts">
 	import { standardAttributes, type StandardAttributeProps } from './utils';
-	import type { Card } from '$lib/models/cards';
-	import { getBrowserCardSearchState } from '$lib/browsercardsearchstate.svelte';
+	import type { Card } from '#lib/models/cards';
+	import { getBrowserCardSearchState } from '#lib/browsercardsearchstate.svelte';
 	import CardSearchControls from './CardSearchControls.svelte';
 	import CapabilitiesGrid from './CapabilitiesGrid.svelte';
-	import { CardCapability } from '$lib/models/cardcapabilities';
-	import { type Capability } from '$lib/models/capabilities';
+	import { CardCapability } from '#lib/models/cardcapabilities';
+	import { type Capability } from '#lib/models/capabilities';
 
 	interface Props extends StandardAttributeProps {
 		cards: Array<Card>;

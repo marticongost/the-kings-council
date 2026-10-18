@@ -1,4 +1,4 @@
-import { type TacticData } from '$lib/models/cards';
+import { type TacticData } from '#lib/models/cards';
 
 export default {
 	title: 'Ajuda',

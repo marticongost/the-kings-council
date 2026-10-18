@@ -1,5 +1,5 @@
 <script lang="ts" module>
-	import * as css from '$lib/styles';
+	import * as css from '#lib/styles';
 
 	const styles = css.styles({
 		kingdomProductionTable: {},

@@ -1,4 +1,4 @@
-import type { CommonData } from '$lib/models/cards';
+import type { CommonData } from '#lib/models/cards';
 
 export default {
 	title: 'Accions comunes',

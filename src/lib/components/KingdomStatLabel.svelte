@@ -1,6 +1,6 @@
 <script lang="ts" module>
-	import { getKingdomStat, type KingdomStatType } from '$lib/models/kingdomstats';
-	import * as css from '$lib/styles';
+	import { getKingdomStat, type KingdomStatType } from '#lib/models/kingdomstats';
+	import * as css from '#lib/styles';
 	import KingdomStatIcon from './KingdomStatIcon.svelte';
 
 	const styles = css.styles({

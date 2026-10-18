@@ -1,5 +1,5 @@
 <script lang="ts" module>
-	import * as css from '$lib/styles';
+	import * as css from '#lib/styles';
 
 	const styles = css.styles({
 		cardGrid: {
@@ -9,8 +9,8 @@
 </script>
 
 <script lang="ts">
-	import { standardAttributes, type StandardAttributeProps } from '$lib/components/utils';
-	import type { CardCapability } from '$lib/models/cardcapabilities';
+	import { standardAttributes, type StandardAttributeProps } from '#lib/components/utils';
+	import type { CardCapability } from '#lib/models/cardcapabilities';
 	import CardCapabilityFront from './CardCapabilityFront.svelte';
 
 	interface Props extends StandardAttributeProps {

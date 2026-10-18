@@ -1,5 +1,5 @@
 <script lang="ts" module>
-	import * as css from '$lib/styles';
+	import * as css from '#lib/styles';
 
 	const cardWidth = 63;
 	const cardHeight = 41;
@@ -81,11 +81,11 @@
 </script>
 
 <script lang="ts">
-	import { standardAttributes, type StandardAttributeProps } from '$lib/components/utils';
+	import { standardAttributes, type StandardAttributeProps } from '#lib/components/utils';
 	import CapabilityDisplay from './CapabilityDisplay.svelte';
 	import InlineSvg from './InlineSvg.svelte';
-	import type { CardCapability } from '$lib/models/cardcapabilities';
-	import { getCardIcon } from '$lib/cardattributes';
+	import type { CardCapability } from '#lib/models/cardcapabilities';
+	import { getCardIcon } from '#lib/cardattributes';
 	import CostDisplay from './CostDisplay.svelte';
 
 	interface Props extends StandardAttributeProps {

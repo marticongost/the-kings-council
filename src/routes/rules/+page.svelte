@@ -1,5 +1,5 @@
 <script lang="typescript" module>
-	import * as css from '$lib/styles';
+	import * as css from '#lib/styles';
 	const styles = css.styles({
 		rules: {
 			margin: 'auto',
@@ -16,12 +16,12 @@
 </script>
 
 <script lang="typescript">
-	import Markdown from '$lib/components/Markdown.svelte';
-	import Example from '$lib/components/Example.svelte';
+	import Markdown from '#lib/components/Markdown.svelte';
+	import Example from '#lib/components/Example.svelte';
 	import rules from './rules.md?raw';
-	import Comment from '$lib/components/Comment.svelte';
-	import KingdomProductionTable from '$lib/components/KingdomProductionTable.svelte';
-	import Notice from '$lib/components/Notice.svelte';
+	import Comment from '#lib/components/Comment.svelte';
+	import KingdomProductionTable from '#lib/components/KingdomProductionTable.svelte';
+	import Notice from '#lib/components/Notice.svelte';
 </script>
 
 <div class={styles.rules}>

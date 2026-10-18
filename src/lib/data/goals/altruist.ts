@@ -1,4 +1,4 @@
-import type { GoalData } from '$lib/models/cards';
+import type { GoalData } from '#lib/models/cards';
 
 // TODO: Review
 

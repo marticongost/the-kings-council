@@ -1,5 +1,5 @@
 <script lang="ts" module>
-	import * as css from '$lib/styles';
+	import * as css from '#lib/styles';
 
 	const simpleParagraphSpacing = '0.8em';
 	const intermediateParagraphSpacing = '1.2em';
@@ -171,8 +171,8 @@
 <script lang="ts">
 	import { lexer } from 'marked';
 	import type { Token, Tokens } from 'marked';
-	import { parse } from '$lib/models/effects';
-	import { slugify } from '$lib/utils';
+	import { parse } from '#lib/models/effects';
+	import { slugify } from '#lib/utils';
 	import type { Snippet } from 'svelte';
 	import { SvelteMap } from 'svelte/reactivity';
 	import { cx } from '@emotion/css';

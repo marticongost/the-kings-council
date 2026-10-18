@@ -1,5 +1,5 @@
 <script lang="ts" module>
-	import * as css from '$lib/styles';
+	import * as css from '#lib/styles';
 
 	const styles = css.styles({
 		sidebar: {
@@ -81,8 +81,8 @@
 <script lang="ts">
 	import { cx } from '@emotion/css';
 	import { standardAttributes, type StandardAttributeProps } from './utils';
-	import { filterEntries, filterableProperties, type FilterEntry } from '$lib/search';
-	import type { BrowserCardSearchState } from '$lib/browsercardsearchstate.svelte';
+	import { filterEntries, filterableProperties, type FilterEntry } from '#lib/search';
+	import type { BrowserCardSearchState } from '#lib/browsercardsearchstate.svelte';
 	import Button from './Button.svelte';
 
 	interface Props extends StandardAttributeProps {

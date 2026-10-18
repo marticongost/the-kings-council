@@ -2,8 +2,8 @@ import { page } from '$app/state';
 import { replaceState } from '$app/navigation';
 import type { ResolvedPathname } from '$app/types';
 import { SvelteSet, SvelteURL } from 'svelte/reactivity';
-import type { Card } from '$lib/models/cards';
-import { getProperties, type PropertyId } from '$lib/models/properties';
+import type { Card } from '#lib/models/cards';
+import { getProperties, type PropertyId } from '#lib/models/properties';
 import {
 	countByOption,
 	countByProperty,
@@ -11,7 +11,7 @@ import {
 	findFilterOption,
 	getVisibleOptionIds,
 	getVisiblePropertyIds
-} from '$lib/search';
+} from '#lib/search';
 
 export type BrowserCardSearchState = {
 	search: string;
@@ -42,7 +42,7 @@ export function getBrowserCardSearchState(getCards: () => Array<Card>): BrowserC
 	);
 
 	function currentHref(): ResolvedPathname {
-		const url = new SvelteURL(page.url);
+		const url = new SvelteURL(page.url.href);
 
 		if (search) url.searchParams.set('q', search);
 		else url.searchParams.delete('q');

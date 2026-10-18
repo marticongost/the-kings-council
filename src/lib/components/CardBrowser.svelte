@@ -1,5 +1,5 @@
 <script lang="ts" module>
-	import * as css from '$lib/styles';
+	import * as css from '#lib/styles';
 
 	const styles = css.styles({
 		browser: {
@@ -17,8 +17,8 @@
 
 <script lang="ts">
 	import { standardAttributes, type StandardAttributeProps } from './utils';
-	import type { Card } from '$lib/models/cards';
-	import { getBrowserCardSearchState } from '$lib/browsercardsearchstate.svelte';
+	import type { Card } from '#lib/models/cards';
+	import { getBrowserCardSearchState } from '#lib/browsercardsearchstate.svelte';
 	import CardGrid from './CardGrid.svelte';
 	import CardSearchControls from './CardSearchControls.svelte';
 

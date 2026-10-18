@@ -1,4 +1,4 @@
-import type { LawData } from '$lib/models/cards';
+import type { LawData } from '#lib/models/cards';
 
 export default {
 	title: "Llei d'inspecció",

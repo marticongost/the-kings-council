@@ -1,4 +1,4 @@
-import { assertNever } from '$lib/components/utils';
+import { assertNever } from '#lib/components/utils';
 import { type ResourceSetProps, ResourceSet } from './resourcesets';
 import { getTrigger, type Trigger, type TriggerType } from './triggers';
 

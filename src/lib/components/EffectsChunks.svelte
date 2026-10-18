@@ -1,6 +1,6 @@
 <script lang="ts" module>
-	import { keywords } from '$lib/models/keywords';
-	import * as css from '$lib/styles';
+	import { keywords } from '#lib/models/keywords';
+	import * as css from '#lib/styles';
 	import { cx } from '@emotion/css';
 
 	const styles = css.styles({
@@ -63,11 +63,11 @@
 </script>
 
 <script lang="ts">
-	import type { Chunk } from '$lib/models/effects';
+	import type { Chunk } from '#lib/models/effects';
 	import InlineSvg from './InlineSvg.svelte';
 	import KingdomStatDisplay from './KingdomStatDisplay.svelte';
 	import ResourceDisplay from './ResourceDisplay.svelte';
-	import { isResourceType } from '$lib/models/resources';
+	import { isResourceType } from '#lib/models/resources';
 	import ResourceLabel from './ResourceLabel.svelte';
 	import KingdomStatLabel from './KingdomStatLabel.svelte';
 

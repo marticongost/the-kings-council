@@ -3,6 +3,10 @@
 	"private": true,
 	"version": "0.0.1",
 	"type": "module",
+	"imports": {
+		"#lib": "./src/lib/index.ts",
+		"#lib/*": "./src/lib/*"
+	},
 	"scripts": {
 		"dev": "npm-run-all -p watch:svg dev:svelte",
 		"dev:svelte": "vite dev",
@@ -14,7 +18,7 @@
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"lint": "prettier --check . && eslint .",
 		"format": "prettier --write .",
-		"watch:svg": "chokidar 'src/lib/assets/svg/**/*.svg' -c 'node scripts/optimize-svg.mjs {path}'"
+		"watch:svg": "node scripts/watch-svg.mjs"
 	},
 	"dependencies": {
 		"@emotion/css": "^11.13.5",
@@ -23,11 +27,11 @@
 	},
 	"devDependencies": {
 		"@eslint/js": "^10.0.1",
-		"@sveltejs/adapter-auto": "^7.0.1",
-		"@sveltejs/kit": "^2.63.0",
+		"@sveltejs/adapter-auto": "^8.0.0",
+		"@sveltejs/kit": "^3.1.0",
 		"@sveltejs/vite-plugin-svelte": "^7.1.2",
 		"@types/node": "^24",
-		"chokidar-cli": "^3.0.0",
+		"chokidar": "^4.0.3",
 		"eslint": "^10.4.1",
 		"eslint-config-prettier": "^10.1.8",
 		"eslint-plugin-svelte": "^3.19.0",

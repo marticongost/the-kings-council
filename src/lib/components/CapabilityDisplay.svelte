@@ -1,6 +1,6 @@
 <script lang="ts" module>
-	import { ConcreteCapability, type Capability } from '$lib/models/capabilities';
-	import * as css from '$lib/styles';
+	import { ConcreteCapability, type Capability } from '#lib/models/capabilities';
+	import * as css from '#lib/styles';
 
 	const variants = css.styleVariants(['regular', 'reaction']);
 
@@ -57,7 +57,7 @@
 	import EffectsText from './EffectsText.svelte';
 	import InlineSvg from './InlineSvg.svelte';
 	import CostDisplay from './CostDisplay.svelte';
-	import { getCapabilityIcon, getCapabilityTitle } from '$lib/cardattributes';
+	import { getCapabilityIcon, getCapabilityTitle } from '#lib/cardattributes';
 
 	interface Props extends StandardAttributeProps {
 		capability: Capability;

@@ -1,5 +1,5 @@
 <script lang="ts" module>
-	import * as css from '$lib/styles';
+	import * as css from '#lib/styles';
 
 	const styles = css.styles({
 		crisis: {
@@ -49,7 +49,7 @@
 	import EffectsText from './EffectsText.svelte';
 	import InlineSvg from './InlineSvg.svelte';
 	import { cx } from '@emotion/css';
-	import type { Crisis } from '$lib/models/cards';
+	import type { Crisis } from '#lib/models/cards';
 
 	interface Props extends StandardAttributeProps {
 		crisis: Crisis;

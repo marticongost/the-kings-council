@@ -1,6 +1,6 @@
 import { cache } from '@emotion/css';
 import createEmotionServer from '@emotion/server/create-instance';
-import type { Handle } from '@sveltejs/kit';
+import type { Handle } from '@sveltejs/kit/hooks';
 
 const { extractCritical } = createEmotionServer(cache);
 

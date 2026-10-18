@@ -1,4 +1,4 @@
-import type { CrisisData } from '$lib/models/cards';
+import type { CrisisData } from '#lib/models/cards';
 
 export default {
 	title: 'Croada',
