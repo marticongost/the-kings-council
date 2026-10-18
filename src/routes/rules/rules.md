@@ -1,6 +1,6 @@
 # Introducció
 
-_Llarga vida al rei_ és un joc d'intrigues, comerç i maniobres polítiques en un món de
+_El Consell del Rei_ és un joc d'intrigues, comerç i maniobres polítiques en un món de
 fantasia medieval. Prendràs el paper del rei del regne o d'un dels seus consellers,
 contribuint decisivament a forjar el destí del reialme: l'elevaràs a la glòria més
 excelsa? O l'enfonsaràs a la més abjecte ignomínia?
