@@ -551,7 +551,7 @@ la [](#planning-phase), a la major part del joc els jugadors s'alternen en ordre
 resoldre les seves accions i efectes. La seqüència en que els jugadors actuen es
 coneix com a {playing-order}.
 
-## Com s'estableix?
+## Com s'estableix? #setting-player-order
 
 Excepcionalment, al principi de la partida l'ordre de joc s'estableix aleatòriament.
 A partir de la primera [](#planning-phase), els jugadors determinen la seva posició
@@ -1070,7 +1070,7 @@ cartes de la pila de destí: la primera s'assigna al primer regne, la segona al 
 regne, i la tercera als dos jugadors sense regne.
 ```
 
-Les cartes es revelen en l'[ordre de joc dels regnes](#kindom-playing-order).
+Les cartes es revelen en l'[ordre de joc dels regnes](#kingdom-playing-order).
 
 Quan es reveli una carta de destí se'n llegeixen els efectes en veu alta. Algunes
 cartes tindran efecte immediat, descartant la carta immediatament després
@@ -1087,8 +1087,8 @@ cartes activaran, i en quin ordre.
 Els jugadors planifiquen el seu torn formant tres piles diferenciades amb les seves
 targetes de capacitat:
 
-- Una pila amb totes les [](#indications) pel torn
-- Una pila ordenada amb les [](#actions) a executar
+- Una pila amb totes les [](#indicacions) pel torn
+- Una pila ordenada amb les [](#accions) a executar
 - Una pila ordenada amb els [](#secrets) a executar
 
 Els jugadors fan aquesta selecció simultàniament, en secret, darrere la seva pantalla

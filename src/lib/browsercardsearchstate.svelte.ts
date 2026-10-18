@@ -1,4 +1,5 @@
 import { page } from '$app/state';
+import { browser } from '$app/env';
 import { replaceState } from '$app/navigation';
 import type { ResolvedPathname } from '$app/types';
 import { SvelteSet, SvelteURL } from 'svelte/reactivity';
@@ -31,7 +32,9 @@ export type BrowserCardSearchState = {
  * `selectedProperties`) to render any kind of card listing.
  */
 export function getBrowserCardSearchState(getCards: () => Array<Card>): BrowserCardSearchState {
-	const params = page.url.searchParams;
+	// Search params are only available in the browser; during prerendering there
+	// is no query string, so start from empty defaults.
+	const params = browser ? page.url.searchParams : new URLSearchParams();
 	const validPropertyIds = new SvelteSet(getProperties().map((property) => property.id));
 	const filterParam = params.get('filter');
 
