@@ -957,8 +957,8 @@ Quan això succeeixi, aplicar els següents efectes:
 - A partir d'ara es considera que el jugador no forma part de cap regne. Durant el torn
   en curs no podrà crear o unir-se a un regne, però sí que podrà fer-ho a partir del
   torn següent.
-- Si el jugador era el {king} del seu regne, iniciar un {succession-struggle} (el jugador
-  expulsat no hi pren part)
+- Si el jugador era el {king} del seu regne, iniciar una [](#succession-struggle) (el
+  jugador expulsat no hi pren part)
 - Per cada una dels {assets} {visible} del jugador, realitzar un {duel} {any} entre el
   jugador i la resta de membres del regne. El vencedor del duel es quedat la carta (en
   cas d'empat, se la queda el jugador expulsat.
@@ -1013,7 +1013,8 @@ tradueix en:
 - El jugador perd la seva ma de cartes de tàctica, i en roba una per substituir-les
 - El jugador perd els seus objectius, i els substitueix per un nou objectiu personal
   i un nou objectiu col·lectiu escollits aleatòriament
-- Si el jugador executat era el {king} del seu regne, iniciar un [](#succession-struggle)
+- Si el jugador executat era el {king} del seu regne, iniciar una
+  [](#succession-struggle)
 
 # Seqüència del joc
 
