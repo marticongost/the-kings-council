@@ -6,7 +6,7 @@
    version="1.1"
    id="svg1"
    sodipodi:docname="crisis.svg"
-   inkscape:version="1.4.4 (dcaf3e7, 2026-05-05)"
+   inkscape:version="1.4.4 (1:1.4.4+202605061436+dcaf3e7d9e)"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -49,21 +49,22 @@
      inkscape:deskcolor="#d1d1d1"
      inkscape:document-units="mm"
      inkscape:zoom="4.8070993"
-     inkscape:cx="219.25905"
+     inkscape:cx="219.25904"
      inkscape:cy="69.688596"
-     inkscape:window-width="1512"
-     inkscape:window-height="921"
+     inkscape:window-width="2560"
+     inkscape:window-height="1011"
      inkscape:window-x="0"
-     inkscape:window-y="33"
+     inkscape:window-y="32"
      inkscape:window-maximized="1"
-     inkscape:current-layer="svg1" />
+     inkscape:current-layer="svg1"
+     showgrid="false" />
   <path
      id="rect1"
-     style="fill:#441b1b;stroke-width:0.182215;fill-opacity:1"
+     style="fill:#4f2020;stroke-width:0.182215;fill-opacity:1"
      d="m 0,0.030273 v 29 l 3.1499454,-2.26358 3.1499453,2.26358 3.1499454,-2.26358 3.1499449,2.26358 3.150493,-2.26358 3.149945,2.26358 3.149945,-2.26358 3.149945,2.26358 3.149946,-2.26358 3.149946,2.26358 3.149944,-2.26358 3.149946,2.26358 3.149945,-2.26358 3.150493,2.26358 3.149944,-2.26358 3.149946,2.26358 3.149945,-2.26358 3.149946,2.26358 3.149945,-2.26358 L 63,29.030273 v -29 H 59.850055 56.70011 53.550164 50.400219 47.250273 44.100329 40.949836 37.799891 34.649945 31.500001 28.350055 25.200109 22.050164 18.900219 15.750274 12.599781 9.4498361 6.2998907 3.1499454 Z" />
   <path
      id="path77"
-     style="fill:#953a35;fill-opacity:1;stroke-width:0.182215"
+     style="fill:#7a4e4d;fill-opacity:1;stroke-width:0.182215"
      d="M 0.52916667,0.55397506 V 27.821156 l 2.62077873,-2.101868 3.1499453,2.26358 3.1499454,-2.26358 3.1499449,2.26358 3.150493,-2.26358 3.149945,2.26358 3.149945,-2.26358 3.149945,2.26358 3.149946,-2.26358 3.149946,2.26358 3.149944,-2.26358 3.149946,2.26358 3.149945,-2.26358 3.150493,2.26358 3.149944,-2.26358 3.149946,2.26358 3.149945,-2.26358 3.149946,2.26358 3.149945,-2.26358 2.620778,2.101868 V 0.55397506 H 59.850055 56.70011 53.550164 50.400219 47.250273 44.100329 40.949836 37.799891 34.649945 31.500001 28.350055 25.200109 22.050164 18.900219 15.750274 12.599781 9.4498361 6.2998907 3.1499454 Z"
      sodipodi:nodetypes="ccccccccccccccccccccccccccccccccccccccccccc" />
   <path
