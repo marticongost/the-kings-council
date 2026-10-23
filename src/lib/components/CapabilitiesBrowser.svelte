@@ -9,7 +9,11 @@
 		results: {
 			...css.column('sm'),
 			flex: '1 1 auto',
-			minWidth: 0
+			minWidth: 0,
+			transition: 'opacity 0.2s ease-in'
+		},
+		resultsHidden: {
+			opacity: 0
 		},
 		noResultsNotice: {}
 	});
@@ -29,6 +33,7 @@
 </script>
 
 <script lang="ts">
+	import { cx } from '@emotion/css';
 	import { standardAttributes, type StandardAttributeProps } from './utils';
 	import type { Card } from '#lib/models/cards';
 	import { getBrowserCardSearchState } from '#lib/browsercardsearchstate.svelte';
@@ -56,7 +61,7 @@
 <div {...standardAttributes(attributes, styles.browser)}>
 	<CardSearchControls {searchState} />
 
-	<section class={styles.results}>
+	<section class={cx(styles.results, !searchState.ready && styles.resultsHidden)}>
 		{#if searchState.filteredCards.length}
 			<CapabilitiesGrid {cardCapabilities} />
 		{:else}

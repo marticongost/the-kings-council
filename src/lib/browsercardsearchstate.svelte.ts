@@ -1,5 +1,4 @@
-import { page } from '$app/state';
-import { browser } from '$app/env';
+import { page, type ReadonlyURLSearchParams } from '$app/state';
 import { replaceState } from '$app/navigation';
 import type { ResolvedPathname } from '$app/types';
 import { SvelteSet, SvelteURL } from 'svelte/reactivity';
@@ -18,6 +17,7 @@ export type BrowserCardSearchState = {
 	search: string;
 	selectedFilter: string;
 	selectedProperties: Array<PropertyId>;
+	readonly ready: boolean;
 	readonly optionCounts: Map<string, number>;
 	readonly propertyCounts: Map<PropertyId, number>;
 	readonly visibleOptionIds: ReadonlySet<string>;
@@ -26,23 +26,37 @@ export type BrowserCardSearchState = {
 };
 
 /**
- * Reactive state for a card browser: search and filter values initialised from
- * the current URL and kept in sync with it via `replaceState`. Use it together
- * with `CardSearchControls` (binding `search`, `selectedFilter` and
+ * Reactive state for a card browser: search and filter values kept in sync with
+ * the URL. Values are adopted from the URL after mounting and on navigation, and
+ * written back to it via `replaceState`. Use it together with
+ * `CardSearchControls` (binding `search`, `selectedFilter` and
  * `selectedProperties`) to render any kind of card listing.
  */
 export function getBrowserCardSearchState(getCards: () => Array<Card>): BrowserCardSearchState {
-	// Search params are only available in the browser; during prerendering there
-	// is no query string, so start from empty defaults.
-	const params = browser ? page.url.searchParams : new URLSearchParams();
 	const validPropertyIds = new SvelteSet(getProperties().map((property) => property.id));
-	const filterParam = params.get('filter');
 
-	let search = $state(params.get('q') ?? '');
-	let selectedFilter = $state(filterParam && findFilterOption(filterParam) ? filterParam : 'all');
-	let selectedProperties = $state<Array<PropertyId>>(
-		params.getAll('p').filter((id): id is PropertyId => validPropertyIds.has(id as PropertyId))
-	);
+	// Pages are prerendered without a query string, so the server always renders
+	// the default (unfiltered) listing. Start from those same defaults here and
+	// adopt the URL only after mounting; otherwise hydration would replace the
+	// server-rendered cards with a different set and Svelte could reuse the
+	// existing DOM nodes for the wrong cards.
+	let search = $state('');
+	let selectedFilter = $state('all');
+	let selectedProperties = $state<Array<PropertyId>>([]);
+	// Becomes true once the state has been adopted from the URL for the first
+	// time (i.e. after mounting). While false, the server-rendered listing must
+	// stay hidden so the unfiltered cards it contains never flash into view.
+	let ready = $state(false);
+
+	function applySearchParams(params: ReadonlyURLSearchParams) {
+		const filterParam = params.get('filter');
+
+		search = params.get('q') ?? '';
+		selectedFilter = filterParam && findFilterOption(filterParam) ? filterParam : 'all';
+		selectedProperties = params
+			.getAll('p')
+			.filter((id): id is PropertyId => validPropertyIds.has(id as PropertyId));
+	}
 
 	function currentHref(): ResolvedPathname {
 		const url = new SvelteURL(page.url.href);
@@ -58,6 +72,20 @@ export function getBrowserCardSearchState(getCards: () => Array<Card>): BrowserC
 
 		return (page.url.pathname + url.search) as ResolvedPathname;
 	}
+
+	// Adopt URL changes (including the initial query string, browser history and
+	// client-side navigations) unless they already match the current state.
+	// This effect must be registered before the one below so that a new URL wins
+	// over the previous state instead of being overwritten by it.
+	let lastUrl = '';
+	$effect(() => {
+		const url = page.url;
+		const href = url.pathname + url.search;
+		if (href === lastUrl) return;
+		lastUrl = href;
+		if (href !== currentHref()) applySearchParams(url.searchParams);
+		ready = true;
+	});
 
 	$effect(() => {
 		const href = currentHref();
@@ -93,6 +121,9 @@ export function getBrowserCardSearchState(getCards: () => Array<Card>): BrowserC
 		},
 		set selectedProperties(value: Array<PropertyId>) {
 			selectedProperties = value;
+		},
+		get ready() {
+			return ready;
 		},
 		get optionCounts() {
 			return optionCounts;
