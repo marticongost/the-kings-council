@@ -1,9 +1,6 @@
 <script lang="ts" module>
 	import * as css from '#lib/styles';
 
-	const cardWidth = 63;
-	const cardHeight = 41;
-
 	const styles = css.styles({
 		card: {
 			...css.column(),
@@ -11,8 +8,7 @@
 			fontFamily: css.fonts.text,
 			backgroundColor: css.palette.white,
 			color: css.text.regularColor,
-			width: `${cardWidth}mm`,
-			height: `${cardHeight}mm`
+			...css.cards.mini.dimensions()
 		},
 		header: {
 			...css.column(),

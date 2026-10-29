@@ -1,12 +1,7 @@
 <script lang="ts" module>
 	import * as css from '#lib/styles';
 
-	const cardWidth = 63;
-	const cardHeight = 88;
-
-	function cw(percent: number) {
-		return `${(cardWidth * percent) / 100}mm`;
-	}
+	const cardSize = css.cards.standard;
 
 	const variant = css.styleVariants<CardType>(cardTypes);
 
@@ -17,8 +12,7 @@
 			fontFamily: css.fonts.text,
 			backgroundColor: css.palette.white,
 			color: css.text.regularColor,
-			width: `${cardWidth}mm`,
-			height: `${cardHeight}mm`
+			...cardSize.dimensions()
 		},
 		header: {
 			...css.column(),
@@ -51,8 +45,8 @@
 				position: 'absolute',
 				left: 0,
 				top: 0,
-				width: cw(20),
-				height: cw(20)
+				width: cardSize.cw(20),
+				height: cardSize.cw(20)
 			}
 		},
 		icon: {
