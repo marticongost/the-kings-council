@@ -1,0 +1,173 @@
+<script lang="ts" module>
+	import * as css from '#lib/styles';
+
+	const styles = css.styles({
+		zone: {
+			...css.column('xs'),
+			position: 'relative',
+			padding: css.spacing.sm,
+			border: `2px dashed ${css.palette.moonMist}`,
+			borderRadius: css.spacing.sm,
+			backgroundColor: css.palette.linen,
+			transition: 'border-color 0.15s, background-color 0.15s',
+			minWidth: 0
+		},
+		over: {
+			borderColor: css.palette.sandal,
+			backgroundColor: css.palette.wheat
+		},
+		header: {
+			...css.row('sm'),
+			fontSize: '0.9em',
+			fontWeight: 900,
+			color: css.palette.wood
+		},
+		count: {
+			marginLeft: 'auto',
+			fontWeight: 400,
+			color: css.text.subtleColor
+		},
+		cards: {
+			...css.grid('xs'),
+			minHeight: '1.5em'
+		},
+		pileCards: {
+			...css.row('xs'),
+			flex: '1 1 auto',
+			alignItems: 'center',
+			justifyContent: 'center',
+			minHeight: 0,
+			overflow: 'hidden'
+		},
+		empty: {
+			margin: 0,
+			fontSize: '0.85em',
+			fontStyle: 'italic',
+			color: css.text.subtleColor
+		},
+		emptyIcon: {
+			alignSelf: 'center',
+			width: '50%',
+			height: 'auto',
+			color: css.palette.moonMist
+		}
+	});
+</script>
+
+<script lang="ts">
+	import { cx } from '@emotion/css';
+	import { cardsCatalog } from '#lib/data/catalog';
+	import InlineSvg from '#lib/components/InlineSvg.svelte';
+	import type { CardRef, DragPayload, Zone } from './types';
+	import { simulatorDragMime } from './types';
+	import type { SimulatorState } from './simulatorstate.svelte';
+	import SimulatorCard from './SimulatorCard.svelte';
+	import CountBadge from './CountBadge.svelte';
+
+	interface Props {
+		simulator: SimulatorState;
+		cards: Array<CardRef>;
+		zone: Zone;
+		label?: string;
+		ariaLabel?: string;
+		emptyLabel?: string;
+		emptyIcon?: string;
+		pile?: boolean;
+		height?: string;
+		cardScale?: number;
+	}
+
+	const {
+		simulator,
+		cards,
+		zone,
+		label,
+		ariaLabel,
+		emptyLabel,
+		emptyIcon,
+		pile = false,
+		height,
+		cardScale
+	}: Props = $props();
+
+	let isOver = $state(false);
+
+	function hasSimulatorPayload(event: DragEvent): boolean {
+		return event.dataTransfer?.types.includes(simulatorDragMime) ?? false;
+	}
+
+	function onDragOver(event: DragEvent) {
+		if (!hasSimulatorPayload(event)) return;
+		event.preventDefault();
+		if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+		isOver = true;
+	}
+
+	function onDragLeave(event: DragEvent) {
+		const target = event.currentTarget;
+		const related = event.relatedTarget;
+		if (target instanceof Node && related instanceof Node && target.contains(related)) return;
+		isOver = false;
+	}
+
+	function onDrop(event: DragEvent) {
+		isOver = false;
+		const raw = event.dataTransfer?.getData(simulatorDragMime);
+		if (!raw) return;
+		event.preventDefault();
+
+		try {
+			const payload = JSON.parse(raw) as DragPayload;
+			simulator.moveCard(payload.source, zone, payload.uid);
+		} catch {
+			// Ignore malformed payloads from outside the simulator.
+		}
+	}
+</script>
+
+<div
+	class={cx(styles.zone, isOver && styles.over)}
+	role="group"
+	aria-label={ariaLabel ?? label}
+	style:height={pile ? height : undefined}
+	ondragover={onDragOver}
+	ondragleave={onDragLeave}
+	ondrop={onDrop}
+>
+	{#if label}
+		<div class={styles.header}>
+			<span>{label}</span>
+			{#if !pile}
+				<span class={styles.count}>{cards.length}</span>
+			{/if}
+		</div>
+	{/if}
+	{#if pile}
+		<div class={cx(styles.cards, styles.pileCards)} role="list">
+			{#if cards.length > 0}
+				{@const top = cards[cards.length - 1]}
+				{@const card = cardsCatalog.byId(top.cardId)}
+				{#if card}
+					<SimulatorCard {card} source={zone} uid={top.uid} scale={cardScale} />
+				{/if}
+			{:else if emptyIcon}
+				<InlineSvg class={styles.emptyIcon} src={emptyIcon} aria-hidden="true" />
+			{:else if emptyLabel}
+				<p class={styles.empty}>{emptyLabel}</p>
+			{/if}
+		</div>
+		<CountBadge count={cards.length} />
+	{:else}
+		<div class={styles.cards} role="list">
+			{#each cards as ref (ref.uid)}
+				{@const card = cardsCatalog.byId(ref.cardId)}
+				{#if card}
+					<SimulatorCard {card} source={zone} uid={ref.uid} />
+				{/if}
+			{/each}
+			{#if cards.length === 0 && emptyLabel}
+				<p class={styles.empty}>{emptyLabel}</p>
+			{/if}
+		</div>
+	{/if}
+</div>

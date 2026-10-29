@@ -35,5 +35,6 @@ export class NavigationEntry {
 export const entries = [
 	new NavigationEntry({ id: '/cards', title: 'Cartes' }),
 	new NavigationEntry({ id: '/capabilities', title: 'Targetes' }),
-	new NavigationEntry({ id: '/rules', title: 'Regles' })
+	new NavigationEntry({ id: '/rules', title: 'Regles' }),
+	new NavigationEntry({ id: '/simulator', title: 'Simulador' })
 ];

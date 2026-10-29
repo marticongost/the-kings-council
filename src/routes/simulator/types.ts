@@ -1,0 +1,97 @@
+import type { CardType } from '#lib/models/cards';
+import { kingdomStatTypes, type KingdomStatType } from '#lib/models/kingdomstats';
+import type { ResourceType } from '#lib/models/resources';
+
+/** Resources owned by a player (the generic `any` resource has no tokens). */
+export const playerResourceTypes = [
+	'prestige',
+	'power',
+	'intrigue',
+	'strength',
+	'gold',
+	'faith',
+	'favour'
+] as const satisfies ReadonlyArray<ResourceType>;
+
+export type PlayerResourceType = (typeof playerResourceTypes)[number];
+
+export type PlayerResources = Record<PlayerResourceType, number>;
+
+export type KingdomStats = Record<KingdomStatType, number>;
+
+export const kingdomStatMin = 1;
+export const kingdomStatMax = 5;
+export const kingdomStatNeutral = 3;
+
+export function emptyKingdomStats(): KingdomStats {
+	const stats = {} as KingdomStats;
+	for (const type of kingdomStatTypes) {
+		stats[type] = kingdomStatNeutral;
+	}
+	return stats;
+}
+
+export const simulatorDragMime = 'application/x-kings-council-simulator';
+
+/** A card in play, identified by its catalog card and a per-instance id. */
+export interface CardRef {
+	uid: string;
+	cardId: string;
+}
+
+/** A place where cards can live. Decks are face-down, the rest are face-up. */
+export type Zone =
+	| { kind: 'hand'; playerId: string }
+	| { kind: 'laws' }
+	| { kind: 'market' }
+	| { kind: 'deck'; cardType: CardType }
+	| { kind: 'discard'; cardType: CardType };
+
+export interface DragPayload {
+	source: Zone;
+	uid?: string;
+}
+
+export interface PlayerState {
+	id: string;
+	name: string;
+	kingdomId: string | null;
+	resources: PlayerResources;
+	hand: Array<CardRef>;
+}
+
+export interface KingdomState {
+	id: string;
+	name: string;
+	stats: KingdomStats;
+}
+
+export interface SerializedPlayer {
+	id: string;
+	name: string;
+	kingdomId: string | null;
+	resources: Partial<PlayerResources>;
+	hand: Array<string>;
+}
+
+export interface SimulatorSnapshot {
+	version: number;
+	players: Array<SerializedPlayer>;
+	kingdoms: Array<KingdomState>;
+	laws: Array<string>;
+	market: Array<string>;
+	decks: Record<CardType, Array<string>>;
+	discards: Record<CardType, Array<string>>;
+}
+
+export function zoneKey(zone: Zone): string {
+	switch (zone.kind) {
+		case 'hand':
+			return `hand:${zone.playerId}`;
+		case 'deck':
+		case 'discard':
+			return `${zone.kind}:${zone.cardType}`;
+		default:
+			return zone.kind;
+	}
+}

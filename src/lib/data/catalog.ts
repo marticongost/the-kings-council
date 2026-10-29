@@ -34,6 +34,10 @@ class CardsCatalog {
 	all(): Array<Card> {
 		return Object.values(this.cards);
 	}
+
+	byId(id: string): Card | undefined {
+		return this.cards[id];
+	}
 }
 
 function pathToId(path: string) {
