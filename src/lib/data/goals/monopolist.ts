@@ -7,7 +7,8 @@ export default {
 		{
 			type: 'reaction',
 			trigger: 'gameEnd',
-			effects: 'Si la {wealth} del teu regne és 2 o menys, guanya {prestige 3}.'
+			effects:
+				'Guanya {prestige 3} si tens més {gold} que la {wealth} del teu regne, o {prestige 4} si en tens el doble o més.'
 		}
 	]
 } satisfies GoalData;

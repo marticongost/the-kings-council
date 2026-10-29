@@ -6,9 +6,14 @@ export default {
 	capabilities: [
 		{
 			type: 'reaction',
+			trigger: 'gameStart',
+			effects: 'Escull un {input kingdom} que no sigui el teu.'
+		},
+		{
+			type: 'reaction',
 			trigger: 'gameEnd',
 			effects:
-				"Si un altre regne (escollit a l'inici de la partida) acaba la majoria d'{kingdom-stats} per sobre el teu regne, guanya {prestige 3}."
+				'Per cada {kingdom-stat} del {kingdom} escollit que estigui per sobre els de la resta de regnes guanya {prestige 1}. Guanya {prestige 2} addicionals si el {kingdom} escollit és el millor en tots els {kingdom-stats}.'
 		}
 	]
 } satisfies GoalData;
