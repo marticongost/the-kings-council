@@ -41,7 +41,7 @@
 		},
 		panels: {
 			display: 'grid',
-			gridTemplateColumns: 'repeat(auto-fill, minmax(24em, 1fr))',
+			gridTemplateColumns: 'repeat(auto-fill, minmax(min(56em, 100%), 1fr))',
 			gap: css.spacing.md,
 			alignItems: 'start'
 		},

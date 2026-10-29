@@ -49,14 +49,14 @@
 			...css.focus.mixin
 		},
 		resources: {
-			display: 'grid',
-			gridTemplateColumns: 'repeat(auto-fill, minmax(8.5em, 1fr))',
-			gap: css.spacing.xs
+			...css.row('lg'),
+			flexWrap: 'nowrap',
+			overflow: 'hidden'
 		},
 		resourceIcon: {
-			height: '1em',
+			height: '2em',
 			width: 'auto',
-			color: css.palette.wood,
+			color: css.palette.dawn,
 			flexShrink: 0
 		},
 		capabilities: {

@@ -3,37 +3,28 @@
 
 	const styles = css.styles({
 		counter: {
-			...css.column('xs'),
-			padding: css.spacing.xs,
-			border: `1px solid ${css.palette.moonMist}`,
-			borderRadius: css.spacing.xs,
-			backgroundColor: css.palette.linen
+			...css.row('xs'),
+			flexShrink: 0,
+			whiteSpace: 'nowrap'
 		},
 		label: {
-			...css.row('xs'),
-			fontSize: '0.85em',
+			...css.row(),
 			color: css.palette.wood,
 			minWidth: 0
 		},
-		labelText: {
-			overflow: 'hidden',
-			textOverflow: 'ellipsis',
-			whiteSpace: 'nowrap'
-		},
-		controls: {
-			...css.row('xs'),
-			justifyContent: 'space-between'
+		buttons: {
+			...css.row('0.1em')
 		},
 		button: {
-			width: '1.6em',
-			height: '1.6em',
+			width: '1em',
+			height: '1em',
 			border: 'none',
 			borderRadius: '50%',
 			backgroundColor: css.palette.sandal,
 			color: css.palette.ivory,
 			fontFamily: css.fonts.text,
 			fontWeight: 900,
-			fontSize: '1em',
+			fontSize: '0.8em',
 			lineHeight: 1,
 			cursor: 'pointer',
 			...css.focus.mixin,
@@ -49,9 +40,12 @@
 		value: {
 			fontFamily: css.fonts.number,
 			fontWeight: 900,
-			fontSize: '1.1em',
-			minWidth: '1.5em',
-			textAlign: 'center'
+			fontSize: '2em',
+			lineHeight: 1,
+			minWidth: '0.8em',
+			textAlign: 'center',
+			// Grenze's figures sit below the line-box centre; nudge them up optically.
+			transform: 'translateY(-0.1em)'
 		}
 	});
 </script>
@@ -74,26 +68,33 @@
 	const canIncrease = $derived(value < max);
 </script>
 
+{#snippet decrementButton()}
+	<button
+		type="button"
+		class={styles.button}
+		disabled={!canDecrease}
+		aria-label={`Disminueix ${label}`}
+		onclick={() => onchange(value - 1)}>−</button
+	>
+{/snippet}
+
+{#snippet incrementButton()}
+	<button
+		type="button"
+		class={styles.button}
+		disabled={!canIncrease}
+		aria-label={`Augmenta ${label}`}
+		onclick={() => onchange(value + 1)}>+</button
+	>
+{/snippet}
+
 <div class={styles.counter}>
-	<span class={styles.label}>
+	<span class={styles.label} title={label}>
 		{@render icon?.()}
-		<span class={styles.labelText} title={label}>{label}</span>
 	</span>
-	<span class={styles.controls}>
-		<button
-			type="button"
-			class={styles.button}
-			disabled={!canDecrease}
-			aria-label={`Disminueix ${label}`}
-			onclick={() => onchange(value - 1)}>−</button
-		>
-		<span class={styles.value} aria-live="polite">{value}</span>
-		<button
-			type="button"
-			class={styles.button}
-			disabled={!canIncrease}
-			aria-label={`Augmenta ${label}`}
-			onclick={() => onchange(value + 1)}>+</button
-		>
-	</span>
+	<span class={styles.value} aria-live="polite">{value}</span>
+	<div class={styles.buttons}>
+		{@render decrementButton()}
+		{@render incrementButton()}
+	</div>
 </div>

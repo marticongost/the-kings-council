@@ -4,13 +4,13 @@ import type { ResourceType } from '#lib/models/resources';
 
 /** Resources owned by a player (the generic `any` resource has no tokens). */
 export const playerResourceTypes = [
-	'prestige',
 	'power',
-	'intrigue',
-	'strength',
 	'gold',
+	'strength',
 	'faith',
-	'favour'
+	'intrigue',
+	'favour',
+	'prestige'
 ] as const satisfies ReadonlyArray<ResourceType>;
 
 export type PlayerResourceType = (typeof playerResourceTypes)[number];

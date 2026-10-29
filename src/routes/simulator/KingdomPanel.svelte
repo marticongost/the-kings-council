@@ -28,9 +28,18 @@
 			...css.focus.mixin
 		},
 		stats: {
-			display: 'grid',
-			gridTemplateColumns: 'repeat(auto-fill, minmax(8.5em, 1fr))',
-			gap: css.spacing.xs
+			...css.row('lg'),
+			flexWrap: 'nowrap',
+			overflow: 'hidden'
+		},
+		statIcon: {
+			height: '2em',
+			width: 'auto',
+			backgroundColor: 'transparent',
+			color: css.palette.wood,
+			padding: 0,
+			borderRadius: 0,
+			flexShrink: 0
 		},
 		fieldLabel: {
 			fontSize: '0.8em',
@@ -99,7 +108,7 @@
 				onchange={(value) => simulator.setStat(kingdom.id, stat, value)}
 			>
 				{#snippet icon()}
-					<KingdomStatIcon {stat} />
+					<KingdomStatIcon class={styles.statIcon} {stat} />
 				{/snippet}
 			</Counter>
 		{/each}
