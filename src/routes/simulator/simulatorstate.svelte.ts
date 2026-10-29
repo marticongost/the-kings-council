@@ -116,6 +116,39 @@ function uniqueId(candidate: unknown, used: Set<string>): string {
 	return id;
 }
 
+/** Names handed out to new players, in order, before falling back to numbered names. */
+const defaultPlayerNames: ReadonlyArray<string> = [
+	'Oriol',
+	'Jordi',
+	'Marc',
+	'Dària',
+	'Jan',
+	'Marina',
+	'Gerard',
+	'Martí',
+	'Sara',
+	'Piqui',
+	'Marta',
+	'Joan',
+	'Vero',
+	'Kampde',
+	'Rebeca',
+	'Nil',
+	'Ali'
+];
+
+function nextPlayerName(players: ReadonlyArray<PlayerState>): string {
+	const used = new Set(players.map((player) => player.name));
+	const available = defaultPlayerNames.find((name) => !used.has(name));
+	if (available) return available;
+
+	let index = 1;
+	while (used.has(`Jugador ${index}`)) {
+		index += 1;
+	}
+	return `Jugador ${index}`;
+}
+
 /** Every player owns one capability card of each common action. */
 const commonCapabilities: ReadonlyArray<CardCapability> = cardsCatalog
 	.all()
@@ -177,7 +210,7 @@ export class SimulatorState {
 	addPlayer(): void {
 		this.players.push({
 			id: makeUid(),
-			name: `Jugador ${this.players.length + 1}`,
+			name: nextPlayerName(this.players),
 			kingdomId: null,
 			resources: emptyResources(),
 			hand: []
@@ -390,7 +423,8 @@ export class SimulatorState {
 						: null;
 				players.push({
 					id: uniqueId(record.id, usedPlayerIds),
-					name: typeof record.name === 'string' ? record.name : `Jugador ${players.length + 1}`,
+					name:
+						typeof record.name === 'string' && record.name ? record.name : nextPlayerName(players),
 					kingdomId,
 					resources: normalizeResources(record.resources),
 					hand: normalizeRefs(record.hand)
