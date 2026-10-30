@@ -26,6 +26,9 @@
 			fontSize: '0.85em',
 			fontStyle: 'italic',
 			color: css.text.subtleColor
+		},
+		body: {
+			...css.column('md')
 		}
 	});
 </script>
@@ -103,31 +106,33 @@
 		/>
 	{/snippet}
 
-	<div class={styles.resources}>
-		{#each playerResourceTypes as resource (resource)}
-			<Counter
-				compact
-				value={player.resources[resource]}
-				label={getResource(resource).title}
-				min={0}
-				onchange={(value) => simulator.setResource(player.id, resource, value)}
-			>
-				{#snippet icon()}
-					<InlineSvg class={styles.resourceIcon} src={`resources/${resource}.svg`} />
-				{/snippet}
-			</Counter>
-		{/each}
-	</div>
+	<div class={styles.body}>
+		<div class={styles.resources}>
+			{#each playerResourceTypes as resource (resource)}
+				<Counter
+					compact
+					value={player.resources[resource]}
+					label={getResource(resource).title}
+					min={0}
+					onchange={(value) => simulator.setResource(player.id, resource, value)}
+				>
+					{#snippet icon()}
+						<InlineSvg class={styles.resourceIcon} src={`resources/${resource}.svg`} />
+					{/snippet}
+				</Counter>
+			{/each}
+		</div>
 
-	<div class={styles.hand} role="list">
-		{#each player.hand as ref (ref.uid)}
-			{@const card = simulator.cardOf(ref)}
-			{#if card}
-				<CardPill {card} source={{ kind: 'hand', playerId: player.id }} uid={ref.uid} />
+		<div class={styles.hand} role="list">
+			{#each player.hand as ref (ref.uid)}
+				{@const card = simulator.cardOf(ref)}
+				{#if card}
+					<CardPill {card} source={{ kind: 'hand', playerId: player.id }} uid={ref.uid} />
+				{/if}
+			{/each}
+			{#if player.hand.length === 0}
+				<p class={styles.empty}>Sense cartes</p>
 			{/if}
-		{/each}
-		{#if player.hand.length === 0}
-			<p class={styles.empty}>Sense cartes</p>
-		{/if}
-	</div>
-</Panel>
+		</div>
+	</div></Panel
+>

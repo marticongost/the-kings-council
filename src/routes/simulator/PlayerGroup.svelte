@@ -3,7 +3,7 @@
 
 	const styles = css.styles({
 		group: {
-			...css.column('sm'),
+			...css.column('md'),
 			minWidth: 0
 		},
 		empty: {
