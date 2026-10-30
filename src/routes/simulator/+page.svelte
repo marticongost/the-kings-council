@@ -5,42 +5,12 @@
 		page: {
 			...css.column('lg')
 		},
-		toolbar: {
-			...css.row('md'),
-			justifyContent: 'space-between',
-			flexWrap: 'wrap',
-			alignItems: 'flex-end'
-		},
-		titleBlock: {
-			...css.column('xs')
-		},
-		title: {
-			margin: 0,
-			fontFamily: css.fonts.heading,
-			color: css.palette.cedar
-		},
-		hint: {
-			margin: 0,
-			maxWidth: '60em',
-			fontSize: '0.9em',
-			color: css.text.subtleColor
-		},
 		section: {
 			...css.column('sm')
 		},
-		sectionHeader: {
-			...css.row('sm'),
-			flexWrap: 'wrap',
-			justifyContent: 'space-between'
-		},
-		sectionTitle: {
-			margin: 0,
-			fontFamily: css.fonts.heading,
-			fontSize: '1.3em',
-			color: css.palette.cedar
-		},
-		sectionActions: {
-			...css.row('sm')
+		headerActions: {
+			marginLeft: 'auto',
+			...css.row('xs')
 		},
 		kingdoms: {
 			display: 'flex',
@@ -61,16 +31,63 @@
 		},
 		decks: {
 			display: 'grid',
-			gridTemplateColumns: 'repeat(auto-fill, minmax(15em, 1fr))',
+			gridTemplateColumns: 'repeat(auto-fit, minmax(15em, max-content))',
+			justifyContent: 'center',
 			gap: css.spacing.md
+		},
+		decksBar: {
+			position: 'fixed',
+			right: 0,
+			bottom: 0,
+			left: 0,
+			zIndex: 100,
+			padding: css.spacing.md,
+			backgroundColor: css.palette.carrara,
+			boxShadow: '0 -0.25em 1em rgba(0, 0, 0, 0.25)',
+			transform: 'translateY(100%)',
+			opacity: 0,
+			visibility: 'hidden',
+			pointerEvents: 'none',
+			transition: 'transform 0.2s ease-out, opacity 0.2s ease-out, visibility 0.2s'
+		},
+		decksBarVisible: {
+			transform: 'translateY(0)',
+			opacity: 1,
+			visibility: 'visible',
+			pointerEvents: 'auto'
+		},
+		decksHint: {
+			position: 'fixed',
+			bottom: 0,
+			left: '50%',
+			zIndex: 90,
+			...css.row('xs'),
+			padding: `${css.spacing.xs} ${css.spacing.md}`,
+			border: `1px solid ${css.palette.gurkha}`,
+			borderBottom: 'none',
+			borderTopLeftRadius: css.spacing.sm,
+			borderTopRightRadius: css.spacing.sm,
+			backgroundColor: css.palette.carrara,
+			color: css.palette.wood,
+			fontFamily: css.fonts.heading,
+			fontSize: '0.85em',
+			fontWeight: 900,
+			pointerEvents: 'none',
+			transform: 'translateX(-50%)',
+			transition: 'opacity 0.2s ease-out'
+		},
+		decksHintHidden: {
+			opacity: 0
 		}
 	});
 </script>
 
 <script lang="ts">
+	import { cx } from '@emotion/css';
 	import { onMount } from 'svelte';
-	import Button from '#lib/components/Button.svelte';
 	import IconButton from '#lib/components/IconButton.svelte';
+	import InlineSvg from '#lib/components/InlineSvg.svelte';
+	import Panel from '#lib/components/Panel.svelte';
 	import CardZone from './CardZone.svelte';
 	import DeckZone from './DeckZone.svelte';
 	import IndependentPlayersPanel from './IndependentPlayersPanel.svelte';
@@ -78,14 +95,43 @@
 	import { SimulatorState } from './simulatorstate.svelte';
 	import { deckIds } from './types';
 
+	/** Distance from the bottom of the viewport, in pixels, that reveals the decks. */
+	const decksRevealDistance = 30;
+
 	const simulator = new SimulatorState();
 
 	// Common action cards are reference cards whose capabilities every player has,
 	// and offices belong to kingdoms rather than to a draw pile.
 	const deckIdsInPlay = deckIds.filter((deckId) => deckId !== 'common' && deckId !== 'office');
 
+	let decksElement = $state<HTMLElement>();
+	let decksVisible = $state(false);
+
+	/**
+	 * Reveals the decks once the pointer is close to the bottom of the viewport, and keeps them
+	 * revealed while it is over the (taller) panel, so that dragging cards into a deck works.
+	 */
+	function updateDecksVisibility(event: MouseEvent | DragEvent) {
+		const panelTop = decksElement?.getBoundingClientRect().top ?? window.innerHeight;
+		decksVisible = event.clientY >= Math.min(panelTop, window.innerHeight - decksRevealDistance);
+	}
+
+	function hideDecks() {
+		decksVisible = false;
+	}
+
 	onMount(() => {
 		simulator.load();
+
+		window.addEventListener('mousemove', updateDecksVisibility);
+		window.addEventListener('dragover', updateDecksVisibility);
+		document.addEventListener('mouseleave', hideDecks);
+
+		return () => {
+			window.removeEventListener('mousemove', updateDecksVisibility);
+			window.removeEventListener('dragover', updateDecksVisibility);
+			document.removeEventListener('mouseleave', hideDecks);
+		};
 	});
 
 	$effect(() => {
@@ -107,39 +153,18 @@
 	<p>Carregant el simulador…</p>
 {:else}
 	<div class={styles.page}>
-		<header class={styles.toolbar}>
-			<div class={styles.titleBlock}>
-				<h1 class={styles.title}>Simulador</h1>
-				<p class={styles.hint}>
-					Pista: arrossega una baralla per robar la carta superior, mou les cartes entre mans,
-					descarts, la fila de lleis i el mercat d'actius, assigna càrrecs arrossegant-los entre
-					regnes i jugadors, i canvia un jugador de regne arrossegant el seu nom.
-				</p>
-			</div>
-			<Button onclick={clearSimulator}>Neteja</Button>
-		</header>
-
-		<section class={styles.section}>
-			<div class={styles.sectionHeader}>
-				<h2 class={styles.sectionTitle}>Regnes</h2>
-				<div class={styles.sectionActions}>
-					<Button onclick={() => simulator.addKingdom()}>Afegeix regne</Button>
+		<Panel title="Partida">
+			{#snippet header()}
+				<div class={styles.headerActions}>
+					<IconButton
+						src="ui/add-kingdom.svg"
+						label="Afegeix regne"
+						onclick={() => simulator.addKingdom()}
+					/>
+					<IconButton src="ui/restart.svg" label="Neteja" onclick={clearSimulator} />
 				</div>
-			</div>
-			<div class={styles.kingdoms}>
-				<div class={styles.kingdomColumn}>
-					<IndependentPlayersPanel {simulator} />
-				</div>
-				{#each simulator.kingdoms as kingdom (kingdom.id)}
-					<div class={styles.kingdomColumn}>
-						<KingdomPanel {simulator} {kingdom} />
-					</div>
-				{/each}
-			</div>
-		</section>
+			{/snippet}
 
-		<section class={styles.section}>
-			<h2 class={styles.sectionTitle}>Taula</h2>
 			<div class={styles.tableZones}>
 				<CardZone
 					{simulator}
@@ -164,11 +189,37 @@
 					{/snippet}
 				</CardZone>
 			</div>
+		</Panel>
+
+		<section class={styles.section}>
+			<div class={styles.kingdoms}>
+				<div class={styles.kingdomColumn}>
+					<IndependentPlayersPanel {simulator} />
+				</div>
+				{#each simulator.kingdoms as kingdom (kingdom.id)}
+					<div class={styles.kingdomColumn}>
+						<KingdomPanel {simulator} {kingdom} />
+					</div>
+				{/each}
+			</div>
+		</section>
+
+		<div class={cx(styles.decksHint, decksVisible && styles.decksHintHidden)} aria-hidden="true">
+			<InlineSvg src="ui/cards.svg" />
+			<span>Baralles</span>
+		</div>
+
+		<div
+			class={cx(styles.decksBar, decksVisible && styles.decksBarVisible)}
+			role="region"
+			aria-label="Baralles"
+			bind:this={decksElement}
+		>
 			<div class={styles.decks}>
 				{#each deckIdsInPlay as deckId (deckId)}
 					<DeckZone {simulator} {deckId} />
 				{/each}
 			</div>
-		</section>
+		</div>
 	</div>
 {/if}
