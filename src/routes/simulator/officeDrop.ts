@@ -35,6 +35,8 @@ export function officeDropHandlers({ simulator, zone, onOverChange }: OfficeDrop
 		const raw = event.dataTransfer?.getData(officeDragMime);
 		if (!raw) return;
 		event.preventDefault();
+		// Nested drop zones (e.g. a player inside a kingdom) must not also handle the drop.
+		event.stopPropagation();
 
 		try {
 			const payload = JSON.parse(raw) as DragPayload;

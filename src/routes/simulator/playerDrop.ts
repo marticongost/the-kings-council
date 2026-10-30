@@ -33,6 +33,8 @@ export function playerDropHandlers({ simulator, kingdomId, onOverChange }: Playe
 		const raw = event.dataTransfer?.getData(playerDragMime);
 		if (!raw) return;
 		event.preventDefault();
+		// Nested drop zones (e.g. a player inside a kingdom) must not also handle the drop.
+		event.stopPropagation();
 
 		try {
 			const payload = JSON.parse(raw) as PlayerDragPayload;

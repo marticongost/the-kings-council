@@ -89,7 +89,19 @@
 		onOverChange: (value) => (playerOver = value)
 	});
 
+	function clearOver() {
+		officeOver = false;
+		cardOver = false;
+		playerOver = false;
+	}
+
 	function ondragover(event: DragEvent) {
+		// Nested drop zones, such as a player panel, claim the drag themselves.
+		if (event.defaultPrevented) {
+			clearOver();
+			return;
+		}
+
 		officeDrop.ondragover(event);
 		cardDrop.ondragover(event);
 		playerDrop.ondragover(event);
