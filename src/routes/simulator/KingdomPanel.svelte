@@ -8,24 +8,29 @@
 			border: `1px solid ${css.palette.moonMist}`,
 			borderRadius: css.spacing.sm,
 			backgroundColor: css.palette.white,
+			transition: 'border-color 0.15s, background-color 0.15s',
 			minWidth: 0
 		},
-		header: {
-			...css.row('sm')
+		over: {
+			borderColor: css.palette.sandal,
+			backgroundColor: css.palette.wheat
 		},
-		nameInput: {
-			flex: '1 1 auto',
-			minWidth: 0,
-			height: css.forms.controlHeight,
-			...css.hpadding('sm'),
-			border: css.forms.controlBorder,
-			borderRadius: css.spacing.xs,
-			backgroundColor: css.forms.controlBackgroundColor,
+		header: {
+			...css.row('lg'),
+			flexWrap: 'wrap'
+		},
+		name: {
+			margin: 0,
 			fontFamily: css.fonts.heading,
 			fontWeight: 900,
-			fontSize: '1.1em',
+			fontSize: '1.5em',
+			lineHeight: 1.2,
 			color: css.palette.cedar,
-			...css.focus.mixin
+			whiteSpace: 'nowrap'
+		},
+		offices: {
+			flex: '1 1 auto',
+			minWidth: 0
 		},
 		stats: {
 			...css.row('lg'),
@@ -70,11 +75,13 @@
 </script>
 
 <script lang="ts">
+	import { cx } from '@emotion/css';
 	import Button from '#lib/components/Button.svelte';
 	import KingdomStatIcon from '#lib/components/KingdomStatIcon.svelte';
 	import { getKingdomStat, kingdomStatTypes } from '#lib/models/kingdomstats';
 	import Counter from './Counter.svelte';
-	import OfficeZone from './OfficeZone.svelte';
+	import OfficeList from './OfficeList.svelte';
+	import { officeDropHandlers } from './officeDrop';
 	import type { SimulatorState } from './simulatorstate.svelte';
 	import { kingdomStatMax, kingdomStatMin, type KingdomState } from './types';
 
@@ -86,16 +93,31 @@
 	const { simulator, kingdom }: Props = $props();
 
 	const members = $derived(simulator.membersOf(kingdom.id));
+
+	let isOver = $state(false);
+
+	const drop = officeDropHandlers({
+		simulator: () => simulator,
+		zone: () => ({ kind: 'kingdom-offices', kingdomId: kingdom.id }),
+		onOverChange: (value) => (isOver = value)
+	});
 </script>
 
-<article class={styles.panel}>
+<article
+	class={cx(styles.panel, isOver && styles.over)}
+	ondragover={drop.ondragover}
+	ondragleave={drop.ondragleave}
+	ondrop={drop.ondrop}
+>
 	<header class={styles.header}>
-		<input
-			class={styles.nameInput}
-			value={kingdom.name}
-			aria-label="Nom del regne"
-			oninput={(event) => simulator.renameKingdom(kingdom.id, event.currentTarget.value)}
-		/>
+		<h3 class={styles.name}>{kingdom.name}</h3>
+		<div class={styles.offices}>
+			<OfficeList
+				{simulator}
+				offices={kingdom.offices}
+				zone={{ kind: 'kingdom-offices', kingdomId: kingdom.id }}
+			/>
+		</div>
 		<Button onclick={() => simulator.removeKingdom(kingdom.id)}>Elimina</Button>
 	</header>
 
@@ -125,11 +147,4 @@
 			{/each}
 		</div>
 	</div>
-
-	<OfficeZone
-		{simulator}
-		offices={kingdom.offices}
-		zone={{ kind: 'kingdom-offices', kingdomId: kingdom.id }}
-		emptyLabel="Sense càrrecs"
-	/>
 </article>

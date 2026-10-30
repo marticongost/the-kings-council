@@ -8,36 +8,29 @@
 			border: `1px solid ${css.palette.moonMist}`,
 			borderRadius: css.spacing.sm,
 			backgroundColor: css.palette.white,
+			transition: 'border-color 0.15s, background-color 0.15s',
 			minWidth: 0
 		},
-		header: {
-			...css.row('sm')
+		over: {
+			borderColor: css.palette.sandal,
+			backgroundColor: css.palette.wheat
 		},
-		nameInput: {
-			flex: '1 1 auto',
-			minWidth: 0,
-			height: css.forms.controlHeight,
-			...css.hpadding('sm'),
-			border: css.forms.controlBorder,
-			borderRadius: css.spacing.xs,
-			backgroundColor: css.forms.controlBackgroundColor,
+		header: {
+			...css.row('lg'),
+			flexWrap: 'wrap'
+		},
+		name: {
+			margin: 0,
 			fontFamily: css.fonts.heading,
 			fontWeight: 900,
-			fontSize: '1.1em',
+			fontSize: '1.5em',
+			lineHeight: 1.2,
 			color: css.palette.cedar,
-			...css.focus.mixin
+			whiteSpace: 'nowrap'
 		},
-		field: {
-			...css.column('xs')
-		},
-		fieldLabel: {
-			fontSize: '0.8em',
-			fontWeight: 900,
-			textTransform: 'uppercase',
-			letterSpacing: '0.05em',
-			color: css.text.subtleColor
-		},
-		select: {
+		kingdom: {
+			flex: '0 1 auto',
+			minWidth: 0,
 			height: css.forms.controlHeight,
 			...css.hpadding('sm'),
 			border: css.forms.controlBorder,
@@ -47,6 +40,10 @@
 			fontSize: '1em',
 			color: css.text.regularColor,
 			...css.focus.mixin
+		},
+		offices: {
+			flex: '1 1 auto',
+			minWidth: 0
 		},
 		resources: {
 			...css.row('lg'),
@@ -87,12 +84,14 @@
 </script>
 
 <script lang="ts">
+	import { cx } from '@emotion/css';
 	import Button from '#lib/components/Button.svelte';
 	import InlineSvg from '#lib/components/InlineSvg.svelte';
 	import { getResource } from '#lib/models/resources';
 	import CardZone from './CardZone.svelte';
 	import Counter from './Counter.svelte';
-	import OfficeZone from './OfficeZone.svelte';
+	import OfficeList from './OfficeList.svelte';
+	import { officeDropHandlers } from './officeDrop';
 	import SimulatorCard from './SimulatorCard.svelte';
 	import type { SimulatorState } from './simulatorstate.svelte';
 	import { playerResourceTypes, type PlayerState } from './types';
@@ -105,23 +104,27 @@
 	const { simulator, player }: Props = $props();
 
 	const capabilities = $derived(simulator.capabilitiesOf(player));
+
+	let isOver = $state(false);
+
+	const drop = officeDropHandlers({
+		simulator: () => simulator,
+		zone: () => ({ kind: 'player-offices', playerId: player.id }),
+		onOverChange: (value) => (isOver = value)
+	});
 </script>
 
-<article class={styles.panel}>
+<article
+	class={cx(styles.panel, isOver && styles.over)}
+	ondragover={drop.ondragover}
+	ondragleave={drop.ondragleave}
+	ondrop={drop.ondrop}
+>
 	<header class={styles.header}>
-		<input
-			class={styles.nameInput}
-			value={player.name}
-			aria-label="Nom del jugador"
-			oninput={(event) => simulator.renamePlayer(player.id, event.currentTarget.value)}
-		/>
-		<Button onclick={() => simulator.removePlayer(player.id)}>Elimina</Button>
-	</header>
-
-	<label class={styles.field}>
-		<span class={styles.fieldLabel}>Regne</span>
+		<h3 class={styles.name}>{player.name}</h3>
 		<select
-			class={styles.select}
+			class={styles.kingdom}
+			aria-label="Regne"
 			value={player.kingdomId ?? ''}
 			onchange={(event) => simulator.assignKingdom(player.id, event.currentTarget.value || null)}
 		>
@@ -130,7 +133,15 @@
 				<option value={kingdom.id}>{kingdom.name}</option>
 			{/each}
 		</select>
-	</label>
+		<div class={styles.offices}>
+			<OfficeList
+				{simulator}
+				offices={player.offices}
+				zone={{ kind: 'player-offices', playerId: player.id }}
+			/>
+		</div>
+		<Button onclick={() => simulator.removePlayer(player.id)}>Elimina</Button>
+	</header>
 
 	<div class={styles.resources}>
 		{#each playerResourceTypes as resource (resource)}
@@ -153,13 +164,6 @@
 		zone={{ kind: 'hand', playerId: player.id }}
 		label="Mà"
 		emptyLabel="Sense cartes"
-	/>
-
-	<OfficeZone
-		{simulator}
-		offices={player.offices}
-		zone={{ kind: 'player-offices', playerId: player.id }}
-		emptyLabel="Sense càrrecs"
 	/>
 
 	<section class={styles.capabilities}>

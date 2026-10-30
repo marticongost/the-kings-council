@@ -33,6 +33,9 @@ export function emptyKingdomStats(): KingdomStats {
 
 export const simulatorDragMime = 'application/x-kings-council-simulator';
 
+/** Set alongside `simulatorDragMime` so panels can recognise office drags while over them. */
+export const officeDragMime = 'application/x-kings-council-office';
+
 /** A card in play, identified by its catalog card and a per-instance id. */
 export interface CardRef {
 	uid: string;

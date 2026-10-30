@@ -268,11 +268,6 @@ export class SimulatorState {
 		this.returnOffices(player);
 	}
 
-	renamePlayer(playerId: string, name: string): void {
-		const player = this.players.find((candidate) => candidate.id === playerId);
-		if (player) player.name = name;
-	}
-
 	assignKingdom(playerId: string, kingdomId: string | null): void {
 		const player = this.players.find((candidate) => candidate.id === playerId);
 		if (!player) return;
@@ -317,11 +312,6 @@ export class SimulatorState {
 			player.kingdomId = null;
 			player.offices = [];
 		}
-	}
-
-	renameKingdom(kingdomId: string, name: string): void {
-		const kingdom = this.kingdoms.find((candidate) => candidate.id === kingdomId);
-		if (kingdom) kingdom.name = name;
 	}
 
 	setStat(kingdomId: string, stat: KingdomStatType, value: number): void {

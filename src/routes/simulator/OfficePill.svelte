@@ -26,7 +26,7 @@
 	import InlineSvg from '#lib/components/InlineSvg.svelte';
 	import { getCardIcon } from '#lib/cardattributes';
 	import type { Card } from '#lib/models/cards';
-	import { simulatorDragMime, type DragPayload, type Zone } from './types';
+	import { officeDragMime, simulatorDragMime, type DragPayload, type Zone } from './types';
 
 	interface Props {
 		card: Card;
@@ -42,7 +42,9 @@
 			return;
 		}
 		const payload: DragPayload = { source, uid };
-		event.dataTransfer.setData(simulatorDragMime, JSON.stringify(payload));
+		const data = JSON.stringify(payload);
+		event.dataTransfer.setData(simulatorDragMime, data);
+		event.dataTransfer.setData(officeDragMime, data);
 		event.dataTransfer.effectAllowed = 'move';
 	}
 </script>
