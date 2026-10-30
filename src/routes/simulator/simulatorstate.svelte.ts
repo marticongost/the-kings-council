@@ -347,6 +347,16 @@ export class SimulatorState {
 		return this.players.filter((player) => player.kingdomId === null);
 	}
 
+	/** The house card the player was dealt, which identifies their house while it is in hand. */
+	houseCardOf(player: PlayerState): Card | undefined {
+		for (const ref of player.hand) {
+			const card = this.cardOf(ref);
+			if (card?.type === 'house') return card;
+		}
+
+		return undefined;
+	}
+
 	// Kingdoms
 
 	addKingdom(): void {

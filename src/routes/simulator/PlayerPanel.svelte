@@ -84,7 +84,7 @@
 
 <Panel title={player.name} {isOver} {ondragover} {ondragleave} {ondrop}>
 	{#snippet titleContent()}
-		<PlayerChip {player} />
+		<PlayerChip {simulator} {player} />
 	{/snippet}
 
 	{#snippet header()}
