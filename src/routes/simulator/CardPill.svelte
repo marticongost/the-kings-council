@@ -11,16 +11,16 @@
 	// picking the shade that keeps the pill text readable.
 	const pillColors: Record<CardBackgroundName, PillColors> = {
 		common: { background: '#495b62', color: css.palette.white },
-		office: { background: '#923b3b', color: css.palette.white },
-		'collective-goal': { background: '#d7b489', color: css.palette.cedar },
-		'personal-goal': { background: '#bfa68f', color: css.palette.cedar },
-		event: { background: '#406d43', color: css.palette.white },
+		office: { background: '#9f5757', color: css.palette.white },
+		'collective-goal': { background: '#dfcba7', color: css.palette.cedar },
+		'personal-goal': { background: '#c4ae99', color: css.palette.cedar },
+		event: { background: '#6e846f', color: css.palette.white },
 		crisis: { background: '#812925', color: css.palette.white },
-		law: { background: '#7f477f', color: css.palette.white },
-		tactic: { background: '#4f5b7e', color: css.palette.white },
+		law: { background: '#987f98', color: css.palette.white },
+		tactic: { background: '#616f95', color: css.palette.white },
 		asset: { background: '#bdb8a7', color: css.palette.cedar },
-		'hidden-asset': { background: '#59514a', color: css.palette.white },
-		house: { background: '#c2c2a4', color: css.palette.cedar }
+		'hidden-asset': { background: '#696057', color: css.palette.white },
+		house: { background: '#d4d2c7', color: css.palette.cedar }
 	};
 
 	// The popup is positioned against the viewport to escape zone overflow, so the
