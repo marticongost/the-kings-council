@@ -153,8 +153,8 @@
 					{simulator}
 					cards={simulator.laws}
 					zone={{ kind: 'laws' }}
-					label="Lleis en joc"
-					emptyLabel="Cap llei en joc"
+					label="Lleis disponibles"
+					emptyLabel="No hi ha lleis disponibles"
 				/>
 				<CardZone
 					{simulator}
