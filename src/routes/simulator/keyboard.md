@@ -106,15 +106,17 @@ existing cards, but not to acquire new ones.
 
 ## Actions
 
-| Key                          | Action                                           |
-| ---------------------------- | ------------------------------------------------ |
-| <kbd>Delete</kbd>            | Delete the selected players and kingdoms         |
-| <kbd>d</kbd>                 | Discard the selected card pills                  |
-| <kbd>r</kbd>                 | Return the selected card pills to their deck     |
-| <kbd>a</kbd> [amount] type   | Acquire cards of the given type                  |
-| <kbd>+</kbd> [amount] target | Increase the selected resources or kingdom stats |
-| <kbd>-</kbd> [amount] target | Decrease the selected resources or kingdom stats |
-| <kbd>=</kbd> amount target   | Set the selected resources or kingdom stats      |
+| Key                                | Action                                           |
+| ---------------------------------- | ------------------------------------------------ |
+| <kbd>Delete</kbd>                  | Delete the selected players and kingdoms         |
+| <kbd>d</kbd>                       | Discard the selected card pills                  |
+| <kbd>r</kbd>                       | Return the selected card pills to their deck     |
+| <kbd>a</kbd> [amount] type         | Acquire cards of the given type                  |
+| <kbd>+</kbd> [amount] target       | Increase the selected resources or kingdom stats |
+| <kbd>-</kbd> [amount] target       | Decrease the selected resources or kingdom stats |
+| <kbd>=</kbd> amount target         | Set the selected resources or kingdom stats      |
+| <kbd>n</kbd> [amount] <kbd>k</kbd> | Create new kingdoms                              |
+| <kbd>n</kbd> [amount] <kbd>p</kbd> | Create new players                               |
 
 The independents panel behaves like a kingdom for navigation, but it cannot be deleted.
 Discarding or returning cards clears their selection, since the pills no longer appear
@@ -185,6 +187,33 @@ When players and kingdoms are selected together, each key changes every target i
 defined for: for example, <kbd>s</kbd> changes both Strength and Stability. Resources
 never drop below zero, and kingdom stats stay between 1 and 5. <kbd>=</kbd> requires an
 amount; without one, the command is ignored.
+
+### Creating kingdoms and players
+
+Press <kbd>n</kbd>, enter an optional amount, and finish with a target key:
+
+```text
+n → k          create 1 kingdom
+n → 3 → k      create 3 kingdoms
+n → 2 → p      create 2 players
+```
+
+<kbd>n</kbd> works from any selection. New kingdoms are added at the end of the list, and
+new players join the selected kingdoms; when no kingdom is selected, they are created as
+independent players. The independents panel is not a kingdom for this shortcut, so
+selecting it creates independent players too. The amount applies to each selected
+kingdom, so <kbd>n</kbd> <kbd>2</kbd> <kbd>p</kbd> with two kingdoms selected creates two
+players in each of them.
+
+Players are created exactly like the add buttons in the panels: they receive the starting
+resources, a house, three tactics and one objective of each kind, drawn from the decks.
+
+The newly created kingdoms or players become the selection, so creation commands can be
+chained. For example, create a kingdom and then two players in it:
+
+```text
+n → k → n → 2 → p
+```
 
 ## Composing shortcuts
 

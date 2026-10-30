@@ -35,7 +35,8 @@ type PendingCommand =
 	| { kind: 'filter' }
 	| { kind: 'acquire'; amount: string }
 	| { kind: 'adjust'; direction: -1 | 1; amount: string }
-	| { kind: 'set'; amount: string };
+	| { kind: 'set'; amount: string }
+	| { kind: 'create'; amount: string };
 
 export type SelectionView = 'page' | 'kingdoms' | 'players' | 'cards';
 
@@ -169,6 +170,21 @@ export class KeyboardController {
 			];
 		}
 
+		if (pending?.kind === 'create') {
+			const amount = pending.amount || '1';
+			return [
+				{
+					title: `Afegeix ${amount}`,
+					items: [
+						{ keys: ['0-9'], label: 'Quantitat (opcional)' },
+						{ keys: ['k'], label: 'Regnes' },
+						{ keys: ['p'], label: 'Jugadors' },
+						{ keys: ['Esc'], label: 'Cancel·la' }
+					]
+				}
+			];
+		}
+
 		const sections: Array<CueSection> = [];
 
 		switch (this.view) {
@@ -224,7 +240,7 @@ export class KeyboardController {
 				break;
 		}
 
-		const actions: Array<CueItem> = [];
+		const actions: Array<CueItem> = [{ keys: ['n'], label: 'Afegeix regnes o jugadors' }];
 		const canAcquire =
 			this.selection.players.size > 0 ||
 			[...this.selection.kingdoms].some((id) => id !== independentKingdomId);
@@ -338,6 +354,9 @@ export class KeyboardController {
 			case 'r':
 				this.returnSelected();
 				return;
+			case 'n':
+				this.pending = { kind: 'create', amount: '' };
+				return;
 		}
 	};
 
@@ -365,6 +384,24 @@ export class KeyboardController {
 			if (isConcreteTypeKey(key)) {
 				const amount = pending.amount ? Number(pending.amount) : 1;
 				this.acquire(amount, key);
+				this.pending = null;
+				return true;
+			}
+
+			this.pending = null;
+			return false;
+		}
+
+		if (pending.kind === 'create') {
+			if (/^[0-9]$/.test(key)) {
+				if (pending.amount === '' && key === '0') return true;
+				if (pending.amount.length < 3) pending.amount += key;
+				return true;
+			}
+
+			if (key === 'k' || key === 'p') {
+				const amount = pending.amount ? Number(pending.amount) : 1;
+				this.create(key === 'k' ? 'kingdom' : 'player', amount);
 				this.pending = null;
 				return true;
 			}
@@ -647,6 +684,34 @@ export class KeyboardController {
 			return;
 		}
 		this.selection.replace('card', matching);
+	}
+
+	private create(kind: 'kingdom' | 'player', amount: number): void {
+		if (amount <= 0) return;
+
+		if (kind === 'kingdom') {
+			const kingdomIds: Array<string> = [];
+			for (let index = 0; index < amount; index += 1) {
+				kingdomIds.push(this.simulator.addKingdom());
+			}
+			this.selection.replace('kingdom', kingdomIds);
+			revealElement('kingdom', kingdomIds[0]);
+			return;
+		}
+
+		const targetKingdomIds = kingdomIdsInOrder(this.simulator).filter(
+			(id) => id !== independentKingdomId && this.selection.kingdoms.has(id)
+		);
+		const playerIds: Array<string> = [];
+		const kingdoms = targetKingdomIds.length > 0 ? targetKingdomIds : [null];
+		for (const kingdomId of kingdoms) {
+			for (let index = 0; index < amount; index += 1) {
+				playerIds.push(this.simulator.addPlayer(kingdomId));
+			}
+		}
+
+		this.selection.replace('player', playerIds);
+		revealElement('player', playerIds[0]);
 	}
 
 	private acquire(amount: number, type: ConcreteTypeKey): void {

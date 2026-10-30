@@ -313,11 +313,12 @@ export class SimulatorState {
 	 * Adds a player joining a kingdom optionally, dealt the starting resources and
 	 * one house, several tactic and one objective of each kind, drawn from their decks.
 	 */
-	addPlayer(kingdomId: string | null = null): void {
+	addPlayer(kingdomId: string | null = null): string {
 		const resolvedKingdomId =
 			kingdomId && this.kingdoms.some((kingdom) => kingdom.id === kingdomId) ? kingdomId : null;
+		const id = makeUid();
 		this.players.push({
-			id: makeUid(),
+			id,
 			name: nextPlayerName(this.players),
 			kingdomId: resolvedKingdomId,
 			resources: startingResources(),
@@ -329,6 +330,7 @@ export class SimulatorState {
 			],
 			offices: []
 		});
+		return id;
 	}
 
 	/**
@@ -419,13 +421,15 @@ export class SimulatorState {
 
 	// Kingdoms
 
-	addKingdom(): void {
+	addKingdom(): string {
+		const id = makeUid();
 		this.kingdoms.push({
-			id: makeUid(),
+			id,
 			name: nextKingdomName(this.kingdoms),
 			stats: emptyKingdomStats(),
 			cards: createOfficeRefs()
 		});
+		return id;
 	}
 
 	removeKingdom(kingdomId: string): void {
