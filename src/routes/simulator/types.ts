@@ -45,11 +45,15 @@ export interface CardRef {
 	cardId: string;
 }
 
-/** A face-down pile: one per card type, except assets, which split by visibility. */
+/**
+ * A face-down pile: one per card type, except assets, which split by visibility,
+ * and goals, which split between collective and personal objectives.
+ */
 export const deckIds = [
 	'common',
 	'office',
-	'goal',
+	'collective-goal',
+	'personal-goal',
 	'event',
 	'crisis',
 	'law',
@@ -75,12 +79,15 @@ export type Zone =
 /** The deck a card belongs to when it is face down. */
 export function deckIdOf(card: Card): DeckId {
 	if (card.type === 'asset') return card.hidden ? 'hidden-asset' : 'visible-asset';
+	if (card.type === 'goal') return `${card.goalType}-goal`;
 	return card.type;
 }
 
-/** The card type a deck holds. Visible and hidden asset decks both hold assets. */
+/** The card type a deck holds. Split asset and goal decks hold their base card type. */
 export function deckCardType(deckId: DeckId): CardType {
-	return deckId === 'visible-asset' || deckId === 'hidden-asset' ? 'asset' : deckId;
+	if (deckId === 'visible-asset' || deckId === 'hidden-asset') return 'asset';
+	if (deckId === 'collective-goal' || deckId === 'personal-goal') return 'goal';
+	return deckId;
 }
 
 /** Zones holding unassigned (kingdom) or assigned (player) offices. */

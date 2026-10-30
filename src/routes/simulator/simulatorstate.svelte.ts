@@ -27,7 +27,7 @@ import {
 
 export const simulatorStorageKey = 'the-kings-council:simulator:v1';
 
-const snapshotVersion = 2;
+const snapshotVersion = 3;
 
 /** Oldest snapshot version that can still be migrated to the current schema. */
 const oldestSnapshotVersion = 1;
@@ -117,6 +117,16 @@ function normalizeDeckRefs(value: unknown): Record<DeckId, Array<CardRef>> {
 		Array.isArray(record?.['visible-asset']) || Array.isArray(record?.['hidden-asset']);
 	if (!hasSplitAssetPiles && Array.isArray(record?.asset)) {
 		for (const ref of normalizeRefs(record.asset, 'asset')) {
+			const card = cardsCatalog.byId(ref.cardId);
+			if (card) decks[deckIdOf(card)].push(ref);
+		}
+	}
+
+	// Snapshot versions before 3 kept collective and personal goals in the same pile.
+	const hasSplitGoalPiles =
+		Array.isArray(record?.['collective-goal']) || Array.isArray(record?.['personal-goal']);
+	if (!hasSplitGoalPiles && Array.isArray(record?.goal)) {
+		for (const ref of normalizeRefs(record.goal, 'goal')) {
 			const card = cardsCatalog.byId(ref.cardId);
 			if (card) decks[deckIdOf(card)].push(ref);
 		}

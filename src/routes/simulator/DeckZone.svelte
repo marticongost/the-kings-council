@@ -94,6 +94,8 @@
 		const typeTitle = getProperty(deckCardType(deckId)).title;
 		if (deckId === 'visible-asset') return `${typeTitle} (visible)`;
 		if (deckId === 'hidden-asset') return `${typeTitle} (ocult)`;
+		if (deckId === 'collective-goal') return `${typeTitle} (col·lectiu)`;
+		if (deckId === 'personal-goal') return `${typeTitle} (personal)`;
 		return typeTitle;
 	});
 	const deck = $derived(simulator.decks[deckId]);
