@@ -22,10 +22,9 @@
 			fontWeight: 900,
 			color: css.palette.wood
 		},
-		count: {
+		actions: {
 			marginLeft: 'auto',
-			fontWeight: 400,
-			color: css.text.subtleColor
+			...css.row('xs')
 		},
 		cards: {
 			...css.grid('xs'),
@@ -56,6 +55,7 @@
 
 <script lang="ts">
 	import { cx } from '@emotion/css';
+	import type { Snippet } from 'svelte';
 	import { cardsCatalog } from '#lib/data/catalog';
 	import InlineSvg from '#lib/components/InlineSvg.svelte';
 	import type { CardRef, Zone } from './types';
@@ -74,6 +74,8 @@
 		emptyIcon?: string;
 		pile?: boolean;
 		height?: string;
+		/** Extra controls rendered in the header, after the label. */
+		actions?: Snippet;
 	}
 
 	const {
@@ -85,7 +87,8 @@
 		emptyLabel,
 		emptyIcon,
 		pile = false,
-		height
+		height,
+		actions
 	}: Props = $props();
 
 	let isOver = $state(false);
@@ -109,8 +112,10 @@
 	{#if label}
 		<div class={styles.header}>
 			<span>{label}</span>
-			{#if !pile}
-				<span class={styles.count}>{cards.length}</span>
+			{#if actions}
+				<div class={styles.actions}>
+					{@render actions()}
+				</div>
 			{/if}
 		</div>
 	{/if}

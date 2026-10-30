@@ -70,6 +70,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import Button from '#lib/components/Button.svelte';
+	import IconButton from '#lib/components/IconButton.svelte';
 	import CardZone from './CardZone.svelte';
 	import DeckZone from './DeckZone.svelte';
 	import IndependentPlayersPanel from './IndependentPlayersPanel.svelte';
@@ -153,7 +154,15 @@
 					zone={{ kind: 'market' }}
 					label="Mercat d'actius"
 					emptyLabel="Cap actiu al mercat"
-				/>
+				>
+					{#snippet actions()}
+						<IconButton
+							src="ui/refill.svg"
+							label="Reomple el mercat"
+							onclick={() => simulator.refillMarket()}
+						/>
+					{/snippet}
+				</CardZone>
 			</div>
 			<div class={styles.decks}>
 				{#each deckIdsInPlay as deckId (deckId)}

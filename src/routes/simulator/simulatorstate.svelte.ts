@@ -414,6 +414,35 @@ export class SimulatorState {
 		targetCards.push(ref);
 	}
 
+	/**
+	 * Prepares a market row as the rules describe: one asset per player, half
+	 * drawn from the visible assets (rounded up) and half from the hidden ones
+	 * (rounded down). Cards already on the market are discarded, as they are at
+	 * the start of a turn.
+	 */
+	refillMarket(): void {
+		const rowSize = this.players.length;
+		const visibleCount = Math.ceil(rowSize / 2);
+
+		for (const ref of this.market) {
+			const card = this.cardOf(ref);
+			if (card) this.discards[deckIdOf(card)].push(ref);
+		}
+		this.market = [];
+
+		this.dealToMarket('visible-asset', visibleCount);
+		this.dealToMarket('hidden-asset', rowSize - visibleCount);
+	}
+
+	/** Deals up to `count` cards from a deck onto the market. */
+	private dealToMarket(deckId: DeckId, count: number): void {
+		const deck = this.decks[deckId];
+		for (let dealt = 0; dealt < count && deck.length > 0; dealt += 1) {
+			const ref = deck.pop();
+			if (ref) this.market.push(ref);
+		}
+	}
+
 	// Offices
 
 	/**
