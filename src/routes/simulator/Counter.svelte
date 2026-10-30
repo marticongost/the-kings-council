@@ -28,11 +28,21 @@
 			textAlign: 'center',
 			// Grenze's figures sit below the line-box centre; nudge them up optically.
 			transform: 'translateY(-0.1em)'
+		},
+		compactCounter: {
+			gap: '0.1em'
+		},
+		compactValue: {
+			fontSize: '1.4em'
+		},
+		compactButton: {
+			fontSize: '0.7em'
 		}
 	});
 </script>
 
 <script lang="ts">
+	import { cx } from '@emotion/css';
 	import type { Snippet } from 'svelte';
 
 	interface Props {
@@ -42,9 +52,19 @@
 		min?: number;
 		max?: number;
 		icon?: Snippet;
+		/** Renders smaller figures and buttons, so counters fit side by side in dense panels. */
+		compact?: boolean;
 	}
 
-	const { value, label, onchange, min = 0, max = Number.POSITIVE_INFINITY, icon }: Props = $props();
+	const {
+		value,
+		label,
+		onchange,
+		min = 0,
+		max = Number.POSITIVE_INFINITY,
+		icon,
+		compact = false
+	}: Props = $props();
 
 	const canDecrease = $derived(value > min);
 	const canIncrease = $derived(value < max);
@@ -89,7 +109,7 @@
 {#snippet decrementButton()}
 	<IconButton
 		src="ui/increase.svg"
-		class={styles.button}
+		class={cx(styles.button, compact && styles.compactButton)}
 		disabled={!canDecrease}
 		label={`Disminueix ${label}`}
 		onclick={() => onchange(value - 1)}
@@ -99,18 +119,18 @@
 {#snippet incrementButton()}
 	<IconButton
 		src="ui/decrease.svg"
-		class={styles.button}
+		class={cx(styles.button, compact && styles.compactButton)}
 		disabled={!canIncrease}
 		label={`Augmenta ${label}`}
 		onclick={() => onchange(value + 1)}
 	/>
 {/snippet}
 
-<div class={styles.counter} onwheel={handleWheel}>
+<div class={cx(styles.counter, compact && styles.compactCounter)} onwheel={handleWheel}>
 	<span class={styles.label} title={label}>
 		{@render icon?.()}
 	</span>
-	<span class={styles.value} aria-live="polite">{value}</span>
+	<span class={cx(styles.value, compact && styles.compactValue)} aria-live="polite">{value}</span>
 	<div class={styles.buttons}>
 		{@render decrementButton()}
 		{@render incrementButton()}

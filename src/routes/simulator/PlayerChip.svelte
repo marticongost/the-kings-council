@@ -15,6 +15,7 @@
 			color: css.palette.thatch
 		},
 		name: {
+			fontSize: '0.8em',
 			minWidth: 0,
 			overflow: 'hidden',
 			textOverflow: 'ellipsis',

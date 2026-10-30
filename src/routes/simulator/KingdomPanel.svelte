@@ -27,6 +27,7 @@
 		},
 		stats: {
 			...css.row('lg'),
+			justifyContent: 'space-between',
 			flexWrap: 'nowrap',
 			overflow: 'hidden'
 		},

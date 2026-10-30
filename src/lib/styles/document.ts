@@ -2,12 +2,17 @@ import type { CSSObject } from '@emotion/css/create-instance';
 import * as fonts from './fonts';
 import * as palette from './palette';
 
-/** Surface used for long-form document content, such as the rules page and panels. */
-export const surface: CSSObject = {
+const createSurface = (insetBlur: string, insetSpread: string): CSSObject => ({
 	backgroundColor: palette.linen,
 	border: `1px solid ${palette.gurkha}`,
-	boxShadow: `inset 0 0 2em 0.5em ${palette.gurkha}a0, 0 0 0.5em rgba(0,0,0,0.15)`
-};
+	boxShadow: `inset 0 0 ${insetBlur} ${insetSpread} ${palette.gurkha}a0, 0 0 0.5em rgba(0,0,0,0.15)`
+});
+
+/** Surface used for long-form document content, such as the rules page and panels. */
+export const surface: CSSObject = createSurface('2em', '0.5em');
+
+/** Surface used for compact panels, whose smaller padding leaves less room for the inset glow. */
+export const compactSurface: CSSObject = createSurface('1em', '0.25em');
 
 /** Typography of top-level headings in long-form documents. */
 export const titleTypography: CSSObject = {

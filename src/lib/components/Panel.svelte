@@ -4,10 +4,16 @@
 	const styles = css.styles({
 		panel: {
 			...css.column('md'),
-			...css.document.surface,
-			padding: css.spacing.lg,
 			transition: 'border-color 0.15s, background-color 0.15s',
 			minWidth: 0
+		},
+		regular: {
+			...css.document.surface,
+			padding: css.spacing.lg
+		},
+		compact: {
+			...css.document.compactSurface,
+			padding: css.spacing.md
 		},
 		over: {
 			borderColor: css.palette.sandal,
@@ -45,12 +51,27 @@
 		children?: Snippet;
 		/** Highlights the panel, e.g. while a drag operation hovers it. */
 		isOver?: boolean;
+		/** Renders the panel with reduced padding and a tighter surface, for dense content. */
+		compact?: boolean;
 	}
 
-	const { title, titleContent, header, children, isOver = false, ...attributes }: Props = $props();
+	const {
+		title,
+		titleContent,
+		header,
+		children,
+		isOver = false,
+		compact = false,
+		...attributes
+	}: Props = $props();
 </script>
 
-<article {...standardAttributes(attributes, cx(styles.panel, isOver && styles.over))}>
+<article
+	{...standardAttributes(
+		attributes,
+		cx(styles.panel, compact ? styles.compact : styles.regular, isOver && styles.over)
+	)}
+>
 	<header class={styles.header}>
 		<h3 class={styles.name}>
 			{#if titleContent}

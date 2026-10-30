@@ -7,11 +7,12 @@
 			minWidth: 0
 		},
 		resources: {
-			...css.grid('md'),
+			...css.grid('xs'),
+			justifyContent: 'space-between',
 			minWidth: 0
 		},
 		resourceIcon: {
-			height: '2em',
+			height: '1.3em',
 			width: 'auto',
 			color: css.palette.dawn,
 			flexShrink: 0
@@ -82,7 +83,7 @@
 	}
 </script>
 
-<Panel title={player.name} {isOver} {ondragover} {ondragleave} {ondrop}>
+<Panel title={player.name} {isOver} {ondragover} {ondragleave} {ondrop} compact>
 	{#snippet titleContent()}
 		<PlayerChip {simulator} {player} />
 	{/snippet}
@@ -105,6 +106,7 @@
 	<div class={styles.resources}>
 		{#each playerResourceTypes as resource (resource)}
 			<Counter
+				compact
 				value={player.resources[resource]}
 				label={getResource(resource).title}
 				min={0}
