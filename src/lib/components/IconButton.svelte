@@ -6,22 +6,16 @@
 			display: 'inline-flex',
 			alignItems: 'center',
 			justifyContent: 'center',
-			height: css.forms.controlHeight,
-			width: css.forms.controlHeight,
-			padding: '0.3em',
 			border: 'none',
 			borderRadius: css.spacing.xs,
 			backgroundColor: 'transparent',
 			color: css.palette.sandal,
 			cursor: 'pointer',
 			...css.focus.mixin,
+			fontSize: '1.4rem',
 			'&:hover': {
 				color: css.palette.tobacco
 			}
-		},
-		icon: {
-			height: '100%',
-			width: 'auto'
 		}
 	});
 </script>
@@ -41,5 +35,5 @@
 </script>
 
 <button {...standardAttributes(attributes, styles.button)} {type} aria-label={label} title={label}>
-	<InlineSvg class={styles.icon} {src} aria-hidden="true" />
+	<InlineSvg {src} aria-hidden="true" />
 </button>

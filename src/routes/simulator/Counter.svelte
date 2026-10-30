@@ -1,4 +1,5 @@
 <script lang="ts" module>
+	import IconButton from '#lib/components/IconButton.svelte';
 	import * as css from '#lib/styles';
 
 	const styles = css.styles({
@@ -13,29 +14,10 @@
 			minWidth: 0
 		},
 		buttons: {
-			...css.row('0.1em')
+			...css.column('0.1em')
 		},
 		button: {
-			width: '1em',
-			height: '1em',
-			border: 'none',
-			borderRadius: '50%',
-			backgroundColor: css.palette.sandal,
-			color: css.palette.ivory,
-			fontFamily: css.fonts.text,
-			fontWeight: 900,
-			fontSize: '0.8em',
-			lineHeight: 1,
-			cursor: 'pointer',
-			...css.focus.mixin,
-			'&:hover': {
-				backgroundColor: css.palette.tobacco
-			},
-			'&:disabled': {
-				opacity: 0.4,
-				cursor: 'default',
-				backgroundColor: css.palette.sandal
-			}
+			fontSize: '0.8em'
 		},
 		value: {
 			fontFamily: css.fonts.number,
@@ -69,23 +51,23 @@
 </script>
 
 {#snippet decrementButton()}
-	<button
-		type="button"
+	<IconButton
+		src="ui/increase.svg"
 		class={styles.button}
 		disabled={!canDecrease}
-		aria-label={`Disminueix ${label}`}
-		onclick={() => onchange(value - 1)}>−</button
-	>
+		label={`Disminueix ${label}`}
+		onclick={() => onchange(value - 1)}
+	/>
 {/snippet}
 
 {#snippet incrementButton()}
-	<button
-		type="button"
+	<IconButton
+		src="ui/decrease.svg"
 		class={styles.button}
 		disabled={!canIncrease}
-		aria-label={`Augmenta ${label}`}
-		onclick={() => onchange(value + 1)}>+</button
-	>
+		label={`Augmenta ${label}`}
+		onclick={() => onchange(value + 1)}
+	/>
 {/snippet}
 
 <div class={styles.counter}>
