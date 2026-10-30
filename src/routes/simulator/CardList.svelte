@@ -10,28 +10,30 @@
 </script>
 
 <script lang="ts">
+	import type { Card } from '#lib/models/cards';
 	import type { SimulatorState } from './simulatorstate.svelte';
 	import CardPill from './CardPill.svelte';
-	import type { CardRef, Zone } from './types';
+	import { compareCards, type CardRef, type Zone } from './types';
 
 	interface Props {
 		simulator: SimulatorState;
 		cards: Array<CardRef>;
-		/** Kingdom these cards are attached to; offices and other cards use different zones. */
-		kingdomId: string;
+		/** The zone a card is shown from; offices and other cards use different zones. */
+		zone: (card: Card) => Zone;
 	}
 
-	const { simulator, cards, kingdomId }: Props = $props();
+	const { simulator, cards, zone }: Props = $props();
 
-	const officeZone = $derived<Zone>({ kind: 'kingdom-offices', kingdomId });
-	const cardsZone = $derived<Zone>({ kind: 'kingdom-cards', kingdomId });
+	const orderedCards = $derived(
+		[...cards]
+			.map((ref) => ({ ref, card: simulator.cardOf(ref) }))
+			.filter((entry): entry is { ref: CardRef; card: Card } => entry.card !== undefined)
+			.sort((a, b) => compareCards(a.card, b.card))
+	);
 </script>
 
 <div class={styles.list} role="list">
-	{#each cards as ref (ref.uid)}
-		{@const card = simulator.cardOf(ref)}
-		{#if card}
-			<CardPill {card} source={card.type === 'office' ? officeZone : cardsZone} uid={ref.uid} />
-		{/if}
+	{#each orderedCards as { ref, card } (ref.uid)}
+		<CardPill {card} source={zone(card)} uid={ref.uid} />
 	{/each}
 </div>

@@ -2,9 +2,8 @@
 	import * as css from '#lib/styles';
 
 	const styles = css.styles({
-		offices: {
-			flex: '1 1 auto',
-			minWidth: 0
+		headerActions: {
+			marginLeft: 'auto'
 		},
 		resources: {
 			...css.grid('xs'),
@@ -16,10 +15,6 @@
 			width: 'auto',
 			color: css.palette.dawn,
 			flexShrink: 0
-		},
-		hand: {
-			...css.grid('xs'),
-			minWidth: 0
 		},
 		empty: {
 			margin: 0,
@@ -37,15 +32,15 @@
 	import IconButton from '#lib/components/IconButton.svelte';
 	import InlineSvg from '#lib/components/InlineSvg.svelte';
 	import Panel from '#lib/components/Panel.svelte';
+	import type { Card } from '#lib/models/cards';
 	import { getResource } from '#lib/models/resources';
 	import Counter from './Counter.svelte';
-	import OfficeList from './OfficeList.svelte';
+	import CardList from './CardList.svelte';
 	import { cardDropHandlers } from './cardDrop';
 	import { officeDropHandlers } from './officeDrop';
 	import PlayerChip from './PlayerChip.svelte';
-	import CardPill from './CardPill.svelte';
 	import type { SimulatorState } from './simulatorstate.svelte';
-	import { playerResourceTypes, type PlayerState } from './types';
+	import { playerResourceTypes, type PlayerState, type Zone } from './types';
 
 	interface Props {
 		simulator: SimulatorState;
@@ -57,6 +52,14 @@
 	let officeOver = $state(false);
 	let handOver = $state(false);
 	const isOver = $derived(officeOver || handOver);
+
+	const handZone = $derived<Zone>({ kind: 'hand', playerId: player.id });
+	const officeZone = $derived<Zone>({ kind: 'player-offices', playerId: player.id });
+	const cards = $derived([...player.offices, ...player.hand]);
+
+	function zoneOf(card: Card): Zone {
+		return card.type === 'office' ? officeZone : handZone;
+	}
 
 	const officeDrop = officeDropHandlers({
 		simulator: () => simulator,
@@ -92,18 +95,13 @@
 	{/snippet}
 
 	{#snippet header()}
-		<div class={styles.offices}>
-			<OfficeList
-				{simulator}
-				offices={player.offices}
-				zone={{ kind: 'player-offices', playerId: player.id }}
+		<div class={styles.headerActions}>
+			<IconButton
+				src="ui/delete.svg"
+				label={`Elimina ${player.name}`}
+				onclick={() => simulator.removePlayer(player.id)}
 			/>
 		</div>
-		<IconButton
-			src="ui/delete.svg"
-			label={`Elimina ${player.name}`}
-			onclick={() => simulator.removePlayer(player.id)}
-		/>
 	{/snippet}
 
 	<div class={styles.body}>
@@ -123,16 +121,9 @@
 			{/each}
 		</div>
 
-		<div class={styles.hand} role="list">
-			{#each player.hand as ref (ref.uid)}
-				{@const card = simulator.cardOf(ref)}
-				{#if card}
-					<CardPill {card} source={{ kind: 'hand', playerId: player.id }} uid={ref.uid} />
-				{/if}
-			{/each}
-			{#if player.hand.length === 0}
-				<p class={styles.empty}>Sense cartes</p>
-			{/if}
-		</div>
+		<CardList {simulator} {cards} zone={zoneOf} />
+		{#if cards.length === 0}
+			<p class={styles.empty}>Sense cartes</p>
+		{/if}
 	</div></Panel
 >

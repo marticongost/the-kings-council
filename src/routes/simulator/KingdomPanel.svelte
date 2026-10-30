@@ -48,6 +48,7 @@
 	import InlineSvg from '#lib/components/InlineSvg.svelte';
 	import KingdomStatIcon from '#lib/components/KingdomStatIcon.svelte';
 	import Panel from '#lib/components/Panel.svelte';
+	import type { Card } from '#lib/models/cards';
 	import { getKingdomStat, kingdomStatTypes } from '#lib/models/kingdomstats';
 	import Counter from './Counter.svelte';
 	import CardList from './CardList.svelte';
@@ -56,7 +57,7 @@
 	import { officeDropHandlers } from './officeDrop';
 	import { playerDropHandlers } from './playerDrop';
 	import type { SimulatorState } from './simulatorstate.svelte';
-	import { kingdomStatMax, kingdomStatMin, type KingdomState } from './types';
+	import { kingdomStatMax, kingdomStatMin, type KingdomState, type Zone } from './types';
 
 	interface Props {
 		simulator: SimulatorState;
@@ -66,6 +67,13 @@
 	const { simulator, kingdom }: Props = $props();
 
 	const members = $derived(simulator.membersOf(kingdom.id));
+
+	const officeZone = $derived<Zone>({ kind: 'kingdom-offices', kingdomId: kingdom.id });
+	const cardsZone = $derived<Zone>({ kind: 'kingdom-cards', kingdomId: kingdom.id });
+
+	function zoneOf(card: Card): Zone {
+		return card.type === 'office' ? officeZone : cardsZone;
+	}
 
 	let officeOver = $state(false);
 	let cardOver = $state(false);
@@ -161,7 +169,7 @@
 			{/each}
 		</div>
 
-		<CardList {simulator} cards={kingdom.cards} kingdomId={kingdom.id} />
+		<CardList {simulator} cards={kingdom.cards} zone={zoneOf} />
 
 		<PlayerGroup {simulator} players={members} />
 	</div>

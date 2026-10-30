@@ -1,5 +1,7 @@
+import { getCardBackgroundName, type CardBackgroundName } from '#lib/cardattributes';
 import type { Card, CardType } from '#lib/models/cards';
 import { kingdomStatTypes, type KingdomStatType } from '#lib/models/kingdomstats';
+import { officeTypes } from '#lib/models/offices';
 import type { ResourceType } from '#lib/models/resources';
 
 /** Resources owned by a player (the generic `any` resource has no tokens). */
@@ -81,6 +83,42 @@ export function deckIdOf(card: Card): DeckId {
 	if (card.type === 'asset') return card.hidden ? 'hidden-asset' : 'visible-asset';
 	if (card.type === 'goal') return `${card.goalType}-goal`;
 	return card.type;
+}
+
+/** The order in which cards in play are grouped when rendered. */
+const cardDisplayOrder = [
+	'house',
+	'collective-goal',
+	'personal-goal',
+	'office',
+	'hidden-asset',
+	'asset',
+	'tactic'
+] as const satisfies ReadonlyArray<CardBackgroundName>;
+
+const cardRanks = new Map<CardBackgroundName, number>(
+	cardDisplayOrder.map((name, index) => [name, index] as const)
+);
+
+const officeRanks = new Map<string, number>(officeTypes.map((type, index) => [type, index]));
+
+/** Cards outside the listed groups, such as laws or events, are grouped last. */
+function cardOrder(card: Card): number {
+	return cardRanks.get(getCardBackgroundName(card)) ?? cardDisplayOrder.length;
+}
+
+/**
+ * Sorts cards into display groups, keeping offices in their canonical order
+ * regardless of assignment history.
+ */
+export function compareCards(a: Card, b: Card): number {
+	const byGroup = cardOrder(a) - cardOrder(b);
+	if (byGroup !== 0) return byGroup;
+	if (a.type !== 'office' || b.type !== 'office') return 0;
+
+	const rankA = officeRanks.get(a.id) ?? Number.MAX_SAFE_INTEGER;
+	const rankB = officeRanks.get(b.id) ?? Number.MAX_SAFE_INTEGER;
+	return rankA - rankB;
 }
 
 /** The card type a deck holds. Split asset and goal decks hold their base card type. */
