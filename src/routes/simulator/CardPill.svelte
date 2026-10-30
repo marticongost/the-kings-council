@@ -48,6 +48,7 @@
 			...css.hpadding('md'),
 			...css.vpadding('sm'),
 			borderRadius: '0.3em',
+			border: '2px solid transparent',
 			fontFamily: css.fonts.text,
 			fontSize: '0.85em',
 			fontWeight: 700,
@@ -59,8 +60,7 @@
 			cursor: 'default'
 		},
 		selectedPill: {
-			outline: `2px solid ${css.palette.cedar}`,
-			outlineOffset: '1px',
+			borderColor: `${css.palette.cedar}88`,
 			boxShadow: `0 0 0 4px ${css.palette.carrara}`
 		},
 		icon: {

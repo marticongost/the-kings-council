@@ -41,8 +41,8 @@
 			flexShrink: 0
 		},
 		selected: {
-			outline: `2px solid ${css.palette.tobacco}`,
-			outlineOffset: '2px'
+			outline: `2px solid ${css.palette.cedar}88`,
+			outlineOffset: '-2px'
 		}
 	});
 </script>
