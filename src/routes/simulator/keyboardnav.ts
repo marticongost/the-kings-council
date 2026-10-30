@@ -1,4 +1,6 @@
 import { getOfficeName, type OfficeType } from '#lib/models/offices';
+import { getKingdomStat, type KingdomStatType } from '#lib/models/kingdomstats';
+import { getResource } from '#lib/models/resources';
 import type { Card, CardType } from '#lib/models/cards';
 import type { SimulatorState } from './simulatorstate.svelte';
 import {
@@ -8,6 +10,7 @@ import {
 	type CardRef,
 	type DeckId,
 	type KingdomState,
+	type PlayerResourceType,
 	type PlayerState,
 	type Zone
 } from './types';
@@ -354,4 +357,101 @@ export function typeLabel(key: TypeKey): string {
 		case 'o':
 			return 'Càrrec';
 	}
+}
+
+export const resourceShortcutKeys = ['p', 'g', 's', 'f', 'i', 'v', 'P'] as const;
+export const statShortcutKeys = ['s', 'w', 'm', 'g'] as const;
+
+export type ResourceShortcutKey = (typeof resourceShortcutKeys)[number];
+export type StatShortcutKey = (typeof statShortcutKeys)[number];
+export type CounterShortcutKey = ResourceShortcutKey | StatShortcutKey | 'a';
+
+const resourceByShortcut: Record<ResourceShortcutKey, PlayerResourceType> = {
+	p: 'power',
+	g: 'gold',
+	s: 'strength',
+	f: 'faith',
+	i: 'intrigue',
+	v: 'favour',
+	P: 'prestige'
+};
+
+const statByShortcut: Record<StatShortcutKey, KingdomStatType> = {
+	s: 'stability',
+	w: 'wealth',
+	m: 'might',
+	g: 'grace'
+};
+
+export function resourceOfShortcut(key: string): PlayerResourceType | null {
+	return (resourceShortcutKeys as ReadonlyArray<string>).includes(key)
+		? resourceByShortcut[key as ResourceShortcutKey]
+		: null;
+}
+
+export function statOfShortcut(key: string): KingdomStatType | null {
+	return (statShortcutKeys as ReadonlyArray<string>).includes(key)
+		? statByShortcut[key as StatShortcutKey]
+		: null;
+}
+
+export function isCounterShortcutKey(key: string): key is CounterShortcutKey {
+	return key === 'a' || resourceOfShortcut(key) !== null || statOfShortcut(key) !== null;
+}
+
+/** Whether a counter shortcut applies to at least one selected player or kingdom. */
+export function counterShortcutApplies(
+	key: CounterShortcutKey,
+	hasResources: boolean,
+	hasStats: boolean
+): boolean {
+	if (key === 'a') return hasResources || hasStats;
+	return (
+		(hasResources && resourceOfShortcut(key) !== null) || (hasStats && statOfShortcut(key) !== null)
+	);
+}
+
+export interface CounterShortcutCue {
+	key: CounterShortcutKey;
+	label: string;
+}
+
+function counterShortcutLabel(
+	key: CounterShortcutKey,
+	hasResources: boolean,
+	hasStats: boolean
+): string {
+	if (key === 'a') {
+		if (hasResources && hasStats) return 'Tots els recursos i estats';
+		return hasResources ? 'Tots els recursos' : 'Tots els estats';
+	}
+
+	const labels: Array<string> = [];
+	const resource = resourceOfShortcut(key);
+	if (hasResources && resource) labels.push(getResource(resource).title);
+
+	const stat = statOfShortcut(key);
+	if (hasStats && stat) labels.push(getKingdomStat(stat).title);
+
+	return labels.join(' / ');
+}
+
+/** Keys accepted for the selected counter targets, merging keys shared by resources and stats. */
+export function counterShortcuts(
+	hasResources: boolean,
+	hasStats: boolean
+): Array<CounterShortcutCue> {
+	const keys: Array<CounterShortcutKey> = [];
+	if (hasResources) keys.push(...resourceShortcutKeys);
+	if (hasStats) {
+		for (const key of statShortcutKeys) {
+			if (!keys.includes(key)) keys.push(key);
+		}
+	}
+	if (hasResources || hasStats) keys.push('a');
+
+	return keys.map((key) => ({
+		key,
+		label: counterShortcutLabel(key, hasResources, hasStats)
+	}));
 }

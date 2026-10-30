@@ -6,9 +6,12 @@ import {
 	cardsOfGroups,
 	cardsOfPlayers,
 	concreteTypeKeys,
+	counterShortcutApplies,
+	counterShortcuts,
 	groupIdsOfPlayers,
 	groupsOfCards,
 	isConcreteTypeKey,
+	isCounterShortcutKey,
 	isTypeKey,
 	independentKingdomId,
 	kingdomIdsInOrder,
@@ -18,14 +21,21 @@ import {
 	orderedPlayers,
 	playerIdsOfCards,
 	playersInGroups,
+	resourceOfShortcut,
+	statOfShortcut,
 	typeLabel,
 	type CardEntry,
 	type ConcreteTypeKey,
+	type CounterShortcutKey,
 	type TypeKey
 } from './keyboardnav';
 import type { PlayerState } from './types';
 
-type PendingCommand = { kind: 'filter' } | { kind: 'acquire'; amount: string };
+type PendingCommand =
+	| { kind: 'filter' }
+	| { kind: 'acquire'; amount: string }
+	| { kind: 'adjust'; direction: -1 | 1; amount: string }
+	| { kind: 'set'; amount: string };
 
 export type SelectionView = 'page' | 'kingdoms' | 'players' | 'cards';
 
@@ -80,6 +90,18 @@ export class KeyboardController {
 		return 'page';
 	}
 
+	get hasResourceTargets(): boolean {
+		return this.selection.players.size > 0;
+	}
+
+	get hasStatTargets(): boolean {
+		return [...this.selection.kingdoms].some((id) => id !== independentKingdomId);
+	}
+
+	get hasCounterTargets(): boolean {
+		return this.hasResourceTargets || this.hasStatTargets;
+	}
+
 	get cues(): Array<CueSection> {
 		const pending = this.pending;
 		if (pending?.kind === 'filter') {
@@ -99,6 +121,35 @@ export class KeyboardController {
 					items: [
 						{ keys: ['0-9'], label: 'Quantitat (opcional)' },
 						...this.typeCues(true),
+						{ keys: ['Esc'], label: 'Cancel·la' }
+					]
+				}
+			];
+		}
+
+		if (pending?.kind === 'adjust') {
+			const amount = pending.amount || '1';
+			const verb = pending.direction === 1 ? 'Incrementa' : 'Disminueix';
+			return [
+				{
+					title: `${verb} ${amount}`,
+					items: [
+						{ keys: ['0-9'], label: 'Quantitat (opcional)' },
+						...this.counterCues(),
+						{ keys: ['Esc'], label: 'Cancel·la' }
+					]
+				}
+			];
+		}
+
+		if (pending?.kind === 'set') {
+			const amount = pending.amount || '?';
+			return [
+				{
+					title: `Estableix a ${amount}`,
+					items: [
+						{ keys: ['0-9'], label: 'Quantitat' },
+						...this.counterCues(),
 						{ keys: ['Esc'], label: 'Cancel·la' }
 					]
 				}
@@ -170,6 +221,17 @@ export class KeyboardController {
 		} else if (this.selection.cards.size > 0) {
 			actions.push({ keys: ['a'], label: 'Cartes dels jugadors propietaris' });
 		}
+		if (this.hasCounterTargets) {
+			const scope =
+				this.hasResourceTargets && this.hasStatTargets
+					? 'recurs o estat'
+					: this.hasResourceTargets
+						? 'recurs'
+						: 'estat';
+			actions.push({ keys: ['+'], label: `Incrementa ${scope}` });
+			actions.push({ keys: ['-'], label: `Disminueix ${scope}` });
+			actions.push({ keys: ['='], label: `Estableix ${scope}` });
+		}
 		if (this.selection.cards.size > 0) {
 			actions.push({ keys: ['d'], label: 'Descarta' });
 			actions.push({ keys: ['r'], label: 'Retorna a la baralla' });
@@ -196,6 +258,15 @@ export class KeyboardController {
 
 		if (this.pending) {
 			if (this.handlePending(key)) event.preventDefault();
+			return;
+		}
+
+		if ((key === '+' || key === '-' || key === '=') && this.hasCounterTargets) {
+			this.pending =
+				key === '='
+					? { kind: 'set', amount: '' }
+					: { kind: 'adjust', direction: key === '+' ? 1 : -1, amount: '' };
+			event.preventDefault();
 			return;
 		}
 
@@ -270,21 +341,50 @@ export class KeyboardController {
 			return key === 'Backspace';
 		}
 
+		if (pending.kind === 'acquire') {
+			if (/^[0-9]$/.test(key)) {
+				if (pending.amount === '' && key === '0') return true;
+				if (pending.amount.length < 3) pending.amount += key;
+				return true;
+			}
+
+			if (isConcreteTypeKey(key)) {
+				const amount = pending.amount ? Number(pending.amount) : 1;
+				this.acquire(amount, key);
+				this.pending = null;
+				return true;
+			}
+
+			this.pending = null;
+			return false;
+		}
+
 		if (/^[0-9]$/.test(key)) {
-			if (pending.amount === '' && key === '0') return true;
 			if (pending.amount.length < 3) pending.amount += key;
 			return true;
 		}
 
-		if (isConcreteTypeKey(key)) {
-			const amount = pending.amount ? Number(pending.amount) : 1;
-			this.acquire(amount, key);
+		if (
+			!isCounterShortcutKey(key) ||
+			!counterShortcutApplies(key, this.hasResourceTargets, this.hasStatTargets)
+		) {
 			this.pending = null;
-			return true;
+			return false;
+		}
+
+		if (pending.kind === 'set') {
+			if (pending.amount === '') {
+				this.pending = null;
+				return false;
+			}
+			this.applyCounters(key, Number(pending.amount), 'set');
+		} else {
+			const amount = pending.amount ? Number(pending.amount) : 1;
+			this.applyCounters(key, amount, pending.direction === 1 ? 'add' : 'subtract');
 		}
 
 		this.pending = null;
-		return false;
+		return true;
 	}
 
 	private typeCues(concreteOnly: boolean): Array<CueItem> {
@@ -292,6 +392,13 @@ export class KeyboardController {
 			? concreteTypeKeys
 			: [...concreteTypeKeys, ...nonConcreteTypeKeys];
 		return keys.map((key) => ({ keys: [key], label: typeLabel(key) }));
+	}
+
+	private counterCues(): Array<CueItem> {
+		return counterShortcuts(this.hasResourceTargets, this.hasStatTargets).map(({ key, label }) => ({
+			keys: [key],
+			label
+		}));
 	}
 
 	private selectedPlayerStates(): Array<PlayerState> {
@@ -535,6 +642,34 @@ export class KeyboardController {
 
 		this.simulator.acquireCards({ playerIds, kingdomIds }, amount, type);
 		this.selection.prune(this.simulator);
+	}
+
+	private applyCounters(
+		key: CounterShortcutKey,
+		amount: number,
+		mode: 'add' | 'subtract' | 'set'
+	): void {
+		const resource = key === 'a' ? null : resourceOfShortcut(key);
+		const stat = key === 'a' ? null : statOfShortcut(key);
+
+		for (const playerId of this.selection.players) {
+			if (key !== 'a' && !resource) continue;
+			if (mode === 'set') {
+				this.simulator.setResources(playerId, resource, amount);
+			} else {
+				this.simulator.adjustResources(playerId, resource, mode === 'add' ? amount : -amount);
+			}
+		}
+
+		for (const kingdomId of [...this.selection.kingdoms]) {
+			if (kingdomId === independentKingdomId) continue;
+			if (key !== 'a' && !stat) continue;
+			if (mode === 'set') {
+				this.simulator.setStats(kingdomId, stat, amount);
+			} else {
+				this.simulator.adjustStats(kingdomId, stat, mode === 'add' ? amount : -amount);
+			}
+		}
 	}
 
 	private discardSelected(): void {

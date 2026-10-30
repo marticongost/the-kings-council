@@ -382,6 +382,22 @@ export class SimulatorState {
 		player.resources[resource] = Math.max(0, Math.round(value));
 	}
 
+	/** Changes one resource, or every resource when `resource` is null. */
+	adjustResources(playerId: string, resource: PlayerResourceType | null, delta: number): void {
+		const player = this.players.find((candidate) => candidate.id === playerId);
+		if (!player) return;
+		const types = resource ? [resource] : playerResourceTypes;
+		for (const type of types) this.setResource(playerId, type, player.resources[type] + delta);
+	}
+
+	/** Sets one resource, or every resource when `resource` is null. */
+	setResources(playerId: string, resource: PlayerResourceType | null, value: number): void {
+		const player = this.players.find((candidate) => candidate.id === playerId);
+		if (!player) return;
+		const types = resource ? [resource] : playerResourceTypes;
+		for (const type of types) this.setResource(playerId, type, value);
+	}
+
 	membersOf(kingdomId: string): Array<PlayerState> {
 		return this.players.filter((player) => player.kingdomId === kingdomId);
 	}
@@ -428,6 +444,22 @@ export class SimulatorState {
 		const kingdom = this.kingdoms.find((candidate) => candidate.id === kingdomId);
 		if (!kingdom || !Number.isFinite(value)) return;
 		kingdom.stats[stat] = clamp(value, kingdomStatMin, kingdomStatMax);
+	}
+
+	/** Changes one stat, or every stat when `stat` is null. */
+	adjustStats(kingdomId: string, stat: KingdomStatType | null, delta: number): void {
+		const kingdom = this.kingdoms.find((candidate) => candidate.id === kingdomId);
+		if (!kingdom) return;
+		const types = stat ? [stat] : kingdomStatTypes;
+		for (const type of types) this.setStat(kingdomId, type, kingdom.stats[type] + delta);
+	}
+
+	/** Sets one stat, or every stat when `stat` is null. */
+	setStats(kingdomId: string, stat: KingdomStatType | null, value: number): void {
+		const kingdom = this.kingdoms.find((candidate) => candidate.id === kingdomId);
+		if (!kingdom) return;
+		const types = stat ? [stat] : kingdomStatTypes;
+		for (const type of types) this.setStat(kingdomId, type, value);
 	}
 
 	// Cards
