@@ -55,6 +55,19 @@ function isEditableTarget(target: EventTarget | null): boolean {
 	return target.closest('input, textarea, select, [contenteditable="true"]') !== null;
 }
 
+/** Modifier and other non-character keys must not cancel a pending sequence. */
+function isModifierKey(key: string): boolean {
+	return (
+		key === 'Shift' ||
+		key === 'Control' ||
+		key === 'Alt' ||
+		key === 'AltGraph' ||
+		key === 'Meta' ||
+		key === 'CapsLock' ||
+		key === 'Dead'
+	);
+}
+
 function revealElement(kind: SelectionKind, id: string): void {
 	if (typeof document === 'undefined') return;
 	const attribute =
@@ -243,6 +256,7 @@ export class KeyboardController {
 
 	readonly handleKeyDown = (event: KeyboardEvent) => {
 		if (event.defaultPrevented || event.repeat || event.isComposing) return;
+		if (isModifierKey(event.key)) return;
 		if (event.altKey || event.ctrlKey || event.metaKey) return;
 		if (isEditableTarget(event.target)) return;
 
