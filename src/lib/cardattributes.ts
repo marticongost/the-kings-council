@@ -27,6 +27,31 @@ export function getCardIcon(card: Card): string {
 	}
 }
 
+/** The names of the card background artwork, one per card type and sub-type. */
+export type CardBackgroundName =
+	| 'common'
+	| 'office'
+	| 'collective-goal'
+	| 'personal-goal'
+	| 'event'
+	| 'crisis'
+	| 'law'
+	| 'tactic'
+	| 'asset'
+	| 'hidden-asset'
+	| 'house';
+
+/** The name of the background artwork for a card, shared by the card fronts. */
+export function getCardBackgroundName(card: Card): CardBackgroundName {
+	if (card.type === 'asset' && card.hidden) {
+		return 'hidden-asset';
+	}
+	if (card.type === 'goal') {
+		return `${card.goalType}-goal`;
+	}
+	return card.type;
+}
+
 export function getCapabilityIcon(capability: Capability): string {
 	switch (capability.type) {
 		case 'indication':

@@ -1,5 +1,6 @@
 <script lang="ts" module>
 	import * as css from '#lib/styles';
+	import { getCardBackgroundName } from '#lib/cardattributes';
 
 	const styles = css.styles({
 		card: {
@@ -66,13 +67,7 @@
 	});
 
 	function getBackgroundImage(cardCapability: CardCapability): string {
-		const card = cardCapability.card;
-		if (card.type === 'asset' && card.hidden) {
-			return 'url(/svg/capability-card-backgrounds/hidden-asset.svg)';
-		} else if (card.type === 'goal') {
-			return `url(/svg/capability-card-backgrounds/${card.goalType}-goal.svg)`;
-		}
-		return `url(/svg/capability-card-backgrounds/${card.type}.svg)`;
+		return `url(/svg/capability-card-backgrounds/${getCardBackgroundName(cardCapability.card)}.svg)`;
 	}
 </script>
 

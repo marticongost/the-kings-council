@@ -183,7 +183,6 @@
 			emptyIcon="discard.svg"
 			pile
 			height={mm(stackHeight)}
-			cardScale={0.3}
 		/>
 	</div>
 </section>

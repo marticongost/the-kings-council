@@ -92,7 +92,7 @@
 	import Counter from './Counter.svelte';
 	import OfficeList from './OfficeList.svelte';
 	import { officeDropHandlers } from './officeDrop';
-	import SimulatorCard from './SimulatorCard.svelte';
+	import CardPill from './CardPill.svelte';
 	import type { SimulatorState } from './simulatorstate.svelte';
 	import { playerResourceTypes, type PlayerState } from './types';
 
@@ -174,7 +174,7 @@
 		{#if capabilities.length > 0}
 			<div class={styles.capabilityGrid} role="list">
 				{#each capabilities as capability (capability.id)}
-					<SimulatorCard cardCapability={capability} />
+					<CardPill cardCapability={capability} />
 				{/each}
 			</div>
 		{:else}

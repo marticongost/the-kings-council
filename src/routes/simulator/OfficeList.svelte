@@ -12,7 +12,7 @@
 <script lang="ts">
 	import { officeTypes } from '#lib/models/offices';
 	import type { SimulatorState } from './simulatorstate.svelte';
-	import OfficePill from './OfficePill.svelte';
+	import CardPill from './CardPill.svelte';
 	import type { CardRef, Zone } from './types';
 
 	// Keep pills in the canonical office order regardless of assignment history.
@@ -39,7 +39,7 @@
 	{#each orderedOffices as ref (ref.uid)}
 		{@const card = simulator.cardOf(ref)}
 		{#if card}
-			<OfficePill {card} source={zone} uid={ref.uid} />
+			<CardPill {card} source={zone} uid={ref.uid} />
 		{/if}
 	{/each}
 </div>
