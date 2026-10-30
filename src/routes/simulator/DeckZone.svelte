@@ -1,7 +1,8 @@
 <script lang="ts" module>
 	import * as css from '#lib/styles';
 	import { cardsCatalog } from '#lib/data/catalog';
-	import type { Card, CardType } from '#lib/models/cards';
+	import type { Card } from '#lib/models/cards';
+	import { deckIdOf, type DeckId } from './types';
 
 	const backScale = 0.4;
 	const backWidth = css.cards.standard.width * backScale;
@@ -67,9 +68,9 @@
 		}
 	});
 
-	/** Face-down decks still render a back when empty, using any card of the deck type. */
-	function representativeCard(type: CardType): Card | undefined {
-		return cardsCatalog.all().find((card) => card.type === type);
+	/** Face-down decks still render a back when empty, using any card of the deck. */
+	function representativeCard(deckId: DeckId): Card | undefined {
+		return cardsCatalog.all().find((card) => deckIdOf(card) === deckId);
 	}
 </script>
 
@@ -78,23 +79,28 @@
 	import CardBack from '#lib/components/CardBack.svelte';
 	import { getProperty } from '#lib/models/properties';
 	import type { SimulatorState } from './simulatorstate.svelte';
-	import { simulatorDragMime, type DragPayload } from './types';
+	import { deckCardType, simulatorDragMime, type DragPayload } from './types';
 	import CardZone from './CardZone.svelte';
 	import CountBadge from './CountBadge.svelte';
 
 	interface Props {
 		simulator: SimulatorState;
-		cardType: CardType;
+		deckId: DeckId;
 	}
 
-	const { simulator, cardType }: Props = $props();
+	const { simulator, deckId }: Props = $props();
 
-	const title = $derived(getProperty(cardType).title);
-	const deck = $derived(simulator.decks[cardType]);
+	const title = $derived.by(() => {
+		const typeTitle = getProperty(deckCardType(deckId)).title;
+		if (deckId === 'visible-asset') return `${typeTitle} (visible)`;
+		if (deckId === 'hidden-asset') return `${typeTitle} (ocult)`;
+		return typeTitle;
+	});
+	const deck = $derived(simulator.decks[deckId]);
 	const count = $derived(deck.length);
 	const backCard = $derived.by(() => {
 		const top = deck[deck.length - 1];
-		return (top ? simulator.cardOf(top) : undefined) ?? representativeCard(cardType);
+		return (top ? simulator.cardOf(top) : undefined) ?? representativeCard(deckId);
 	});
 
 	let isOver = $state(false);
@@ -108,7 +114,7 @@
 			event.preventDefault();
 			return;
 		}
-		const payload: DragPayload = { source: { kind: 'deck', cardType } };
+		const payload: DragPayload = { source: { kind: 'deck', deckId } };
 		event.dataTransfer.setData(simulatorDragMime, JSON.stringify(payload));
 		event.dataTransfer.effectAllowed = 'move';
 	}
@@ -135,7 +141,7 @@
 
 		try {
 			const payload = JSON.parse(raw) as DragPayload;
-			simulator.moveCard(payload.source, { kind: 'deck', cardType }, payload.uid);
+			simulator.moveCard(payload.source, { kind: 'deck', deckId }, payload.uid);
 		} catch {
 			// Ignore malformed payloads from outside the simulator.
 		}
@@ -171,8 +177,8 @@
 
 		<CardZone
 			{simulator}
-			cards={simulator.discards[cardType]}
-			zone={{ kind: 'discard', cardType }}
+			cards={simulator.discards[deckId]}
+			zone={{ kind: 'discard', deckId }}
 			ariaLabel="Descarts"
 			emptyIcon="discard.svg"
 			pile

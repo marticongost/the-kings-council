@@ -1,4 +1,4 @@
-import type { CardType } from '#lib/models/cards';
+import type { Card, CardType } from '#lib/models/cards';
 import { kingdomStatTypes, type KingdomStatType } from '#lib/models/kingdomstats';
 import type { ResourceType } from '#lib/models/resources';
 
@@ -42,15 +42,42 @@ export interface CardRef {
 	cardId: string;
 }
 
+/** A face-down pile: one per card type, except assets, which split by visibility. */
+export const deckIds = [
+	'common',
+	'office',
+	'goal',
+	'event',
+	'crisis',
+	'law',
+	'tactic',
+	'visible-asset',
+	'hidden-asset',
+	'house'
+] as const;
+
+export type DeckId = (typeof deckIds)[number];
+
 /** A place where cards can live. Decks are face-down, the rest are face-up. */
 export type Zone =
 	| { kind: 'hand'; playerId: string }
 	| { kind: 'laws' }
 	| { kind: 'market' }
-	| { kind: 'deck'; cardType: CardType }
-	| { kind: 'discard'; cardType: CardType }
+	| { kind: 'deck'; deckId: DeckId }
+	| { kind: 'discard'; deckId: DeckId }
 	| { kind: 'kingdom-offices'; kingdomId: string }
 	| { kind: 'player-offices'; playerId: string };
+
+/** The deck a card belongs to when it is face down. */
+export function deckIdOf(card: Card): DeckId {
+	if (card.type === 'asset') return card.hidden ? 'hidden-asset' : 'visible-asset';
+	return card.type;
+}
+
+/** The card type a deck holds. Visible and hidden asset decks both hold assets. */
+export function deckCardType(deckId: DeckId): CardType {
+	return deckId === 'visible-asset' || deckId === 'hidden-asset' ? 'asset' : deckId;
+}
 
 /** Zones holding unassigned (kingdom) or assigned (player) offices. */
 export function isOfficeZone(
@@ -102,8 +129,8 @@ export interface SimulatorSnapshot {
 	kingdoms: Array<SerializedKingdom>;
 	laws: Array<string>;
 	market: Array<string>;
-	decks: Record<CardType, Array<string>>;
-	discards: Record<CardType, Array<string>>;
+	decks: Record<DeckId, Array<string>>;
+	discards: Record<DeckId, Array<string>>;
 }
 
 export function zoneKey(zone: Zone): string {
@@ -115,7 +142,7 @@ export function zoneKey(zone: Zone): string {
 			return zone.kind;
 		case 'deck':
 		case 'discard':
-			return `${zone.kind}:${zone.cardType}`;
+			return `${zone.kind}:${zone.deckId}`;
 		case 'kingdom-offices':
 			return `kingdom-offices:${zone.kingdomId}`;
 		case 'player-offices':

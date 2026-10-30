@@ -66,18 +66,18 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import Button from '#lib/components/Button.svelte';
-	import { cardTypes } from '#lib/models/cards';
 	import CardZone from './CardZone.svelte';
 	import DeckZone from './DeckZone.svelte';
 	import KingdomPanel from './KingdomPanel.svelte';
 	import PlayerPanel from './PlayerPanel.svelte';
 	import { SimulatorState } from './simulatorstate.svelte';
+	import { deckIds } from './types';
 
 	const simulator = new SimulatorState();
 
 	// Common action cards are reference cards whose capabilities every player has,
 	// and offices belong to kingdoms rather than to a draw pile.
-	const deckTypes = cardTypes.filter((type) => type !== 'common' && type !== 'office');
+	const deckIdsInPlay = deckIds.filter((deckId) => deckId !== 'common' && deckId !== 'office');
 
 	onMount(() => {
 		simulator.load();
@@ -165,8 +165,8 @@
 				/>
 			</div>
 			<div class={styles.decks}>
-				{#each deckTypes as cardType (cardType)}
-					<DeckZone {simulator} {cardType} />
+				{#each deckIdsInPlay as deckId (deckId)}
+					<DeckZone {simulator} {deckId} />
 				{/each}
 			</div>
 		</section>

@@ -1,10 +1,13 @@
 import { cardsCatalog } from '#lib/data/catalog';
 import { CardCapability } from '#lib/models/cardcapabilities';
-import { cardTypes, type Card, type CardType } from '#lib/models/cards';
+import { type Card, type CardType } from '#lib/models/cards';
 import { kingdomStatTypes, type KingdomStatType } from '#lib/models/kingdomstats';
 import { officeTypes } from '#lib/models/offices';
 import { SvelteSet } from 'svelte/reactivity';
 import {
+	deckCardType,
+	deckIdOf,
+	deckIds,
 	emptyKingdomStats,
 	isOfficeZone,
 	kingdomStatMax,
@@ -13,6 +16,7 @@ import {
 	playerResourceTypes,
 	zoneKey,
 	type CardRef,
+	type DeckId,
 	type KingdomState,
 	type PlayerResourceType,
 	type PlayerResources,
@@ -23,7 +27,10 @@ import {
 
 export const simulatorStorageKey = 'the-kings-council:simulator:v1';
 
-const snapshotVersion = 1;
+const snapshotVersion = 2;
+
+/** Oldest snapshot version that can still be migrated to the current schema. */
+const oldestSnapshotVersion = 1;
 
 let uidCounter = 0;
 
@@ -35,10 +42,10 @@ function makeUid(): string {
 	return `sim-${Date.now().toString(36)}-${uidCounter}`;
 }
 
-function emptyCardTypeRecord<T>(factory: (type: CardType) => T): Record<CardType, T> {
-	const record = {} as Record<CardType, T>;
-	for (const type of cardTypes) {
-		record[type] = factory(type);
+function emptyDeckRecord<T>(factory: (deckId: DeckId) => T): Record<DeckId, T> {
+	const record = {} as Record<DeckId, T>;
+	for (const deckId of deckIds) {
+		record[deckId] = factory(deckId);
 	}
 	return record;
 }
@@ -73,17 +80,49 @@ function shuffle<T>(items: Array<T>): void {
 	}
 }
 
-function normalizeRefs(value: unknown, expectedType?: CardType): Array<CardRef> {
+function normalizeRefs(
+	value: unknown,
+	expectedType?: CardType,
+	accepts?: (card: Card) => boolean
+): Array<CardRef> {
 	if (!Array.isArray(value)) return [];
 
 	const refs: Array<CardRef> = [];
 	for (const cardId of value) {
 		if (typeof cardId !== 'string') continue;
 		const card = cardsCatalog.byId(cardId);
-		if (!card || (expectedType && card.type !== expectedType)) continue;
+		if (!card || (expectedType && card.type !== expectedType) || (accepts && !accepts(card))) {
+			continue;
+		}
 		refs.push({ uid: makeUid(), cardId: card.id });
 	}
 	return refs;
+}
+
+/** Builds one pile per deck, migrating the single asset pile of old snapshots. */
+function normalizeDeckRefs(value: unknown): Record<DeckId, Array<CardRef>> {
+	const record = asObject(value);
+	const decks = emptyDeckRecord(() => [] as Array<CardRef>);
+
+	for (const deckId of deckIds) {
+		decks[deckId] = normalizeRefs(
+			record?.[deckId],
+			deckCardType(deckId),
+			(card) => deckIdOf(card) === deckId
+		);
+	}
+
+	// Snapshot version 1 kept visible and hidden assets in the same pile.
+	const hasSplitAssetPiles =
+		Array.isArray(record?.['visible-asset']) || Array.isArray(record?.['hidden-asset']);
+	if (!hasSplitAssetPiles && Array.isArray(record?.asset)) {
+		for (const ref of normalizeRefs(record.asset, 'asset')) {
+			const card = cardsCatalog.byId(ref.cardId);
+			if (card) decks[deckIdOf(card)].push(ref);
+		}
+	}
+
+	return decks;
 }
 
 function normalizeStats(value: unknown): KingdomState['stats'] {
@@ -205,8 +244,8 @@ export class SimulatorState {
 	kingdoms = $state<Array<KingdomState>>([]);
 	laws = $state<Array<CardRef>>([]);
 	market = $state<Array<CardRef>>([]);
-	decks = $state<Record<CardType, Array<CardRef>>>(emptyCardTypeRecord(() => []));
-	discards = $state<Record<CardType, Array<CardRef>>>(emptyCardTypeRecord(() => []));
+	decks = $state<Record<DeckId, Array<CardRef>>>(emptyDeckRecord(() => []));
+	discards = $state<Record<DeckId, Array<CardRef>>>(emptyDeckRecord(() => []));
 
 	load(): void {
 		this.reset();
@@ -240,7 +279,7 @@ export class SimulatorState {
 		this.laws = [];
 		this.market = [];
 		this.decks = this.createFullDecks();
-		this.discards = emptyCardTypeRecord(() => []);
+		this.discards = emptyDeckRecord(() => []);
 	}
 
 	// Players
@@ -263,7 +302,7 @@ export class SimulatorState {
 		const [player] = this.players.splice(index, 1);
 		for (const ref of player.hand) {
 			const card = this.cardOf(ref);
-			if (card) this.discards[card.type].push(ref);
+			if (card) this.discards[deckIdOf(card)].push(ref);
 		}
 		this.returnOffices(player);
 	}
@@ -494,9 +533,9 @@ export class SimulatorState {
 			case 'market':
 				return this.market;
 			case 'deck':
-				return this.decks[zone.cardType];
+				return this.decks[zone.deckId];
 			case 'discard':
-				return this.discards[zone.cardType];
+				return this.discards[zone.deckId];
 			default:
 				return this.officesIn(zone);
 		}
@@ -512,23 +551,23 @@ export class SimulatorState {
 				return card.type === 'asset';
 			case 'deck':
 			case 'discard':
-				return card.type === target.cardType;
+				return deckIdOf(card) === target.deckId;
 			case 'kingdom-offices':
 			case 'player-offices':
 				return card.type === 'office';
 		}
 	}
 
-	private createFullDecks(): Record<CardType, Array<CardRef>> {
-		const decks = emptyCardTypeRecord(() => [] as Array<CardRef>);
+	private createFullDecks(): Record<DeckId, Array<CardRef>> {
+		const decks = emptyDeckRecord(() => [] as Array<CardRef>);
 		for (const card of cardsCatalog.all()) {
 			// Common action cards are reference cards and offices belong to kingdoms,
 			// so neither type is drawn from a deck.
 			if (card.type === 'common' || card.type === 'office') continue;
-			decks[card.type].push({ uid: makeUid(), cardId: card.id });
+			decks[deckIdOf(card)].push({ uid: makeUid(), cardId: card.id });
 		}
-		for (const type of cardTypes) {
-			shuffle(decks[type]);
+		for (const deckId of deckIds) {
+			shuffle(decks[deckId]);
 		}
 		return decks;
 	}
@@ -554,14 +593,15 @@ export class SimulatorState {
 			})),
 			laws: cardIds(this.laws),
 			market: cardIds(this.market),
-			decks: emptyCardTypeRecord((type) => cardIds(this.decks[type])),
-			discards: emptyCardTypeRecord((type) => cardIds(this.discards[type]))
+			decks: emptyDeckRecord((deckId) => cardIds(this.decks[deckId])),
+			discards: emptyDeckRecord((deckId) => cardIds(this.discards[deckId]))
 		};
 	}
 
 	private restore(value: unknown): void {
 		const snapshot = asObject(value);
-		if (!snapshot || snapshot.version !== snapshotVersion) return;
+		const version = asNumber(snapshot?.version, 0);
+		if (!snapshot || version < oldestSnapshotVersion || version > snapshotVersion) return;
 
 		const usedKingdomIds = new SvelteSet<string>();
 		const kingdoms: Array<KingdomState> = [];
@@ -611,12 +651,7 @@ export class SimulatorState {
 		this.laws = normalizeRefs(snapshot.laws, 'law');
 		this.market = normalizeRefs(snapshot.market, 'asset');
 
-		const rawDecks = asObject(snapshot.decks);
-		const rawDiscards = asObject(snapshot.discards);
-		// Offices are no longer dealt from a deck; ignore any office deck in old snapshots.
-		this.decks = emptyCardTypeRecord((type) =>
-			type === 'office' ? [] : normalizeRefs(rawDecks?.[type], type)
-		);
-		this.discards = emptyCardTypeRecord((type) => normalizeRefs(rawDiscards?.[type], type));
+		this.decks = normalizeDeckRefs(snapshot.decks);
+		this.discards = normalizeDeckRefs(snapshot.discards);
 	}
 }
