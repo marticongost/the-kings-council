@@ -48,6 +48,42 @@
 
 	const canDecrease = $derived(value > min);
 	const canIncrease = $derived(value < max);
+
+	// Wheel deltas arrive in pixels, lines or pages depending on the browser/device; express
+	// everything in pixels so a single notch is roughly one step everywhere.
+	const notchSize = 100;
+	const lineSize = notchSize / 3;
+	let wheelDelta = 0;
+
+	function handleWheel(event: WheelEvent) {
+		if (event.deltaY === 0) return;
+
+		const delta =
+			event.deltaMode === WheelEvent.DOM_DELTA_LINE
+				? event.deltaY * lineSize
+				: event.deltaMode === WheelEvent.DOM_DELTA_PAGE
+					? event.deltaY * notchSize
+					: event.deltaY;
+
+		// A direction change starts a new gesture, so previous accumulation is discarded.
+		if (Math.sign(delta) !== Math.sign(wheelDelta)) wheelDelta = 0;
+		wheelDelta += delta;
+
+		const steps = Math.trunc(wheelDelta / notchSize);
+		if (steps === 0) return;
+
+		// Scrolling down decreases, like a native number spinner.
+		const next = Math.min(max, Math.max(min, value - steps));
+		if (next === value) {
+			// Already at a bound: leave the gesture to the page instead of swallowing it.
+			wheelDelta = 0;
+			return;
+		}
+
+		wheelDelta -= steps * notchSize;
+		event.preventDefault();
+		onchange(next);
+	}
 </script>
 
 {#snippet decrementButton()}
@@ -70,7 +106,7 @@
 	/>
 {/snippet}
 
-<div class={styles.counter}>
+<div class={styles.counter} onwheel={handleWheel}>
 	<span class={styles.label} title={label}>
 		{@render icon?.()}
 	</span>
