@@ -75,8 +75,9 @@
 
 	const simulator = new SimulatorState();
 
-	// Common action cards are reference cards whose capabilities every player has.
-	const deckTypes = cardTypes.filter((type) => type !== 'common');
+	// Common action cards are reference cards whose capabilities every player has,
+	// and offices belong to kingdoms rather than to a draw pile.
+	const deckTypes = cardTypes.filter((type) => type !== 'common' && type !== 'office');
 
 	onMount(() => {
 		simulator.load();
@@ -105,8 +106,9 @@
 			<div class={styles.titleBlock}>
 				<h1 class={styles.title}>Simulador</h1>
 				<p class={styles.hint}>
-					Pista: arrossega una baralla per robar la carta superior, i mou les cartes entre mans,
-					descarts, la fila de lleis i el mercat d'actius.
+					Pista: arrossega una baralla per robar la carta superior, mou les cartes entre mans,
+					descarts, la fila de lleis i el mercat d'actius, i assigna càrrecs arrossegant-los entre
+					regnes i jugadors.
 				</p>
 			</div>
 			<Button onclick={clearSimulator}>Neteja</Button>

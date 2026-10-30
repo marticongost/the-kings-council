@@ -2,9 +2,11 @@ import { cardsCatalog } from '#lib/data/catalog';
 import { CardCapability } from '#lib/models/cardcapabilities';
 import { cardTypes, type Card, type CardType } from '#lib/models/cards';
 import { kingdomStatTypes, type KingdomStatType } from '#lib/models/kingdomstats';
+import { officeTypes } from '#lib/models/offices';
 import { SvelteSet } from 'svelte/reactivity';
 import {
 	emptyKingdomStats,
+	isOfficeZone,
 	kingdomStatMax,
 	kingdomStatMin,
 	kingdomStatNeutral,
@@ -157,6 +159,16 @@ const commonCapabilities: ReadonlyArray<CardCapability> = cardsCatalog
 		card.capabilities.map((capability, index) => new CardCapability(card, capability, index))
 	);
 
+/** One office card of each available office, in a stable order. */
+function createOfficeRefs(): Array<CardRef> {
+	const refs: Array<CardRef> = [];
+	for (const type of officeTypes) {
+		const card = cardsCatalog.byId(type);
+		if (card?.type === 'office') refs.push({ uid: makeUid(), cardId: card.id });
+	}
+	return refs;
+}
+
 /**
  * State of the playtesting sandbox. Card instances only live in memory; snapshots
  * persist card ids, and references are rebuilt (with fresh uids) when loading.
@@ -213,7 +225,8 @@ export class SimulatorState {
 			name: nextPlayerName(this.players),
 			kingdomId: null,
 			resources: emptyResources(),
-			hand: []
+			hand: [],
+			offices: []
 		});
 	}
 
@@ -226,6 +239,7 @@ export class SimulatorState {
 			const card = this.cardOf(ref);
 			if (card) this.discards[card.type].push(ref);
 		}
+		this.returnOffices(player);
 	}
 
 	renamePlayer(playerId: string, name: string): void {
@@ -236,8 +250,14 @@ export class SimulatorState {
 	assignKingdom(playerId: string, kingdomId: string | null): void {
 		const player = this.players.find((candidate) => candidate.id === playerId);
 		if (!player) return;
-		player.kingdomId =
+
+		const nextKingdomId =
 			kingdomId && this.kingdoms.some((kingdom) => kingdom.id === kingdomId) ? kingdomId : null;
+		if (player.kingdomId === nextKingdomId) return;
+
+		// Offices are kingdom-bound, so they stay behind when a player changes kingdom.
+		this.returnOffices(player);
+		player.kingdomId = nextKingdomId;
 	}
 
 	setResource(playerId: string, resource: PlayerResourceType, value: number): void {
@@ -256,7 +276,8 @@ export class SimulatorState {
 		this.kingdoms.push({
 			id: makeUid(),
 			name: `Regne ${this.kingdoms.length + 1}`,
-			stats: emptyKingdomStats()
+			stats: emptyKingdomStats(),
+			offices: createOfficeRefs()
 		});
 	}
 
@@ -266,7 +287,9 @@ export class SimulatorState {
 
 		this.kingdoms.splice(index, 1);
 		for (const player of this.players) {
-			if (player.kingdomId === kingdomId) player.kingdomId = null;
+			if (player.kingdomId !== kingdomId) continue;
+			player.kingdomId = null;
+			player.offices = [];
 		}
 	}
 
@@ -289,7 +312,7 @@ export class SimulatorState {
 
 	capabilitiesOf(player: PlayerState): Array<CardCapability> {
 		const capabilities: Array<CardCapability> = [...commonCapabilities];
-		for (const ref of player.hand) {
+		for (const ref of [...player.offices, ...player.hand]) {
 			const card = this.cardOf(ref);
 			if (!card) continue;
 			card.capabilities.forEach((capability, index) => {
@@ -305,6 +328,10 @@ export class SimulatorState {
 	 */
 	moveCard(source: Zone, target: Zone, uid?: string): void {
 		if (zoneKey(source) === zoneKey(target)) return;
+		if (isOfficeZone(source) || isOfficeZone(target)) {
+			this.moveOffice(source, target, uid);
+			return;
+		}
 
 		const sourceCards = this.cardsIn(source);
 		const targetCards = this.cardsIn(target);
@@ -324,6 +351,122 @@ export class SimulatorState {
 		targetCards.push(ref);
 	}
 
+	// Offices
+
+	/**
+	 * Moves an office between a kingdom and its players. Offices never leave the
+	 * kingdom they belong to: dropping one onto a player of another kingdom assigns
+	 * that kingdom's copy of the office instead.
+	 */
+	private moveOffice(source: Zone, target: Zone, uid?: string): void {
+		if (!isOfficeZone(source) || !isOfficeZone(target)) return;
+
+		const sourceOffices = this.officesIn(source);
+		if (!sourceOffices) return;
+
+		const index = sourceOffices.findIndex((ref) => ref.uid === uid);
+		if (index < 0) return;
+		const ref = sourceOffices[index];
+
+		if (target.kind === 'kingdom-offices') {
+			if (source.kind !== 'player-offices') return;
+
+			// Assigned offices always return to the kingdom of their holder.
+			const kingdomOffices =
+				this.kingdoms.find((kingdom) => kingdom.id === this.officeKingdomId(source))?.offices ??
+				null;
+			if (!kingdomOffices) return;
+
+			sourceOffices.splice(index, 1);
+			kingdomOffices.push(ref);
+			return;
+		}
+
+		const player = this.players.find((candidate) => candidate.id === target.playerId);
+		if (!player) return;
+
+		// Dropping an office on a kingdomless player makes them join its kingdom.
+		if (!player.kingdomId) {
+			const kingdomId = this.officeKingdomId(source);
+			if (!kingdomId) return;
+			player.kingdomId = kingdomId;
+		}
+
+		const kingdomId = player.kingdomId;
+		if (!kingdomId) return;
+
+		// Reassigning within a kingdom moves the office itself, not another copy.
+		if (source.kind === 'player-offices' && this.officeKingdomId(source) === kingdomId) {
+			sourceOffices.splice(index, 1);
+			player.offices.push(ref);
+			return;
+		}
+
+		if (player.offices.some((office) => office.cardId === ref.cardId)) return;
+
+		const match = this.findOffice(kingdomId, ref.cardId);
+		if (match) {
+			match.offices.splice(match.index, 1);
+			player.offices.push(match.ref);
+			return;
+		}
+
+		// Fallback for an office missing from the player's kingdom.
+		sourceOffices.splice(index, 1);
+		player.offices.push(ref);
+	}
+
+	/** Finds a kingdom's copy of an office, whether in its reserve or held by a member. */
+	private findOffice(
+		kingdomId: string,
+		cardId: string
+	): { offices: Array<CardRef>; index: number; ref: CardRef } | null {
+		const kingdom = this.kingdoms.find((candidate) => candidate.id === kingdomId);
+		if (!kingdom) return null;
+
+		const pools = [
+			kingdom.offices,
+			...this.players
+				.filter((player) => player.kingdomId === kingdomId)
+				.map((player) => player.offices)
+		];
+		for (const offices of pools) {
+			const index = offices.findIndex((office) => office.cardId === cardId);
+			if (index >= 0) return { offices, index, ref: offices[index] };
+		}
+		return null;
+	}
+
+	private officesIn(zone: Zone): Array<CardRef> | null {
+		switch (zone.kind) {
+			case 'kingdom-offices':
+				return this.kingdoms.find((kingdom) => kingdom.id === zone.kingdomId)?.offices ?? null;
+			case 'player-offices':
+				return this.players.find((player) => player.id === zone.playerId)?.offices ?? null;
+			default:
+				return null;
+		}
+	}
+
+	private officeKingdomId(zone: Zone): string | null {
+		switch (zone.kind) {
+			case 'kingdom-offices':
+				return zone.kingdomId;
+			case 'player-offices':
+				return this.players.find((player) => player.id === zone.playerId)?.kingdomId ?? null;
+			default:
+				return null;
+		}
+	}
+
+	/** Returns a player's offices to its kingdom, if it still exists. */
+	private returnOffices(player: PlayerState): void {
+		if (player.offices.length === 0) return;
+		const kingdom = this.kingdoms.find((candidate) => candidate.id === player.kingdomId);
+		if (kingdom) kingdom.offices.push(...player.offices);
+		player.offices = [];
+	}
+
 	// Persistence internals
 
 	private cardsIn(zone: Zone): Array<CardRef> | null {
@@ -338,6 +481,8 @@ export class SimulatorState {
 				return this.decks[zone.cardType];
 			case 'discard':
 				return this.discards[zone.cardType];
+			default:
+				return this.officesIn(zone);
 		}
 	}
 
@@ -352,14 +497,18 @@ export class SimulatorState {
 			case 'deck':
 			case 'discard':
 				return card.type === target.cardType;
+			case 'kingdom-offices':
+			case 'player-offices':
+				return card.type === 'office';
 		}
 	}
 
 	private createFullDecks(): Record<CardType, Array<CardRef>> {
 		const decks = emptyCardTypeRecord(() => [] as Array<CardRef>);
 		for (const card of cardsCatalog.all()) {
-			// Common action cards are reference cards: players get their capabilities instead.
-			if (card.type === 'common') continue;
+			// Common action cards are reference cards and offices belong to kingdoms,
+			// so neither type is drawn from a deck.
+			if (card.type === 'common' || card.type === 'office') continue;
 			decks[card.type].push({ uid: makeUid(), cardId: card.id });
 		}
 		for (const type of cardTypes) {
@@ -378,12 +527,14 @@ export class SimulatorState {
 				name: player.name,
 				kingdomId: player.kingdomId,
 				resources: { ...player.resources },
-				hand: cardIds(player.hand)
+				hand: cardIds(player.hand),
+				offices: cardIds(player.offices)
 			})),
 			kingdoms: this.kingdoms.map((kingdom) => ({
 				id: kingdom.id,
 				name: kingdom.name,
-				stats: { ...kingdom.stats }
+				stats: { ...kingdom.stats },
+				offices: cardIds(kingdom.offices)
 			})),
 			laws: cardIds(this.laws),
 			market: cardIds(this.market),
@@ -405,7 +556,11 @@ export class SimulatorState {
 				kingdoms.push({
 					id: uniqueId(record.id, usedKingdomIds),
 					name: typeof record.name === 'string' ? record.name : `Regne ${kingdoms.length + 1}`,
-					stats: normalizeStats(record.stats)
+					stats: normalizeStats(record.stats),
+					// Snapshots from before offices existed start with a full set.
+					offices: Array.isArray(record.offices)
+						? normalizeRefs(record.offices, 'office')
+						: createOfficeRefs()
 				});
 			}
 		}
@@ -427,7 +582,8 @@ export class SimulatorState {
 						typeof record.name === 'string' && record.name ? record.name : nextPlayerName(players),
 					kingdomId,
 					resources: normalizeResources(record.resources),
-					hand: normalizeRefs(record.hand)
+					hand: normalizeRefs(record.hand),
+					offices: kingdomId === null ? [] : normalizeRefs(record.offices, 'office')
 				});
 			}
 		}
@@ -438,7 +594,10 @@ export class SimulatorState {
 
 		const rawDecks = asObject(snapshot.decks);
 		const rawDiscards = asObject(snapshot.discards);
-		this.decks = emptyCardTypeRecord((type) => normalizeRefs(rawDecks?.[type], type));
+		// Offices are no longer dealt from a deck; ignore any office deck in old snapshots.
+		this.decks = emptyCardTypeRecord((type) =>
+			type === 'office' ? [] : normalizeRefs(rawDecks?.[type], type)
+		);
 		this.discards = emptyCardTypeRecord((type) => normalizeRefs(rawDiscards?.[type], type));
 	}
 }

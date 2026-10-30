@@ -74,6 +74,7 @@
 	import KingdomStatIcon from '#lib/components/KingdomStatIcon.svelte';
 	import { getKingdomStat, kingdomStatTypes } from '#lib/models/kingdomstats';
 	import Counter from './Counter.svelte';
+	import OfficeZone from './OfficeZone.svelte';
 	import type { SimulatorState } from './simulatorstate.svelte';
 	import { kingdomStatMax, kingdomStatMin, type KingdomState } from './types';
 
@@ -124,4 +125,11 @@
 			{/each}
 		</div>
 	</div>
+
+	<OfficeZone
+		{simulator}
+		offices={kingdom.offices}
+		zone={{ kind: 'kingdom-offices', kingdomId: kingdom.id }}
+		emptyLabel="Sense càrrecs"
+	/>
 </article>

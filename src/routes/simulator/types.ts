@@ -45,7 +45,16 @@ export type Zone =
 	| { kind: 'laws' }
 	| { kind: 'market' }
 	| { kind: 'deck'; cardType: CardType }
-	| { kind: 'discard'; cardType: CardType };
+	| { kind: 'discard'; cardType: CardType }
+	| { kind: 'kingdom-offices'; kingdomId: string }
+	| { kind: 'player-offices'; playerId: string };
+
+/** Zones holding unassigned (kingdom) or assigned (player) offices. */
+export function isOfficeZone(
+	zone: Zone
+): zone is Extract<Zone, { kind: 'kingdom-offices' } | { kind: 'player-offices' }> {
+	return zone.kind === 'kingdom-offices' || zone.kind === 'player-offices';
+}
 
 export interface DragPayload {
 	source: Zone;
@@ -58,12 +67,14 @@ export interface PlayerState {
 	kingdomId: string | null;
 	resources: PlayerResources;
 	hand: Array<CardRef>;
+	offices: Array<CardRef>;
 }
 
 export interface KingdomState {
 	id: string;
 	name: string;
 	stats: KingdomStats;
+	offices: Array<CardRef>;
 }
 
 export interface SerializedPlayer {
@@ -72,12 +83,20 @@ export interface SerializedPlayer {
 	kingdomId: string | null;
 	resources: Partial<PlayerResources>;
 	hand: Array<string>;
+	offices?: Array<string>;
+}
+
+export interface SerializedKingdom {
+	id: string;
+	name: string;
+	stats: KingdomStats;
+	offices?: Array<string>;
 }
 
 export interface SimulatorSnapshot {
 	version: number;
 	players: Array<SerializedPlayer>;
-	kingdoms: Array<KingdomState>;
+	kingdoms: Array<SerializedKingdom>;
 	laws: Array<string>;
 	market: Array<string>;
 	decks: Record<CardType, Array<string>>;
@@ -88,10 +107,15 @@ export function zoneKey(zone: Zone): string {
 	switch (zone.kind) {
 		case 'hand':
 			return `hand:${zone.playerId}`;
+		case 'laws':
+		case 'market':
+			return zone.kind;
 		case 'deck':
 		case 'discard':
 			return `${zone.kind}:${zone.cardType}`;
-		default:
-			return zone.kind;
+		case 'kingdom-offices':
+			return `kingdom-offices:${zone.kingdomId}`;
+		case 'player-offices':
+			return `player-offices:${zone.playerId}`;
 	}
 }

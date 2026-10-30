@@ -92,6 +92,7 @@
 	import { getResource } from '#lib/models/resources';
 	import CardZone from './CardZone.svelte';
 	import Counter from './Counter.svelte';
+	import OfficeZone from './OfficeZone.svelte';
 	import SimulatorCard from './SimulatorCard.svelte';
 	import type { SimulatorState } from './simulatorstate.svelte';
 	import { playerResourceTypes, type PlayerState } from './types';
@@ -152,6 +153,13 @@
 		zone={{ kind: 'hand', playerId: player.id }}
 		label="Mà"
 		emptyLabel="Sense cartes"
+	/>
+
+	<OfficeZone
+		{simulator}
+		offices={player.offices}
+		zone={{ kind: 'player-offices', playerId: player.id }}
+		emptyLabel="Sense càrrecs"
 	/>
 
 	<section class={styles.capabilities}>
