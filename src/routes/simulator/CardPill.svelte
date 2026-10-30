@@ -24,10 +24,15 @@
 	};
 
 	// The popup is positioned against the viewport to escape zone overflow, so the
-	// full-scale card width is needed in pixels. CSS defines 1mm as 96/25.4px.
-	const popupWidth = (css.cards.standard.width * 96) / 25.4;
+	// full-scale card dimensions are needed in pixels. CSS defines 1mm as 96/25.4px.
+	const mmToPx = 96 / 25.4;
 	const popupOffset = 4;
 	const viewportMargin = 8;
+
+	interface PopupPlacement {
+		top: number;
+		left: number;
+	}
 
 	const styles = css.styles({
 		wrapper: {
@@ -103,14 +108,44 @@
 	let pill = $state<HTMLButtonElement>();
 
 	let open = $state(false);
-	let popupPosition = $state<{ top: number; left: number } | null>(null);
+	let popupPosition = $state<PopupPlacement | null>(null);
+
+	const popupCardSize = $derived(card ? css.cards.standard : css.cards.mini);
+	const popupWidth = $derived(popupCardSize.width * mmToPx);
+	const popupHeight = $derived(popupCardSize.height * mmToPx);
 
 	function placePopup() {
 		if (!pill) return;
 		const rect = pill.getBoundingClientRect();
-		const maxLeft = Math.max(viewportMargin, window.innerWidth - popupWidth - viewportMargin);
-		const left = Math.min(Math.max(viewportMargin, rect.left), maxLeft);
-		popupPosition = { top: rect.bottom + popupOffset, left };
+		const viewportWidth = window.innerWidth;
+		const viewportHeight = window.innerHeight;
+
+		const clamp = (value: number, max: number) =>
+			Math.min(Math.max(viewportMargin, value), Math.max(viewportMargin, max));
+		const clampLeft = (left: number) => clamp(left, viewportWidth - popupWidth - viewportMargin);
+		const clampTop = (top: number) => clamp(top, viewportHeight - popupHeight - viewportMargin);
+
+		const below = rect.bottom + popupOffset;
+		const above = rect.top - popupOffset - popupHeight;
+		const sideTop = clampTop(rect.top + rect.height / 2 - popupHeight / 2);
+
+		const fits = ({ top, left }: PopupPlacement) =>
+			top >= viewportMargin &&
+			left >= viewportMargin &&
+			top + popupHeight <= viewportHeight - viewportMargin &&
+			left + popupWidth <= viewportWidth - viewportMargin;
+
+		// Prefer below the pill, then above it, then beside it (vertically centred), so
+		// the card stays fully on screen. Positions are only clamped when even a side
+		// placement does not fit the viewport.
+		const placements: PopupPlacement[] = [
+			{ top: below, left: clampLeft(rect.left) },
+			{ top: above, left: clampLeft(rect.left) },
+			{ top: sideTop, left: rect.right + popupOffset },
+			{ top: sideTop, left: rect.left - popupOffset - popupWidth }
+		];
+
+		popupPosition = placements.find(fits) ?? { top: clampTop(below), left: clampLeft(rect.left) };
 	}
 
 	function closePopup() {
