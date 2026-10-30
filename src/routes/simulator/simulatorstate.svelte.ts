@@ -151,6 +151,32 @@ function nextPlayerName(players: ReadonlyArray<PlayerState>): string {
 	return `Jugador ${index}`;
 }
 
+/** Names handed out to new kingdoms, in order, before falling back to numbered names. */
+const defaultKingdomNames: ReadonlyArray<string> = [
+	'Rostrad',
+	'Velaria',
+	'Zarmul',
+	'Bergen',
+	'Garlan',
+	'Thul',
+	'Moldara',
+	'Elkengrad',
+	'Dunhal',
+	'Kelethor'
+];
+
+function nextKingdomName(kingdoms: ReadonlyArray<KingdomState>): string {
+	const used = new Set(kingdoms.map((kingdom) => kingdom.name));
+	const available = defaultKingdomNames.find((name) => !used.has(name));
+	if (available) return available;
+
+	let index = 1;
+	while (used.has(`Regne ${index}`)) {
+		index += 1;
+	}
+	return `Regne ${index}`;
+}
+
 /** Every player owns one capability card of each common action. */
 const commonCapabilities: ReadonlyArray<CardCapability> = cardsCatalog
 	.all()
@@ -275,7 +301,7 @@ export class SimulatorState {
 	addKingdom(): void {
 		this.kingdoms.push({
 			id: makeUid(),
-			name: `Regne ${this.kingdoms.length + 1}`,
+			name: nextKingdomName(this.kingdoms),
 			stats: emptyKingdomStats(),
 			offices: createOfficeRefs()
 		});
@@ -555,7 +581,10 @@ export class SimulatorState {
 				if (!record) continue;
 				kingdoms.push({
 					id: uniqueId(record.id, usedKingdomIds),
-					name: typeof record.name === 'string' ? record.name : `Regne ${kingdoms.length + 1}`,
+					name:
+						typeof record.name === 'string' && record.name
+							? record.name
+							: nextKingdomName(kingdoms),
 					stats: normalizeStats(record.stats),
 					// Snapshots from before offices existed start with a full set.
 					offices: Array.isArray(record.offices)
