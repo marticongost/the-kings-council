@@ -284,18 +284,27 @@ export class SimulatorState {
 
 	// Players
 
-	/** Adds a player, optionally joining a kingdom directly. */
+	/** Adds a player with a house card drawn from the house deck, joining a kingdom optionally. */
 	addPlayer(kingdomId: string | null = null): void {
 		const resolvedKingdomId =
 			kingdomId && this.kingdoms.some((kingdom) => kingdom.id === kingdomId) ? kingdomId : null;
+		this.recycleHouseDiscards();
+		const house = this.decks.house.pop();
 		this.players.push({
 			id: makeUid(),
 			name: nextPlayerName(this.players),
 			kingdomId: resolvedKingdomId,
 			resources: emptyResources(),
-			hand: [],
+			hand: house ? [house] : [],
 			offices: []
 		});
+	}
+
+	/** House cards of removed players return to the deck so every new player can draw one. */
+	private recycleHouseDiscards(): void {
+		if (this.decks.house.length > 0 || this.discards.house.length === 0) return;
+		this.decks.house.push(...this.discards.house.splice(0));
+		shuffle(this.decks.house);
 	}
 
 	removePlayer(playerId: string): void {
