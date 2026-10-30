@@ -4,6 +4,7 @@ import { type Card, type CardType } from '#lib/models/cards';
 import { kingdomStatTypes, type KingdomStatType } from '#lib/models/kingdomstats';
 import { officeTypes } from '#lib/models/offices';
 import { SvelteSet } from 'svelte/reactivity';
+import { deckIdForType, isOfficeTypeKey, officeCardId, type ConcreteTypeKey } from './keyboardnav';
 import {
 	deckCardType,
 	deckIdOf,
@@ -474,6 +475,131 @@ export class SimulatorState {
 
 		sourceCards.splice(index, 1);
 		targetCards.push(ref);
+	}
+
+	/** Finds a card instance and the zone that currently holds it. */
+	findCard(uid: string): { zone: Zone; ref: CardRef } | null {
+		const laws = this.laws.find((ref) => ref.uid === uid);
+		if (laws) return { zone: { kind: 'laws' }, ref: laws };
+
+		const market = this.market.find((ref) => ref.uid === uid);
+		if (market) return { zone: { kind: 'market' }, ref: market };
+
+		for (const deckId of deckIds) {
+			const ref = this.decks[deckId].find((candidate) => candidate.uid === uid);
+			if (ref) return { zone: { kind: 'deck', deckId }, ref };
+
+			const discarded = this.discards[deckId].find((candidate) => candidate.uid === uid);
+			if (discarded) return { zone: { kind: 'discard', deckId }, ref: discarded };
+		}
+
+		for (const kingdom of this.kingdoms) {
+			const ref = kingdom.cards.find((candidate) => candidate.uid === uid);
+			if (ref) {
+				const card = this.cardOf(ref);
+				return {
+					zone:
+						card?.type === 'office'
+							? { kind: 'kingdom-offices', kingdomId: kingdom.id }
+							: { kind: 'kingdom-cards', kingdomId: kingdom.id },
+					ref
+				};
+			}
+		}
+
+		for (const player of this.players) {
+			const office = player.offices.find((candidate) => candidate.uid === uid);
+			if (office) return { zone: { kind: 'player-offices', playerId: player.id }, ref: office };
+
+			const hand = player.hand.find((candidate) => candidate.uid === uid);
+			if (hand) return { zone: { kind: 'hand', playerId: player.id }, ref: hand };
+		}
+
+		return null;
+	}
+
+	/** Moves cards to their deck's discard pile. */
+	discardCards(uids: Iterable<string>): void {
+		for (const uid of uids) {
+			const found = this.findCard(uid);
+			if (!found) continue;
+			const card = this.cardOf(found.ref);
+			if (!card) continue;
+			this.moveCard(found.zone, { kind: 'discard', deckId: deckIdOf(card) }, uid);
+		}
+	}
+
+	/** Returns cards to the top of their deck. */
+	returnCardsToDecks(uids: Iterable<string>): void {
+		for (const uid of uids) {
+			const found = this.findCard(uid);
+			if (!found) continue;
+			const card = this.cardOf(found.ref);
+			if (!card) continue;
+			this.moveCard(found.zone, { kind: 'deck', deckId: deckIdOf(card) }, uid);
+		}
+	}
+
+	/**
+	 * Acquires cards for players and kingdoms. Non-office cards are drawn from their deck,
+	 * while offices move the kingdom's single copy to the target.
+	 */
+	acquireCards(
+		targets: { playerIds: Iterable<string>; kingdomIds: Iterable<string> },
+		amount: number,
+		type: ConcreteTypeKey
+	): void {
+		const count = Math.max(0, Math.floor(amount));
+		if (count === 0) return;
+
+		for (const playerId of targets.playerIds) {
+			const player = this.players.find((candidate) => candidate.id === playerId);
+			if (!player) continue;
+			for (let index = 0; index < count; index += 1) this.acquireForPlayer(player, type);
+		}
+
+		for (const kingdomId of targets.kingdomIds) {
+			const kingdom = this.kingdoms.find((candidate) => candidate.id === kingdomId);
+			if (!kingdom) continue;
+			for (let index = 0; index < count; index += 1) this.acquireForKingdom(kingdom, type);
+		}
+	}
+
+	private acquireForPlayer(player: PlayerState, type: ConcreteTypeKey): void {
+		if (isOfficeTypeKey(type)) {
+			if (!player.kingdomId) return;
+			const cardId = officeCardId(type);
+			if (player.offices.some((office) => office.cardId === cardId)) return;
+
+			const match = this.findOffice(player.kingdomId, cardId);
+			if (!match) return;
+			match.offices.splice(match.index, 1);
+			player.offices.push(match.ref);
+			return;
+		}
+
+		const deckId = deckIdForType(type);
+		if (!deckId) return;
+		const [ref] = this.drawFromDeck(deckId, 1);
+		if (ref) player.hand.push(ref);
+	}
+
+	private acquireForKingdom(kingdom: KingdomState, type: ConcreteTypeKey): void {
+		if (isOfficeTypeKey(type)) {
+			const cardId = officeCardId(type);
+			if (kingdom.cards.some((office) => office.cardId === cardId)) return;
+
+			const match = this.findOffice(kingdom.id, cardId);
+			if (!match) return;
+			match.offices.splice(match.index, 1);
+			kingdom.cards.push(match.ref);
+			return;
+		}
+
+		const deckId = deckIdForType(type);
+		if (!deckId) return;
+		const [ref] = this.drawFromDeck(deckId, 1);
+		if (ref) kingdom.cards.push(ref);
 	}
 
 	/**

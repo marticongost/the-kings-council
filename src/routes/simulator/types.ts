@@ -67,6 +67,12 @@ export const deckIds = [
 
 export type DeckId = (typeof deckIds)[number];
 
+/** Decks rendered in the decks bar. Common actions are reference cards, and offices live in kingdoms. */
+export const deckIdsInPlay = deckIds.filter((deckId) => deckId !== 'common' && deckId !== 'office');
+
+/** Identifies the independent players panel when it acts as a kingdom. */
+export const independentKingdomId = '__independents__';
+
 /** A place where cards can live. Decks are face-down, the rest are face-up. */
 export type Zone =
 	| { kind: 'hand'; playerId: string }

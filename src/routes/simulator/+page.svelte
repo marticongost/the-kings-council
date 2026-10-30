@@ -86,18 +86,21 @@
 	import CardZone from './CardZone.svelte';
 	import DeckZone from './DeckZone.svelte';
 	import IndependentPlayersPanel from './IndependentPlayersPanel.svelte';
+	import KeyboardCues from './KeyboardCues.svelte';
 	import KingdomPanel from './KingdomPanel.svelte';
+	import { KeyboardController } from './keyboard.svelte';
+	import { provideSelection, SimulatorSelection } from './selection.svelte';
 	import { SimulatorState } from './simulatorstate.svelte';
-	import { deckIds } from './types';
+	import { deckIdsInPlay } from './types';
 
 	/** Distance from the bottom of the viewport, in pixels, that reveals the decks. */
 	const decksRevealDistance = 30;
 
 	const simulator = new SimulatorState();
+	const selection = new SimulatorSelection();
+	const keyboard = new KeyboardController(simulator, selection);
 
-	// Common action cards are reference cards whose capabilities every player has,
-	// and offices belong to kingdoms rather than to a draw pile.
-	const deckIdsInPlay = deckIds.filter((deckId) => deckId !== 'common' && deckId !== 'office');
+	provideSelection(selection);
 
 	let decksElement = $state<HTMLElement>();
 	let decksVisible = $state(false);
@@ -133,6 +136,35 @@
 		simulator.persist();
 	});
 
+	$effect(() => {
+		selection.prune(simulator);
+	});
+
+	function onBackgroundClick(event: MouseEvent) {
+		const target = event.target;
+		if (!(target instanceof Element)) {
+			selection.clear();
+			return;
+		}
+		if (target.closest('button, a, input, select, textarea')) return;
+		if (
+			target.closest('[data-simulator-kingdom], [data-simulator-player], [data-simulator-card]')
+		) {
+			return;
+		}
+		selection.clear();
+	}
+
+	function backgroundSelection(node: HTMLElement) {
+		const handler = (event: MouseEvent) => onBackgroundClick(event);
+		node.addEventListener('click', handler);
+		return {
+			destroy() {
+				node.removeEventListener('click', handler);
+			}
+		};
+	}
+
 	function clearSimulator() {
 		if (window.confirm('Segur que vols netejar el simulador? Es perdrà tot l’estat desat.')) {
 			simulator.clear();
@@ -144,10 +176,12 @@
 	<title>Simulador · El Consell del Rei</title>
 </svelte:head>
 
+<svelte:window onkeydown={keyboard.handleKeyDown} />
+
 {#if !simulator.ready}
 	<p>Carregant el simulador…</p>
 {:else}
-	<div class={styles.page}>
+	<div class={styles.page} use:backgroundSelection>
 		<div class={styles.panels}>
 			<div class={styles.panelColumn}>
 				<Panel title="Partida">
@@ -217,5 +251,7 @@
 				{/each}
 			</div>
 		</div>
+
+		<KeyboardCues controller={keyboard} hidden={decksVisible} />
 	</div>
 {/if}

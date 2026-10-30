@@ -24,6 +24,10 @@
 		},
 		body: {
 			...css.column('md')
+		},
+		selected: {
+			outline: `2px solid ${css.palette.tobacco}`,
+			outlineOffset: '2px'
 		}
 	});
 </script>
@@ -39,6 +43,7 @@
 	import { cardDropHandlers } from './cardDrop';
 	import { officeDropHandlers } from './officeDrop';
 	import PlayerChip from './PlayerChip.svelte';
+	import { useSelection } from './selection.svelte';
 	import type { SimulatorState } from './simulatorstate.svelte';
 	import { playerResourceTypes, type PlayerState, type Zone } from './types';
 
@@ -48,6 +53,20 @@
 	}
 
 	const { simulator, player }: Props = $props();
+
+	const selection = useSelection();
+	const selected = $derived(selection.players.has(player.id));
+
+	function onclick(event: MouseEvent) {
+		event.stopPropagation();
+		if (
+			event.target instanceof Element &&
+			event.target.closest('button, a, input, select, textarea')
+		) {
+			return;
+		}
+		selection.select('player', player.id, event.ctrlKey || event.metaKey);
+	}
 
 	let officeOver = $state(false);
 	let handOver = $state(false);
@@ -89,7 +108,18 @@
 	}
 </script>
 
-<Panel title={player.name} {isOver} {ondragover} {ondragleave} {ondrop} compact>
+<Panel
+	title={player.name}
+	{isOver}
+	{ondragover}
+	{ondragleave}
+	{ondrop}
+	class={selected ? styles.selected : undefined}
+	data-simulator-player={player.id}
+	aria-current={selected ? 'true' : undefined}
+	{onclick}
+	compact
+>
 	{#snippet titleContent()}
 		<PlayerChip {simulator} {player} />
 	{/snippet}

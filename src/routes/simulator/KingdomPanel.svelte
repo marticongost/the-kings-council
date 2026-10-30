@@ -39,6 +39,10 @@
 			padding: 0,
 			borderRadius: 0,
 			flexShrink: 0
+		},
+		selected: {
+			outline: `2px solid ${css.palette.tobacco}`,
+			outlineOffset: '2px'
 		}
 	});
 </script>
@@ -56,6 +60,7 @@
 	import { cardDropHandlers } from './cardDrop';
 	import { officeDropHandlers } from './officeDrop';
 	import { playerDropHandlers } from './playerDrop';
+	import { useSelection } from './selection.svelte';
 	import type { SimulatorState } from './simulatorstate.svelte';
 	import { kingdomStatMax, kingdomStatMin, type KingdomState, type Zone } from './types';
 
@@ -66,7 +71,20 @@
 
 	const { simulator, kingdom }: Props = $props();
 
+	const selection = useSelection();
+	const selected = $derived(selection.kingdoms.has(kingdom.id));
 	const members = $derived(simulator.membersOf(kingdom.id));
+
+	function onclick(event: MouseEvent) {
+		event.stopPropagation();
+		if (
+			event.target instanceof Element &&
+			event.target.closest('button, a, input, select, textarea')
+		) {
+			return;
+		}
+		selection.select('kingdom', kingdom.id, event.ctrlKey || event.metaKey);
+	}
 
 	const officeZone = $derived<Zone>({ kind: 'kingdom-offices', kingdomId: kingdom.id });
 	const cardsZone = $derived<Zone>({ kind: 'kingdom-cards', kingdomId: kingdom.id });
@@ -129,7 +147,17 @@
 	}
 </script>
 
-<Panel title={kingdom.name} {isOver} {ondragover} {ondragleave} {ondrop}>
+<Panel
+	title={kingdom.name}
+	{isOver}
+	{ondragover}
+	{ondragleave}
+	{ondrop}
+	class={selected ? styles.selected : undefined}
+	data-simulator-kingdom={kingdom.id}
+	aria-current={selected ? 'true' : undefined}
+	{onclick}
+>
 	{#snippet titleContent()}
 		<div class={styles.title}>
 			<InlineSvg class={styles.titleIcon} src="keywords/kingdom.svg" aria-hidden="true" />

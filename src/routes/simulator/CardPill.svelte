@@ -58,6 +58,11 @@
 		staticPill: {
 			cursor: 'default'
 		},
+		selectedPill: {
+			outline: `2px solid ${css.palette.cedar}`,
+			outlineOffset: '1px',
+			boxShadow: `0 0 0 4px ${css.palette.carrara}`
+		},
 		icon: {
 			height: '1.3em',
 			width: 'auto',
@@ -87,6 +92,7 @@
 	import InlineSvg from '#lib/components/InlineSvg.svelte';
 	import type { CardCapability } from '#lib/models/cardcapabilities';
 	import type { Card } from '#lib/models/cards';
+	import { useSelection } from './selection.svelte';
 	import { officeDragMime, simulatorDragMime, type DragPayload, type Zone } from './types';
 
 	interface Props {
@@ -97,6 +103,9 @@
 	}
 
 	const { card, cardCapability, source, uid }: Props = $props();
+
+	const selection = useSelection();
+	const selected = $derived(uid ? selection.cards.has(uid) : false);
 
 	const subject = $derived(card ?? cardCapability?.card);
 	const colors = $derived(subject ? pillColors[getCardBackgroundName(subject)] : pillColors.common);
@@ -161,6 +170,18 @@
 		placePopup();
 	}
 
+	function onClick(event: MouseEvent) {
+		event.stopPropagation();
+		if (uid) {
+			if (event.ctrlKey || event.metaKey) {
+				selection.toggle('card', uid);
+				return;
+			}
+			selection.replace('card', [uid]);
+		}
+		togglePopup();
+	}
+
 	$effect(() => {
 		if (!open) return;
 
@@ -201,29 +222,33 @@
 </script>
 
 {#if subject}
-	<div class={styles.wrapper} bind:this={wrapper} role="listitem">
+	<div class={styles.wrapper} bind:this={wrapper} role="listitem" data-simulator-card={uid}>
 		<button
-			class={cx(styles.pill, !source && styles.staticPill)}
+			class={cx(styles.pill, !source && styles.staticPill, selected && styles.selectedPill)}
 			style:background-color={colors.background}
 			style:color={colors.color}
 			type="button"
 			draggable={Boolean(source)}
 			bind:this={pill}
 			ondragstart={onDragStart}
-			onclick={togglePopup}
+			onclick={onClick}
 			aria-expanded={open}
+			aria-pressed={selected}
 			{title}
 		>
 			<InlineSvg class={styles.icon} src={getCardIcon(subject)} aria-hidden="true" />
 			<span class={styles.title}>{title}</span>
 		</button>
 		{#if open && popupPosition}
+			<!-- svelte-ignore a11y_click_events_have_key_events -->
 			<div
 				class={styles.popup}
 				style:top={`${popupPosition.top}px`}
 				style:left={`${popupPosition.left}px`}
 				role="dialog"
 				aria-label={title}
+				tabindex="-1"
+				onclick={(event) => event.stopPropagation()}
 			>
 				{#if card}
 					<CardFront {card} />

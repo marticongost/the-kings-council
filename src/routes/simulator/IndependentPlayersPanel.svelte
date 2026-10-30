@@ -4,6 +4,10 @@
 	const styles = css.styles({
 		headerActions: {
 			marginLeft: 'auto'
+		},
+		selected: {
+			outline: `2px solid ${css.palette.tobacco}`,
+			outlineOffset: '2px'
 		}
 	});
 </script>
@@ -13,7 +17,9 @@
 	import Panel from '#lib/components/Panel.svelte';
 	import PlayerGroup from './PlayerGroup.svelte';
 	import { playerDropHandlers } from './playerDrop';
+	import { useSelection } from './selection.svelte';
 	import type { SimulatorState } from './simulatorstate.svelte';
+	import { independentKingdomId } from './types';
 
 	interface Props {
 		simulator: SimulatorState;
@@ -21,7 +27,20 @@
 
 	const { simulator }: Props = $props();
 
+	const selection = useSelection();
+	const selected = $derived(selection.kingdoms.has(independentKingdomId));
 	const independents = $derived(simulator.independentPlayers());
+
+	function onclick(event: MouseEvent) {
+		event.stopPropagation();
+		if (
+			event.target instanceof Element &&
+			event.target.closest('button, a, input, select, textarea')
+		) {
+			return;
+		}
+		selection.select('kingdom', independentKingdomId, event.ctrlKey || event.metaKey);
+	}
 
 	let isOver = $state(false);
 
@@ -38,6 +57,10 @@
 	ondragover={drop.ondragover}
 	ondragleave={drop.ondragleave}
 	ondrop={drop.ondrop}
+	class={selected ? styles.selected : undefined}
+	data-simulator-kingdom={independentKingdomId}
+	aria-current={selected ? 'true' : undefined}
+	{onclick}
 >
 	{#snippet header()}
 		<div class={styles.headerActions}>
