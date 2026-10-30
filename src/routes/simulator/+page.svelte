@@ -5,14 +5,11 @@
 		page: {
 			...css.column('lg')
 		},
-		section: {
-			...css.column('sm')
-		},
 		headerActions: {
 			marginLeft: 'auto',
 			...css.row('xs')
 		},
-		kingdoms: {
+		panels: {
 			display: 'flex',
 			flexDirection: 'row',
 			alignItems: 'flex-start',
@@ -20,14 +17,12 @@
 			overflowX: 'auto',
 			paddingBottom: css.spacing.sm
 		},
-		kingdomColumn: {
-			flex: '0 0 min(44em, 92vw)',
+		panelColumn: {
+			flex: '0 0 min(35em, 92vw)',
 			minWidth: 0
 		},
 		tableZones: {
-			display: 'grid',
-			gridTemplateColumns: 'repeat(auto-fit, minmax(18em, 1fr))',
-			gap: css.spacing.md
+			...css.column('sm')
 		},
 		decks: {
 			display: 'grid',
@@ -153,56 +148,57 @@
 	<p>Carregant el simulador…</p>
 {:else}
 	<div class={styles.page}>
-		<Panel title="Partida">
-			{#snippet header()}
-				<div class={styles.headerActions}>
-					<IconButton
-						src="ui/add-kingdom.svg"
-						label="Afegeix regne"
-						onclick={() => simulator.addKingdom()}
-					/>
-					<IconButton src="ui/restart.svg" label="Neteja" onclick={clearSimulator} />
-				</div>
-			{/snippet}
-
-			<div class={styles.tableZones}>
-				<CardZone
-					{simulator}
-					cards={simulator.laws}
-					zone={{ kind: 'laws' }}
-					label="Lleis disponibles"
-					emptyLabel="No hi ha lleis disponibles"
-				/>
-				<CardZone
-					{simulator}
-					cards={simulator.market}
-					zone={{ kind: 'market' }}
-					label="Mercat d'actius"
-					emptyLabel="Cap actiu al mercat"
-				>
-					{#snippet actions()}
-						<IconButton
-							src="ui/refill.svg"
-							label="Reomple el mercat"
-							onclick={() => simulator.refillMarket()}
-						/>
+		<div class={styles.panels}>
+			<div class={styles.panelColumn}>
+				<Panel title="Partida">
+					{#snippet header()}
+						<div class={styles.headerActions}>
+							<IconButton
+								src="ui/add-kingdom.svg"
+								label="Afegeix regne"
+								onclick={() => simulator.addKingdom()}
+							/>
+							<IconButton src="ui/restart.svg" label="Neteja" onclick={clearSimulator} />
+						</div>
 					{/snippet}
-				</CardZone>
-			</div>
-		</Panel>
 
-		<section class={styles.section}>
-			<div class={styles.kingdoms}>
-				<div class={styles.kingdomColumn}>
-					<IndependentPlayersPanel {simulator} />
-				</div>
-				{#each simulator.kingdoms as kingdom (kingdom.id)}
-					<div class={styles.kingdomColumn}>
-						<KingdomPanel {simulator} {kingdom} />
+					<div class={styles.tableZones}>
+						<CardZone
+							{simulator}
+							cards={simulator.laws}
+							zone={{ kind: 'laws' }}
+							label="Lleis disponibles"
+							emptyLabel="No hi ha lleis disponibles"
+						/>
+						<CardZone
+							{simulator}
+							cards={simulator.market}
+							zone={{ kind: 'market' }}
+							label="Mercat d'actius"
+							emptyLabel="Cap actiu al mercat"
+						>
+							{#snippet actions()}
+								<IconButton
+									src="ui/refill.svg"
+									label="Reomple el mercat"
+									onclick={() => simulator.refillMarket()}
+								/>
+							{/snippet}
+						</CardZone>
 					</div>
-				{/each}
+				</Panel>
 			</div>
-		</section>
+
+			<div class={styles.panelColumn}>
+				<IndependentPlayersPanel {simulator} />
+			</div>
+
+			{#each simulator.kingdoms as kingdom (kingdom.id)}
+				<div class={styles.panelColumn}>
+					<KingdomPanel {simulator} {kingdom} />
+				</div>
+			{/each}
+		</div>
 
 		<div class={cx(styles.decksHint, decksVisible && styles.decksHintHidden)} aria-hidden="true">
 			<InlineSvg src="ui/cards.svg" />
