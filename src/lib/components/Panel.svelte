@@ -37,6 +37,8 @@
 
 	interface Props extends StandardAttributeProps {
 		title: string;
+		/** Content rendered inside the title element, instead of the plain `title` text. */
+		titleContent?: Snippet;
 		/** Content rendered in the header, after the title. */
 		header?: Snippet;
 		/** Panel body content. */
@@ -45,12 +47,18 @@
 		isOver?: boolean;
 	}
 
-	const { title, header, children, isOver = false, ...attributes }: Props = $props();
+	const { title, titleContent, header, children, isOver = false, ...attributes }: Props = $props();
 </script>
 
 <article {...standardAttributes(attributes, cx(styles.panel, isOver && styles.over))}>
 	<header class={styles.header}>
-		<h3 class={styles.name}>{title}</h3>
+		<h3 class={styles.name}>
+			{#if titleContent}
+				{@render titleContent()}
+			{:else}
+				{title}
+			{/if}
+		</h3>
 		{@render header?.()}
 	</header>
 	<div class={styles.body}>

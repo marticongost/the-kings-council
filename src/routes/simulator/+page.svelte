@@ -39,11 +39,20 @@
 			fontSize: '1.3em',
 			color: css.palette.cedar
 		},
-		panels: {
-			display: 'grid',
-			gridTemplateColumns: 'repeat(auto-fill, minmax(min(56em, 100%), 1fr))',
+		sectionActions: {
+			...css.row('sm')
+		},
+		kingdoms: {
+			display: 'flex',
+			flexDirection: 'row',
+			alignItems: 'flex-start',
 			gap: css.spacing.md,
-			alignItems: 'start'
+			overflowX: 'auto',
+			paddingBottom: css.spacing.sm
+		},
+		kingdomColumn: {
+			flex: '0 0 min(44em, 92vw)',
+			minWidth: 0
 		},
 		tableZones: {
 			display: 'grid',
@@ -54,11 +63,6 @@
 			display: 'grid',
 			gridTemplateColumns: 'repeat(auto-fill, minmax(15em, 1fr))',
 			gap: css.spacing.md
-		},
-		empty: {
-			margin: 0,
-			fontStyle: 'italic',
-			color: css.text.subtleColor
 		}
 	});
 </script>
@@ -68,8 +72,8 @@
 	import Button from '#lib/components/Button.svelte';
 	import CardZone from './CardZone.svelte';
 	import DeckZone from './DeckZone.svelte';
+	import IndependentPlayersPanel from './IndependentPlayersPanel.svelte';
 	import KingdomPanel from './KingdomPanel.svelte';
-	import PlayerPanel from './PlayerPanel.svelte';
 	import { SimulatorState } from './simulatorstate.svelte';
 	import { deckIds } from './types';
 
@@ -107,8 +111,8 @@
 				<h1 class={styles.title}>Simulador</h1>
 				<p class={styles.hint}>
 					Pista: arrossega una baralla per robar la carta superior, mou les cartes entre mans,
-					descarts, la fila de lleis i el mercat d'actius, i assigna càrrecs arrossegant-los entre
-					regnes i jugadors.
+					descarts, la fila de lleis i el mercat d'actius, assigna càrrecs arrossegant-los entre
+					regnes i jugadors, i canvia un jugador de regne arrossegant el seu nom.
 				</p>
 			</div>
 			<Button onclick={clearSimulator}>Neteja</Button>
@@ -116,34 +120,21 @@
 
 		<section class={styles.section}>
 			<div class={styles.sectionHeader}>
-				<h2 class={styles.sectionTitle}>Jugadors</h2>
-				<Button onclick={() => simulator.addPlayer()}>Afegeix jugador</Button>
-			</div>
-			{#if simulator.players.length > 0}
-				<div class={styles.panels}>
-					{#each simulator.players as player (player.id)}
-						<PlayerPanel {simulator} {player} />
-					{/each}
-				</div>
-			{:else}
-				<p class={styles.empty}>Encara no hi ha jugadors.</p>
-			{/if}
-		</section>
-
-		<section class={styles.section}>
-			<div class={styles.sectionHeader}>
 				<h2 class={styles.sectionTitle}>Regnes</h2>
-				<Button onclick={() => simulator.addKingdom()}>Afegeix regne</Button>
-			</div>
-			{#if simulator.kingdoms.length > 0}
-				<div class={styles.panels}>
-					{#each simulator.kingdoms as kingdom (kingdom.id)}
-						<KingdomPanel {simulator} {kingdom} />
-					{/each}
+				<div class={styles.sectionActions}>
+					<Button onclick={() => simulator.addKingdom()}>Afegeix regne</Button>
 				</div>
-			{:else}
-				<p class={styles.empty}>Encara no hi ha regnes.</p>
-			{/if}
+			</div>
+			<div class={styles.kingdoms}>
+				<div class={styles.kingdomColumn}>
+					<IndependentPlayersPanel {simulator} />
+				</div>
+				{#each simulator.kingdoms as kingdom (kingdom.id)}
+					<div class={styles.kingdomColumn}>
+						<KingdomPanel {simulator} {kingdom} />
+					</div>
+				{/each}
+			</div>
 		</section>
 
 		<section class={styles.section}>

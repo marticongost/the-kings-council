@@ -58,9 +58,9 @@
 	import { cx } from '@emotion/css';
 	import { cardsCatalog } from '#lib/data/catalog';
 	import InlineSvg from '#lib/components/InlineSvg.svelte';
-	import type { CardRef, DragPayload, Zone } from './types';
-	import { simulatorDragMime } from './types';
+	import type { CardRef, Zone } from './types';
 	import type { SimulatorState } from './simulatorstate.svelte';
+	import { cardDropHandlers } from './cardDrop';
 	import CardPill from './CardPill.svelte';
 	import CountBadge from './CountBadge.svelte';
 
@@ -90,37 +90,11 @@
 
 	let isOver = $state(false);
 
-	function hasSimulatorPayload(event: DragEvent): boolean {
-		return event.dataTransfer?.types.includes(simulatorDragMime) ?? false;
-	}
-
-	function onDragOver(event: DragEvent) {
-		if (!hasSimulatorPayload(event)) return;
-		event.preventDefault();
-		if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
-		isOver = true;
-	}
-
-	function onDragLeave(event: DragEvent) {
-		const target = event.currentTarget;
-		const related = event.relatedTarget;
-		if (target instanceof Node && related instanceof Node && target.contains(related)) return;
-		isOver = false;
-	}
-
-	function onDrop(event: DragEvent) {
-		isOver = false;
-		const raw = event.dataTransfer?.getData(simulatorDragMime);
-		if (!raw) return;
-		event.preventDefault();
-
-		try {
-			const payload = JSON.parse(raw) as DragPayload;
-			simulator.moveCard(payload.source, zone, payload.uid);
-		} catch {
-			// Ignore malformed payloads from outside the simulator.
-		}
-	}
+	const drop = cardDropHandlers({
+		simulator: () => simulator,
+		zone: () => zone,
+		onOverChange: (value) => (isOver = value)
+	});
 </script>
 
 <div
@@ -128,9 +102,9 @@
 	role="group"
 	aria-label={ariaLabel ?? label}
 	style:height={pile ? height : undefined}
-	ondragover={onDragOver}
-	ondragleave={onDragLeave}
-	ondrop={onDrop}
+	ondragover={drop.ondragover}
+	ondragleave={drop.ondragleave}
+	ondrop={drop.ondrop}
 >
 	{#if label}
 		<div class={styles.header}>

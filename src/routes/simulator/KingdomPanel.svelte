@@ -2,8 +2,27 @@
 	import * as css from '#lib/styles';
 
 	const styles = css.styles({
-		offices: {
-			flex: '1 1 auto',
+		title: {
+			...css.row('xs'),
+			minWidth: 0
+		},
+		titleIcon: {
+			height: '0.8em',
+			width: 'auto',
+			flexShrink: 0,
+			color: css.palette.thatch
+		},
+		titleName: {
+			minWidth: 0,
+			overflow: 'hidden',
+			textOverflow: 'ellipsis',
+			whiteSpace: 'nowrap'
+		},
+		headerActions: {
+			marginLeft: 'auto'
+		},
+		body: {
+			...css.column('md'),
 			minWidth: 0
 		},
 		stats: {
@@ -19,43 +38,22 @@
 			padding: 0,
 			borderRadius: 0,
 			flexShrink: 0
-		},
-		fieldLabel: {
-			fontSize: '0.8em',
-			fontWeight: 900,
-			textTransform: 'uppercase',
-			letterSpacing: '0.05em',
-			color: css.text.subtleColor
-		},
-		members: {
-			...css.row('xs'),
-			flexWrap: 'wrap',
-			minHeight: '1.5em'
-		},
-		member: {
-			padding: `${css.spacing.xs} ${css.spacing.sm}`,
-			borderRadius: css.spacing.xs,
-			backgroundColor: css.palette.willow,
-			color: css.palette.wood,
-			fontSize: '0.85em'
-		},
-		empty: {
-			margin: 0,
-			fontSize: '0.85em',
-			fontStyle: 'italic',
-			color: css.text.subtleColor
 		}
 	});
 </script>
 
 <script lang="ts">
-	import Button from '#lib/components/Button.svelte';
+	import IconButton from '#lib/components/IconButton.svelte';
+	import InlineSvg from '#lib/components/InlineSvg.svelte';
 	import KingdomStatIcon from '#lib/components/KingdomStatIcon.svelte';
 	import Panel from '#lib/components/Panel.svelte';
 	import { getKingdomStat, kingdomStatTypes } from '#lib/models/kingdomstats';
 	import Counter from './Counter.svelte';
-	import OfficeList from './OfficeList.svelte';
+	import CardList from './CardList.svelte';
+	import PlayerGroup from './PlayerGroup.svelte';
+	import { cardDropHandlers } from './cardDrop';
 	import { officeDropHandlers } from './officeDrop';
+	import { playerDropHandlers } from './playerDrop';
 	import type { SimulatorState } from './simulatorstate.svelte';
 	import { kingdomStatMax, kingdomStatMin, type KingdomState } from './types';
 
@@ -68,57 +66,90 @@
 
 	const members = $derived(simulator.membersOf(kingdom.id));
 
-	let isOver = $state(false);
+	let officeOver = $state(false);
+	let cardOver = $state(false);
+	let playerOver = $state(false);
+	const isOver = $derived(officeOver || cardOver || playerOver);
 
-	const drop = officeDropHandlers({
+	const officeDrop = officeDropHandlers({
 		simulator: () => simulator,
 		zone: () => ({ kind: 'kingdom-offices', kingdomId: kingdom.id }),
-		onOverChange: (value) => (isOver = value)
+		onOverChange: (value) => (officeOver = value)
 	});
+
+	const cardDrop = cardDropHandlers({
+		simulator: () => simulator,
+		zone: () => ({ kind: 'kingdom-cards', kingdomId: kingdom.id }),
+		onOverChange: (value) => (cardOver = value)
+	});
+
+	const playerDrop = playerDropHandlers({
+		simulator: () => simulator,
+		kingdomId: () => kingdom.id,
+		onOverChange: (value) => (playerOver = value)
+	});
+
+	function ondragover(event: DragEvent) {
+		officeDrop.ondragover(event);
+		cardDrop.ondragover(event);
+		playerDrop.ondragover(event);
+	}
+
+	function ondragleave(event: DragEvent) {
+		officeDrop.ondragleave(event);
+		cardDrop.ondragleave(event);
+		playerDrop.ondragleave(event);
+	}
+
+	function ondrop(event: DragEvent) {
+		officeDrop.ondrop(event);
+		cardDrop.ondrop(event);
+		playerDrop.ondrop(event);
+	}
 </script>
 
-<Panel
-	title={kingdom.name}
-	{isOver}
-	ondragover={drop.ondragover}
-	ondragleave={drop.ondragleave}
-	ondrop={drop.ondrop}
->
-	{#snippet header()}
-		<div class={styles.offices}>
-			<OfficeList
-				{simulator}
-				offices={kingdom.offices}
-				zone={{ kind: 'kingdom-offices', kingdomId: kingdom.id }}
-			/>
+<Panel title={kingdom.name} {isOver} {ondragover} {ondragleave} {ondrop}>
+	{#snippet titleContent()}
+		<div class={styles.title}>
+			<InlineSvg class={styles.titleIcon} src="keywords/kingdom.svg" aria-hidden="true" />
+			<span class={styles.titleName}>{kingdom.name}</span>
 		</div>
-		<Button onclick={() => simulator.removeKingdom(kingdom.id)}>Elimina</Button>
 	{/snippet}
 
-	<div class={styles.stats}>
-		{#each kingdomStatTypes as stat (stat)}
-			<Counter
-				value={kingdom.stats[stat]}
-				label={getKingdomStat(stat).title}
-				min={kingdomStatMin}
-				max={kingdomStatMax}
-				onchange={(value) => simulator.setStat(kingdom.id, stat, value)}
-			>
-				{#snippet icon()}
-					<KingdomStatIcon class={styles.statIcon} {stat} />
-				{/snippet}
-			</Counter>
-		{/each}
-	</div>
+	{#snippet header()}
+		<div class={styles.headerActions}>
+			<IconButton
+				src="ui/add-player.svg"
+				label={`Afegeix jugador a ${kingdom.name}`}
+				onclick={() => simulator.addPlayer(kingdom.id)}
+			/>
+			<IconButton
+				src="ui/delete.svg"
+				label={`Elimina ${kingdom.name}`}
+				onclick={() => simulator.removeKingdom(kingdom.id)}
+			/>
+		</div>
+	{/snippet}
 
-	<div>
-		<span class={styles.fieldLabel}>Membres</span>
-		<div class={styles.members}>
-			{#each members as member (member.id)}
-				<span class={styles.member}>{member.name}</span>
-			{:else}
-				<p class={styles.empty}>Sense membres</p>
+	<div class={styles.body}>
+		<div class={styles.stats}>
+			{#each kingdomStatTypes as stat (stat)}
+				<Counter
+					value={kingdom.stats[stat]}
+					label={getKingdomStat(stat).title}
+					min={kingdomStatMin}
+					max={kingdomStatMax}
+					onchange={(value) => simulator.setStat(kingdom.id, stat, value)}
+				>
+					{#snippet icon()}
+						<KingdomStatIcon class={styles.statIcon} {stat} />
+					{/snippet}
+				</Counter>
 			{/each}
 		</div>
+
+		<CardList {simulator} cards={kingdom.cards} kingdomId={kingdom.id} />
+
+		<PlayerGroup {simulator} players={members} />
 	</div>
 </Panel>

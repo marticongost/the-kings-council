@@ -36,6 +36,9 @@ export const simulatorDragMime = 'application/x-kings-council-simulator';
 /** Set alongside `simulatorDragMime` so panels can recognise office drags while over them. */
 export const officeDragMime = 'application/x-kings-council-office';
 
+/** Set when dragging a player, so kingdoms can adopt it while it hovers over them. */
+export const playerDragMime = 'application/x-kings-council-player';
+
 /** A card in play, identified by its catalog card and a per-instance id. */
 export interface CardRef {
 	uid: string;
@@ -65,6 +68,7 @@ export type Zone =
 	| { kind: 'market' }
 	| { kind: 'deck'; deckId: DeckId }
 	| { kind: 'discard'; deckId: DeckId }
+	| { kind: 'kingdom-cards'; kingdomId: string }
 	| { kind: 'kingdom-offices'; kingdomId: string }
 	| { kind: 'player-offices'; playerId: string };
 
@@ -91,6 +95,10 @@ export interface DragPayload {
 	uid?: string;
 }
 
+export interface PlayerDragPayload {
+	playerId: string;
+}
+
 export interface PlayerState {
 	id: string;
 	name: string;
@@ -104,7 +112,8 @@ export interface KingdomState {
 	id: string;
 	name: string;
 	stats: KingdomStats;
-	offices: Array<CardRef>;
+	/** Any card attached to the kingdom, including its unassigned offices. */
+	cards: Array<CardRef>;
 }
 
 export interface SerializedPlayer {
@@ -120,7 +129,7 @@ export interface SerializedKingdom {
 	id: string;
 	name: string;
 	stats: KingdomStats;
-	offices?: Array<string>;
+	cards?: Array<string>;
 }
 
 export interface SimulatorSnapshot {
@@ -143,6 +152,8 @@ export function zoneKey(zone: Zone): string {
 		case 'deck':
 		case 'discard':
 			return `${zone.kind}:${zone.deckId}`;
+		case 'kingdom-cards':
+			return `kingdom-cards:${zone.kingdomId}`;
 		case 'kingdom-offices':
 			return `kingdom-offices:${zone.kingdomId}`;
 		case 'player-offices':

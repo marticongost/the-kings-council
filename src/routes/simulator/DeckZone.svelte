@@ -180,7 +180,7 @@
 			cards={simulator.discards[deckId]}
 			zone={{ kind: 'discard', deckId }}
 			ariaLabel="Descarts"
-			emptyIcon="discard.svg"
+			emptyIcon="ui/discard.svg"
 			pile
 			height={mm(stackHeight)}
 		/>

@@ -284,11 +284,14 @@ export class SimulatorState {
 
 	// Players
 
-	addPlayer(): void {
+	/** Adds a player, optionally joining a kingdom directly. */
+	addPlayer(kingdomId: string | null = null): void {
+		const resolvedKingdomId =
+			kingdomId && this.kingdoms.some((kingdom) => kingdom.id === kingdomId) ? kingdomId : null;
 		this.players.push({
 			id: makeUid(),
 			name: nextPlayerName(this.players),
-			kingdomId: null,
+			kingdomId: resolvedKingdomId,
 			resources: emptyResources(),
 			hand: [],
 			offices: []
@@ -330,6 +333,11 @@ export class SimulatorState {
 		return this.players.filter((player) => player.kingdomId === kingdomId);
 	}
 
+	/** Players that belong to no kingdom, shown as the independents group. */
+	independentPlayers(): Array<PlayerState> {
+		return this.players.filter((player) => player.kingdomId === null);
+	}
+
 	// Kingdoms
 
 	addKingdom(): void {
@@ -337,7 +345,7 @@ export class SimulatorState {
 			id: makeUid(),
 			name: nextKingdomName(this.kingdoms),
 			stats: emptyKingdomStats(),
-			offices: createOfficeRefs()
+			cards: createOfficeRefs()
 		});
 	}
 
@@ -428,8 +436,7 @@ export class SimulatorState {
 
 			// Assigned offices always return to the kingdom of their holder.
 			const kingdomOffices =
-				this.kingdoms.find((kingdom) => kingdom.id === this.officeKingdomId(source))?.offices ??
-				null;
+				this.kingdoms.find((kingdom) => kingdom.id === this.officeKingdomId(source))?.cards ?? null;
 			if (!kingdomOffices) return;
 
 			sourceOffices.splice(index, 1);
@@ -480,7 +487,7 @@ export class SimulatorState {
 		if (!kingdom) return null;
 
 		const pools = [
-			kingdom.offices,
+			kingdom.cards,
 			...this.players
 				.filter((player) => player.kingdomId === kingdomId)
 				.map((player) => player.offices)
@@ -495,7 +502,7 @@ export class SimulatorState {
 	private officesIn(zone: Zone): Array<CardRef> | null {
 		switch (zone.kind) {
 			case 'kingdom-offices':
-				return this.kingdoms.find((kingdom) => kingdom.id === zone.kingdomId)?.offices ?? null;
+				return this.kingdoms.find((kingdom) => kingdom.id === zone.kingdomId)?.cards ?? null;
 			case 'player-offices':
 				return this.players.find((player) => player.id === zone.playerId)?.offices ?? null;
 			default:
@@ -518,7 +525,7 @@ export class SimulatorState {
 	private returnOffices(player: PlayerState): void {
 		if (player.offices.length === 0) return;
 		const kingdom = this.kingdoms.find((candidate) => candidate.id === player.kingdomId);
-		if (kingdom) kingdom.offices.push(...player.offices);
+		if (kingdom) kingdom.cards.push(...player.offices);
 		player.offices = [];
 	}
 
@@ -536,6 +543,8 @@ export class SimulatorState {
 				return this.decks[zone.deckId];
 			case 'discard':
 				return this.discards[zone.deckId];
+			case 'kingdom-cards':
+				return this.kingdoms.find((kingdom) => kingdom.id === zone.kingdomId)?.cards ?? null;
 			default:
 				return this.officesIn(zone);
 		}
@@ -552,6 +561,8 @@ export class SimulatorState {
 			case 'deck':
 			case 'discard':
 				return deckIdOf(card) === target.deckId;
+			case 'kingdom-cards':
+				return true;
 			case 'kingdom-offices':
 			case 'player-offices':
 				return card.type === 'office';
@@ -589,7 +600,7 @@ export class SimulatorState {
 				id: kingdom.id,
 				name: kingdom.name,
 				stats: { ...kingdom.stats },
-				offices: cardIds(kingdom.offices)
+				cards: cardIds(kingdom.cards)
 			})),
 			laws: cardIds(this.laws),
 			market: cardIds(this.market),
@@ -616,10 +627,13 @@ export class SimulatorState {
 							? record.name
 							: nextKingdomName(kingdoms),
 					stats: normalizeStats(record.stats),
-					// Snapshots from before offices existed start with a full set.
-					offices: Array.isArray(record.offices)
-						? normalizeRefs(record.offices, 'office')
-						: createOfficeRefs()
+					// New snapshots store a general card list; older ones only kept the
+					// kingdom's unassigned offices, and the earliest had no offices at all.
+					cards: Array.isArray(record.cards)
+						? normalizeRefs(record.cards)
+						: Array.isArray(record.offices)
+							? normalizeRefs(record.offices, 'office')
+							: createOfficeRefs()
 				});
 			}
 		}

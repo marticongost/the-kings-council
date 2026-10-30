@@ -2,27 +2,13 @@
 	import * as css from '#lib/styles';
 
 	const styles = css.styles({
-		kingdom: {
-			flex: '0 1 auto',
-			minWidth: 0,
-			height: css.forms.controlHeight,
-			...css.hpadding('sm'),
-			border: css.forms.controlBorder,
-			borderRadius: css.spacing.xs,
-			backgroundColor: css.forms.controlBackgroundColor,
-			fontFamily: css.fonts.text,
-			fontSize: '1em',
-			color: css.text.regularColor,
-			...css.focus.mixin
-		},
 		offices: {
 			flex: '1 1 auto',
 			minWidth: 0
 		},
 		resources: {
-			...css.row('lg'),
-			flexWrap: 'nowrap',
-			overflow: 'hidden'
+			...css.grid('md'),
+			minWidth: 0
 		},
 		resourceIcon: {
 			height: '2em',
@@ -30,23 +16,9 @@
 			color: css.palette.dawn,
 			flexShrink: 0
 		},
-		capabilities: {
-			...css.column('xs')
-		},
-		capabilityHeader: {
-			...css.row('sm'),
-			fontSize: '0.8em',
-			fontWeight: 900,
-			textTransform: 'uppercase',
-			letterSpacing: '0.05em',
-			color: css.text.subtleColor
-		},
-		capabilityCount: {
-			marginLeft: 'auto',
-			fontWeight: 400
-		},
-		capabilityGrid: {
-			...css.grid('xs')
+		hand: {
+			...css.grid('xs'),
+			minWidth: 0
 		},
 		empty: {
 			margin: 0,
@@ -58,14 +30,15 @@
 </script>
 
 <script lang="ts">
-	import Button from '#lib/components/Button.svelte';
+	import IconButton from '#lib/components/IconButton.svelte';
 	import InlineSvg from '#lib/components/InlineSvg.svelte';
 	import Panel from '#lib/components/Panel.svelte';
 	import { getResource } from '#lib/models/resources';
-	import CardZone from './CardZone.svelte';
 	import Counter from './Counter.svelte';
 	import OfficeList from './OfficeList.svelte';
+	import { cardDropHandlers } from './cardDrop';
 	import { officeDropHandlers } from './officeDrop';
+	import PlayerChip from './PlayerChip.svelte';
 	import CardPill from './CardPill.svelte';
 	import type { SimulatorState } from './simulatorstate.svelte';
 	import { playerResourceTypes, type PlayerState } from './types';
@@ -77,36 +50,44 @@
 
 	const { simulator, player }: Props = $props();
 
-	const capabilities = $derived(simulator.capabilitiesOf(player));
+	let officeOver = $state(false);
+	let handOver = $state(false);
+	const isOver = $derived(officeOver || handOver);
 
-	let isOver = $state(false);
-
-	const drop = officeDropHandlers({
+	const officeDrop = officeDropHandlers({
 		simulator: () => simulator,
 		zone: () => ({ kind: 'player-offices', playerId: player.id }),
-		onOverChange: (value) => (isOver = value)
+		onOverChange: (value) => (officeOver = value)
 	});
+
+	const handDrop = cardDropHandlers({
+		simulator: () => simulator,
+		zone: () => ({ kind: 'hand', playerId: player.id }),
+		onOverChange: (value) => (handOver = value)
+	});
+
+	function ondragover(event: DragEvent) {
+		officeDrop.ondragover(event);
+		handDrop.ondragover(event);
+	}
+
+	function ondragleave(event: DragEvent) {
+		officeDrop.ondragleave(event);
+		handDrop.ondragleave(event);
+	}
+
+	function ondrop(event: DragEvent) {
+		officeDrop.ondrop(event);
+		handDrop.ondrop(event);
+	}
 </script>
 
-<Panel
-	title={player.name}
-	{isOver}
-	ondragover={drop.ondragover}
-	ondragleave={drop.ondragleave}
-	ondrop={drop.ondrop}
->
+<Panel title={player.name} {isOver} {ondragover} {ondragleave} {ondrop}>
+	{#snippet titleContent()}
+		<PlayerChip {player} />
+	{/snippet}
+
 	{#snippet header()}
-		<select
-			class={styles.kingdom}
-			aria-label="Regne"
-			value={player.kingdomId ?? ''}
-			onchange={(event) => simulator.assignKingdom(player.id, event.currentTarget.value || null)}
-		>
-			<option value="">Sense regne</option>
-			{#each simulator.kingdoms as kingdom (kingdom.id)}
-				<option value={kingdom.id}>{kingdom.name}</option>
-			{/each}
-		</select>
 		<div class={styles.offices}>
 			<OfficeList
 				{simulator}
@@ -114,7 +95,11 @@
 				zone={{ kind: 'player-offices', playerId: player.id }}
 			/>
 		</div>
-		<Button onclick={() => simulator.removePlayer(player.id)}>Elimina</Button>
+		<IconButton
+			src="ui/delete.svg"
+			label={`Elimina ${player.name}`}
+			onclick={() => simulator.removePlayer(player.id)}
+		/>
 	{/snippet}
 
 	<div class={styles.resources}>
@@ -132,27 +117,15 @@
 		{/each}
 	</div>
 
-	<CardZone
-		{simulator}
-		cards={player.hand}
-		zone={{ kind: 'hand', playerId: player.id }}
-		label="Mà"
-		emptyLabel="Sense cartes"
-	/>
-
-	<section class={styles.capabilities}>
-		<header class={styles.capabilityHeader}>
-			<span>Capacitats</span>
-			<span class={styles.capabilityCount}>{capabilities.length}</span>
-		</header>
-		{#if capabilities.length > 0}
-			<div class={styles.capabilityGrid} role="list">
-				{#each capabilities as capability (capability.id)}
-					<CardPill cardCapability={capability} />
-				{/each}
-			</div>
-		{:else}
-			<p class={styles.empty}>Sense capacitats</p>
+	<div class={styles.hand} role="list">
+		{#each player.hand as ref (ref.uid)}
+			{@const card = simulator.cardOf(ref)}
+			{#if card}
+				<CardPill {card} source={{ kind: 'hand', playerId: player.id }} uid={ref.uid} />
+			{/if}
+		{/each}
+		{#if player.hand.length === 0}
+			<p class={styles.empty}>Sense cartes</p>
 		{/if}
-	</section>
+	</div>
 </Panel>
