@@ -58,6 +58,20 @@ function emptyResources(): PlayerResources {
 	return resources;
 }
 
+/** New players start with three tokens of each resource type except favour. */
+const startingResourceCount = 3;
+
+function startingResources(): PlayerResources {
+	const resources = emptyResources();
+	for (const type of playerResourceTypes) {
+		resources[type] = type === 'favour' ? 0 : startingResourceCount;
+	}
+	return resources;
+}
+
+/** Tactic cards a new player is dealt. */
+const startingTacticCount = 3;
+
 function clamp(value: number, min: number, max: number): number {
 	return Math.min(max, Math.max(min, Math.round(value)));
 }
@@ -294,27 +308,46 @@ export class SimulatorState {
 
 	// Players
 
-	/** Adds a player with a house card drawn from the house deck, joining a kingdom optionally. */
+	/**
+	 * Adds a player joining a kingdom optionally, dealt the starting resources and
+	 * one house, several tactic and one objective of each kind, drawn from their decks.
+	 */
 	addPlayer(kingdomId: string | null = null): void {
 		const resolvedKingdomId =
 			kingdomId && this.kingdoms.some((kingdom) => kingdom.id === kingdomId) ? kingdomId : null;
-		this.recycleHouseDiscards();
-		const house = this.decks.house.pop();
 		this.players.push({
 			id: makeUid(),
 			name: nextPlayerName(this.players),
 			kingdomId: resolvedKingdomId,
-			resources: emptyResources(),
-			hand: house ? [house] : [],
+			resources: startingResources(),
+			hand: [
+				...this.drawFromDeck('house', 1),
+				...this.drawFromDeck('tactic', startingTacticCount),
+				...this.drawFromDeck('collective-goal', 1),
+				...this.drawFromDeck('personal-goal', 1)
+			],
 			offices: []
 		});
 	}
 
-	/** House cards of removed players return to the deck so every new player can draw one. */
-	private recycleHouseDiscards(): void {
-		if (this.decks.house.length > 0 || this.discards.house.length === 0) return;
-		this.decks.house.push(...this.discards.house.splice(0));
-		shuffle(this.decks.house);
+	/**
+	 * Draws up to `count` cards off a deck, reshuffling its discards first when the
+	 * deck runs out so removed players' cards come back into play.
+	 */
+	private drawFromDeck(deckId: DeckId, count: number): Array<CardRef> {
+		const drawn: Array<CardRef> = [];
+		for (let index = 0; index < count; index += 1) {
+			if (this.decks[deckId].length === 0) {
+				const discards = this.discards[deckId];
+				if (discards.length === 0) break;
+				this.decks[deckId].push(...discards.splice(0));
+				shuffle(this.decks[deckId]);
+			}
+
+			const ref = this.decks[deckId].pop();
+			if (ref) drawn.push(ref);
+		}
+		return drawn;
 	}
 
 	removePlayer(playerId: string): void {
