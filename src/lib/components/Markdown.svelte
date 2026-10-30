@@ -16,10 +16,8 @@
 				marginBottom: 0
 			},
 			h1: {
-				marginTop: doubleParagraphSpacing,
-				color: css.palette.red,
-				paddingBottom: '0.25em',
-				borderImage: "url('/svg/decorations/separator.svg') 0 0 100% 0 / 0 0 0.1em 0 repeat"
+				...css.document.title,
+				marginTop: doubleParagraphSpacing
 			},
 			h2: {
 				marginTop: doubleParagraphSpacing,

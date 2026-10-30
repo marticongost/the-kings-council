@@ -4,10 +4,8 @@
 		rules: {
 			margin: 'auto',
 			padding: css.spacing.xl,
-			backgroundColor: css.palette.linen,
-			width: '46em',
-			boxShadow: `inset 0 0 2em 0.5em ${css.palette.gurkha}a0, 0 0 0.5em rgba(0,0,0,0.15)`,
-			border: `1px solid ${css.palette.gurkha}`
+			...css.document.surface,
+			width: '46em'
 		},
 		content: {
 			textAlign: 'justify'

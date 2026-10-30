@@ -2,32 +2,6 @@
 	import * as css from '#lib/styles';
 
 	const styles = css.styles({
-		panel: {
-			...css.column('sm'),
-			padding: css.spacing.sm,
-			border: `1px solid ${css.palette.moonMist}`,
-			borderRadius: css.spacing.sm,
-			backgroundColor: css.palette.white,
-			transition: 'border-color 0.15s, background-color 0.15s',
-			minWidth: 0
-		},
-		over: {
-			borderColor: css.palette.sandal,
-			backgroundColor: css.palette.wheat
-		},
-		header: {
-			...css.row('lg'),
-			flexWrap: 'wrap'
-		},
-		name: {
-			margin: 0,
-			fontFamily: css.fonts.heading,
-			fontWeight: 900,
-			fontSize: '1.5em',
-			lineHeight: 1.2,
-			color: css.palette.cedar,
-			whiteSpace: 'nowrap'
-		},
 		kingdom: {
 			flex: '0 1 auto',
 			minWidth: 0,
@@ -84,9 +58,9 @@
 </script>
 
 <script lang="ts">
-	import { cx } from '@emotion/css';
 	import Button from '#lib/components/Button.svelte';
 	import InlineSvg from '#lib/components/InlineSvg.svelte';
+	import Panel from '#lib/components/Panel.svelte';
 	import { getResource } from '#lib/models/resources';
 	import CardZone from './CardZone.svelte';
 	import Counter from './Counter.svelte';
@@ -114,14 +88,14 @@
 	});
 </script>
 
-<article
-	class={cx(styles.panel, isOver && styles.over)}
+<Panel
+	title={player.name}
+	{isOver}
 	ondragover={drop.ondragover}
 	ondragleave={drop.ondragleave}
 	ondrop={drop.ondrop}
 >
-	<header class={styles.header}>
-		<h3 class={styles.name}>{player.name}</h3>
+	{#snippet header()}
 		<select
 			class={styles.kingdom}
 			aria-label="Regne"
@@ -141,7 +115,7 @@
 			/>
 		</div>
 		<Button onclick={() => simulator.removePlayer(player.id)}>Elimina</Button>
-	</header>
+	{/snippet}
 
 	<div class={styles.resources}>
 		{#each playerResourceTypes as resource (resource)}
@@ -181,4 +155,4 @@
 			<p class={styles.empty}>Sense capacitats</p>
 		{/if}
 	</section>
-</article>
+</Panel>

@@ -2,32 +2,6 @@
 	import * as css from '#lib/styles';
 
 	const styles = css.styles({
-		panel: {
-			...css.column('sm'),
-			padding: css.spacing.sm,
-			border: `1px solid ${css.palette.moonMist}`,
-			borderRadius: css.spacing.sm,
-			backgroundColor: css.palette.white,
-			transition: 'border-color 0.15s, background-color 0.15s',
-			minWidth: 0
-		},
-		over: {
-			borderColor: css.palette.sandal,
-			backgroundColor: css.palette.wheat
-		},
-		header: {
-			...css.row('lg'),
-			flexWrap: 'wrap'
-		},
-		name: {
-			margin: 0,
-			fontFamily: css.fonts.heading,
-			fontWeight: 900,
-			fontSize: '1.5em',
-			lineHeight: 1.2,
-			color: css.palette.cedar,
-			whiteSpace: 'nowrap'
-		},
 		offices: {
 			flex: '1 1 auto',
 			minWidth: 0
@@ -75,9 +49,9 @@
 </script>
 
 <script lang="ts">
-	import { cx } from '@emotion/css';
 	import Button from '#lib/components/Button.svelte';
 	import KingdomStatIcon from '#lib/components/KingdomStatIcon.svelte';
+	import Panel from '#lib/components/Panel.svelte';
 	import { getKingdomStat, kingdomStatTypes } from '#lib/models/kingdomstats';
 	import Counter from './Counter.svelte';
 	import OfficeList from './OfficeList.svelte';
@@ -103,14 +77,14 @@
 	});
 </script>
 
-<article
-	class={cx(styles.panel, isOver && styles.over)}
+<Panel
+	title={kingdom.name}
+	{isOver}
 	ondragover={drop.ondragover}
 	ondragleave={drop.ondragleave}
 	ondrop={drop.ondrop}
 >
-	<header class={styles.header}>
-		<h3 class={styles.name}>{kingdom.name}</h3>
+	{#snippet header()}
 		<div class={styles.offices}>
 			<OfficeList
 				{simulator}
@@ -119,7 +93,7 @@
 			/>
 		</div>
 		<Button onclick={() => simulator.removeKingdom(kingdom.id)}>Elimina</Button>
-	</header>
+	{/snippet}
 
 	<div class={styles.stats}>
 		{#each kingdomStatTypes as stat (stat)}
@@ -147,4 +121,4 @@
 			{/each}
 		</div>
 	</div>
-</article>
+</Panel>

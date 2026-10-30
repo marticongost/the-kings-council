@@ -13,4 +13,5 @@ export { getSpacing, isSpacingSpec, spacing, spacingSpecs, type SpacingSpec } fr
 export * as text from './text';
 export * as viewport from './viewport';
 export * as cards from './cards';
+export * as document from './document';
 export { useViewport } from './viewport.svelte';
