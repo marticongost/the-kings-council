@@ -1,5 +1,6 @@
 <script lang="ts" module>
 	import * as css from '#lib/styles';
+	import { cardsPerPlayerColumn, playerColumnWidth } from './playerlayout';
 
 	const styles = css.styles({
 		title: {
@@ -29,7 +30,10 @@
 			...css.row('lg'),
 			justifyContent: 'space-between',
 			flexWrap: 'nowrap',
-			overflow: 'hidden'
+			overflow: 'hidden',
+			// Keep the stats within a single column of players, so extra columns do not
+			// spread them out.
+			width: playerColumnWidth
 		},
 		statIcon: {
 			height: '2em',
@@ -74,6 +78,9 @@
 	const selection = useSelection();
 	const selected = $derived(selection.kingdoms.has(kingdom.id));
 	const members = $derived(simulator.membersOf(kingdom.id));
+
+	let playerColumns = $state(1);
+	const cardColumns = $derived(cardsPerPlayerColumn * playerColumns);
 
 	function onclick(event: MouseEvent) {
 		event.stopPropagation();
@@ -197,8 +204,12 @@
 			{/each}
 		</div>
 
-		<CardList {simulator} cards={kingdom.cards} zone={zoneOf} columns={3} />
+		<CardList {simulator} cards={kingdom.cards} zone={zoneOf} columns={cardColumns} />
 
-		<PlayerGroup {simulator} players={members} />
+		<PlayerGroup
+			{simulator}
+			players={members}
+			onColumnsChange={(value) => (playerColumns = value)}
+		/>
 	</div>
 </Panel>

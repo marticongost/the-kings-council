@@ -18,8 +18,11 @@
 			paddingBottom: css.spacing.sm
 		},
 		panelColumn: {
-			flex: '0 0 min(35em, 92vw)',
-			minWidth: 0
+			// Panels keep their usual width, but grow horizontally when a player group
+			// needs more than one column.
+			flex: '0 0 auto',
+			width: 'min-content',
+			minWidth: 'min(35em, 92vw)'
 		},
 		tableZones: {
 			...css.column('sm')
