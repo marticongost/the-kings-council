@@ -55,7 +55,11 @@
 			fontWeight: 700,
 			lineHeight: 1.4,
 			cursor: 'grab',
-			userSelect: 'none'
+			userSelect: 'none',
+			'&:focus-visible': {
+				outline: `2px solid ${css.palette.cedar}88`,
+				outlineOffset: '-2px'
+			}
 		},
 		staticPill: {
 			cursor: 'default'
@@ -205,6 +209,11 @@
 			window.removeEventListener('pointerdown', onPointerDown, true);
 			window.removeEventListener('keydown', onKeyDown);
 		};
+	});
+
+	// Keyboard navigation moves the selection away from the pill that shows a preview.
+	$effect(() => {
+		if (!selected) closePopup();
 	});
 
 	function onDragStart(event: DragEvent) {

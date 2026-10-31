@@ -18,6 +18,11 @@ const grids: Record<SelectionKind, string | null> = {
 	card: '[role="list"]'
 };
 
+/** CSS selector matching any selectable item, whatever its kind. */
+export const selectableSelector = Object.values(attributes)
+	.map((attribute) => `[${attribute}]`)
+	.join(', ');
+
 /** CSS selector matching the rendered element of a selectable item. */
 export function selectorOf(kind: SelectionKind, id: string): string {
 	return `[${attributes[kind]}="${CSS.escape(id)}"]`;
@@ -30,6 +35,17 @@ export function elementOf(kind: SelectionKind, id: string): HTMLElement | null {
 
 export function rectOf(kind: SelectionKind, id: string): DOMRect | null {
 	return elementOf(kind, id)?.getBoundingClientRect() ?? null;
+}
+
+/**
+ * Element that should receive the focus for an item: the pill itself for cards, so that
+ * <kbd>Enter</kbd> opens its preview, and the panel for kingdoms and players.
+ */
+export function focusTargetOf(kind: SelectionKind, id: string): HTMLElement | null {
+	const element = elementOf(kind, id);
+	if (!element) return null;
+	if (kind !== 'card') return element;
+	return element.querySelector<HTMLElement>('button') ?? element;
 }
 
 export interface GridItem {

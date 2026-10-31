@@ -1,8 +1,10 @@
 import { SvelteSet } from 'svelte/reactivity';
 import {
+	focusTargetOf,
 	gridOf,
 	neighbourInDirection,
 	rectOf,
+	selectableSelector,
 	selectorOf,
 	visibleItems,
 	type Direction
@@ -79,6 +81,7 @@ function isModifierKey(key: string): boolean {
 	);
 }
 
+/** Scrolls an element into view and moves the focus to it. */
 function revealElement(kind: SelectionKind, id: string): void {
 	if (typeof document === 'undefined') return;
 	const selector = selectorOf(kind, id);
@@ -87,6 +90,7 @@ function revealElement(kind: SelectionKind, id: string): void {
 		document
 			.querySelector<HTMLElement>(selector)
 			?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+		focusTargetOf(kind, id)?.focus({ preventScroll: true });
 	});
 }
 
@@ -272,6 +276,53 @@ export class KeyboardController {
 	}
 
 	readonly handleKeyDown = (event: KeyboardEvent) => {
+		const before = this.selectionToken();
+		this.handleKey(event);
+		// Keep the focus on the first selected element, as the selection is keyboard driven.
+		if (this.selectionToken() !== before) this.focusSelection();
+	};
+
+	private selectionToken(): string {
+		return [
+			[...this.selection.kingdoms].join(),
+			[...this.selection.players].join(),
+			[...this.selection.cards].join()
+		].join('|');
+	}
+
+	/** Focuses the first element of the selection, in the order it is rendered. */
+	private focusSelection(): void {
+		const first = this.firstSelection();
+		if (first) {
+			revealElement(first.kind, first.id);
+			return;
+		}
+
+		// Nothing is selected any more: drop the focus from the element that still has it.
+		const active = document.activeElement;
+		if (active instanceof HTMLElement && active.matches(selectableSelector)) active.blur();
+	}
+
+	private firstSelection(): { kind: SelectionKind; id: string } | null {
+		switch (this.view) {
+			case 'kingdoms': {
+				const id = kingdomIdsInOrder(this.simulator).find((k) => this.selection.kingdoms.has(k));
+				return id ? { kind: 'kingdom', id } : null;
+			}
+			case 'players': {
+				const player = orderedPlayers(this.simulator).find((p) => this.selection.players.has(p.id));
+				return player ? { kind: 'player', id: player.id } : null;
+			}
+			case 'cards': {
+				const entry = orderedCards(this.simulator).find((c) => this.selection.cards.has(c.uid));
+				return entry ? { kind: 'card', id: entry.uid } : null;
+			}
+			default:
+				return null;
+		}
+	}
+
+	private handleKey(event: KeyboardEvent): void {
 		if (event.defaultPrevented || event.repeat || event.isComposing) return;
 		if (isModifierKey(event.key)) return;
 		if (event.altKey || event.ctrlKey || event.metaKey) return;
@@ -359,7 +410,7 @@ export class KeyboardController {
 				this.pending = { kind: 'create', amount: '' };
 				return;
 		}
-	};
+	}
 
 	private handlePending(key: string): boolean {
 		const pending = this.pending;

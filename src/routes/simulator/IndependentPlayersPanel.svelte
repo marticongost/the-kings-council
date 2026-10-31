@@ -60,6 +60,7 @@
 	class={selected ? styles.selected : undefined}
 	data-simulator-kingdom={independentKingdomId}
 	aria-current={selected ? 'true' : undefined}
+	tabindex="-1"
 	{onclick}
 >
 	{#snippet header()}

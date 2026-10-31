@@ -25,6 +25,10 @@ Keyboard navigation replaces the current selection with a single kind of element
 <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+click to combine kingdoms, players or cards. Actions then
 apply to every selected element they are relevant to.
 
+The focus follows the selection: the first selected element, in the order the simulator
+renders it, receives the focus, so that the browser scrolls to it and assistive
+technologies announce it. Clearing the selection releases the focus.
+
 ## Navigation
 
 ### Page selected
