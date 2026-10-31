@@ -334,6 +334,10 @@ export class KeyboardController {
 	private handleKey(event: KeyboardEvent): void {
 		const key = event.key;
 
+		// Keys typed into a control belong to it, so its text can be edited even while the
+		// plan modal is open.
+		if (isEditableTarget(event.target)) return;
+
 		// The plan modal captures the keyboard, so no shortcut acts behind it. It closes on
 		// Escape through its own listener, and on `l` through this shortcut.
 		if (this.plans.playerId) {
@@ -347,7 +351,6 @@ export class KeyboardController {
 		if (event.defaultPrevented || event.repeat || event.isComposing) return;
 		if (isModifierKey(event.key)) return;
 		if (event.altKey || event.ctrlKey || event.metaKey) return;
-		if (isEditableTarget(event.target)) return;
 
 		if (key === 'Escape') {
 			if (this.pending) {

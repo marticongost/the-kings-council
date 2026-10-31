@@ -55,6 +55,8 @@
 	/** Capability dragged within this list, so cards can reorder around it while moving. */
 	let draggingKey = $state<string | null>(null);
 	let dragging = false;
+	/** Whether the cards can be dragged, disabled while interacting with their inputs. */
+	let cardDraggable = $state(true);
 
 	function hasPlanPayload(event: DragEvent): boolean {
 		return event.dataTransfer?.types.includes(planDragMime) ?? false;
@@ -147,9 +149,33 @@
 	}
 
 	/** Double-clicking a capability appends it to the other list. */
-	function onCardDoubleClick(capability: PlannableCapability) {
+	function onCardDoubleClick(event: MouseEvent, capability: PlannableCapability) {
+		// Editing an input of the card must not move it.
+		if (isFormControl(event.target)) return;
+
 		const target: PlanListId = listId === 'available' ? 'planned' : 'available';
 		simulator.moveCapability(playerId, capability.key, listId, target);
+	}
+
+	function isFormControl(target: EventTarget | null): boolean {
+		return target instanceof Element && target.closest('input, select, textarea, button') !== null;
+	}
+
+	/**
+	 * Cards are only draggable from outside their inputs, so the inputs stay editable
+	 * in browsers that block editing inside draggable elements.
+	 */
+	function dragFromCard(node: HTMLElement) {
+		const onMouseDown = (event: MouseEvent) => {
+			cardDraggable = !isFormControl(event.target);
+		};
+
+		node.addEventListener('mousedown', onMouseDown);
+		return {
+			destroy() {
+				node.removeEventListener('mousedown', onMouseDown);
+			}
+		};
 	}
 </script>
 
@@ -167,13 +193,18 @@
 		<div
 			class={cx(styles.card, draggingKey === capability.key && styles.dragging)}
 			role="listitem"
-			draggable="true"
-			ondblclick={() => onCardDoubleClick(capability)}
+			draggable={cardDraggable}
+			use:dragFromCard
+			ondblclick={(event) => onCardDoubleClick(event, capability)}
 			ondragstart={(event) => onCardDragStart(event, capability)}
 			ondragend={onCardDragEnd}
 			ondragover={(event) => onCardDragOver(event, index)}
 		>
-			<CardCapabilityFront cardCapability={capability.cardCapability} />
+			<CardCapabilityFront
+				cardCapability={capability.cardCapability}
+				editable
+				inputKey={capability.key}
+			/>
 		</div>
 	{:else}
 		<p class={styles.empty}>{emptyLabel}</p>

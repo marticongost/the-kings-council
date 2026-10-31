@@ -184,7 +184,14 @@ over the other cards, or double-click one to move it to the other list; the plan
 as it changes. <kbd>Esc</kbd> or the close button in the top-right corner hides the modal
 without confirming anything, while the confirm button next to it saves the plan and
 closes it. The reset button beside them moves every capability of the player back to the
-available list.
+available list and clears the values typed into its inputs.
+
+The dashed marks of the capabilities can be filled in while planning: text fields take
+free text, number and resource marks take a number, `check` marks are checkboxes, `list`
+marks are text areas, and player and kingdom marks are dropdowns of the players and
+kingdoms of the game. Marks for several players open a popup with one checkbox per
+player, and the selected names are listed separated by commas. Typing in a mark does not
+move its card, and the values are saved with the simulator state.
 
 Confirming a plan marks the player as ready and places them after the players who
 confirmed before them, so the list shows, from top to bottom, the players in the order in

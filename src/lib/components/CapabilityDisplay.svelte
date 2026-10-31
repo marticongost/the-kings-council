@@ -61,11 +61,19 @@
 
 	interface Props extends StandardAttributeProps {
 		capability: Capability;
+		/** Renders the `{input …}` marks as form controls. */
+		editable?: boolean;
+		/** Prefix identifying the capability's input marks in the surrounding input state. */
+		inputKey?: string;
 	}
 
-	const { capability, ...attributes }: Props = $props();
+	const { capability, editable = false, inputKey, ...attributes }: Props = $props();
 	const styles = $derived(stylesFor(capability.type === 'reaction' ? 'reaction' : 'regular'));
 	const title = $derived(getCapabilityTitle(capability));
+
+	function inputKeyFor(role: string): string | undefined {
+		return inputKey === undefined ? undefined : `${inputKey}:${role}`;
+	}
 </script>
 
 <div {...standardAttributes(attributes, styles.capabilityDisplay)}>
@@ -82,10 +90,14 @@
 		<div class={styles.body}>
 			{#if capability instanceof ConcreteCapability && capability.restrictions}
 				<div class={styles.restrictions}>
-					<EffectsText effects={capability.restrictions} />
+					<EffectsText
+						effects={capability.restrictions}
+						{editable}
+						inputKey={inputKeyFor('restrictions')}
+					/>
 				</div>
 			{/if}
-			<EffectsText effects={capability.effects} />
+			<EffectsText effects={capability.effects} {editable} inputKey={inputKeyFor('effects')} />
 		</div>
 	</div>
 </div>

@@ -81,9 +81,13 @@
 
 	interface Props extends StandardAttributeProps {
 		cardCapability: CardCapability;
+		/** Renders the `{input …}` marks of the capability as form controls. */
+		editable?: boolean;
+		/** Prefix identifying the capability's input marks in the surrounding input state. */
+		inputKey?: string;
 	}
 
-	const { cardCapability, ...attributes }: Props = $props();
+	const { cardCapability, editable = false, inputKey, ...attributes }: Props = $props();
 	const icon = $derived(getCardIcon(cardCapability.card));
 </script>
 
@@ -99,7 +103,7 @@
 		</div>
 	</div>
 	<div class={styles.body}>
-		<CapabilityDisplay capability={cardCapability.capability} />
+		<CapabilityDisplay capability={cardCapability.capability} {editable} {inputKey} />
 		{#if cardCapability.card.type === 'tactic'}
 			<div class={styles.discardAction}>
 				<span class={styles.discardLabel}>... o descartar per</span>

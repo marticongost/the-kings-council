@@ -70,11 +70,13 @@ export interface PlayerPlanView {
 	confirmed: boolean;
 }
 
-/** How the plan of a player is persisted: the order of both lists and whether it is confirmed. */
+/** How the plan of a player is persisted: the order of both lists, whether it is confirmed, and its inputs. */
 export interface PlayerPlan {
 	available: Array<string>;
 	planned: Array<string>;
 	confirmed: boolean;
+	/** Values typed into the `{input …}` fields of the plan's capabilities, by input path. */
+	inputs: Record<string, string>;
 }
 
 /** A card in play, identified by its catalog card and a per-instance id. */

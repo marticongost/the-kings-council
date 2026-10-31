@@ -31,6 +31,7 @@
 <script lang="ts">
 	import IconButton from '#lib/components/IconButton.svelte';
 	import Panel from '#lib/components/Panel.svelte';
+	import { provideCapabilityInputs, type CapabilityInputs } from '#lib/components/capabilityinputs';
 	import { usePlans } from './plans.svelte';
 	import PlanCapabilityList from './PlanCapabilityList.svelte';
 	import type { SimulatorState } from './simulatorstate.svelte';
@@ -46,6 +47,21 @@
 		simulator.players.find((candidate) => candidate.id === plans.playerId) ?? null
 	);
 	const plan = $derived(player ? simulator.planOf(player) : null);
+
+	const capabilityInputs: CapabilityInputs = {
+		value: (key) => (player ? simulator.planInput(player.id, key) : ''),
+		setValue: (key, value) => {
+			if (player) simulator.setPlanInput(player.id, key, value);
+		},
+		get players() {
+			return simulator.players.map((candidate) => ({ value: candidate.id, label: candidate.name }));
+		},
+		get kingdoms() {
+			return simulator.kingdoms.map((kingdom) => ({ value: kingdom.id, label: kingdom.name }));
+		}
+	};
+
+	provideCapabilityInputs(capabilityInputs);
 
 	let dialog = $state<HTMLDivElement>();
 

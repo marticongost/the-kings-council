@@ -81,7 +81,7 @@ const startingTacticCount = 3;
 const plannableCapabilityTypes = new Set(['action', 'secret', 'indication']);
 
 function emptyPlan(): PlayerPlan {
-	return { available: [], planned: [], confirmed: false };
+	return { available: [], planned: [], confirmed: false, inputs: {} };
 }
 
 /** Removes repeated entries, keeping the first occurrence of each. */
@@ -94,12 +94,23 @@ function uniqueStrings(values: unknown): Array<string> {
 	return unique;
 }
 
+function normalizeInputs(value: unknown): Record<string, string> {
+	const record = asObject(value);
+	const inputs: Record<string, string> = {};
+	if (!record) return inputs;
+	for (const [key, raw] of Object.entries(record)) {
+		if (typeof raw === 'string') inputs[key] = raw;
+	}
+	return inputs;
+}
+
 function normalizePlan(value: unknown): PlayerPlan {
 	const record = asObject(value);
 	return {
 		available: uniqueStrings(record?.available),
 		planned: uniqueStrings(record?.planned),
-		confirmed: record?.confirmed === true
+		confirmed: record?.confirmed === true,
+		inputs: normalizeInputs(record?.inputs)
 	};
 }
 
@@ -584,6 +595,21 @@ export class SimulatorState {
 		player.plan.planned = plan.planned.map((capability) => capability.key);
 	}
 
+	/** The value typed into an `{input …}` field of a player's plan. */
+	planInput(playerId: string, key: string): string {
+		const player = this.players.find((candidate) => candidate.id === playerId);
+		return player?.plan.inputs[key] ?? '';
+	}
+
+	/** Stores the value typed into an `{input …}` field of a player's plan. */
+	setPlanInput(playerId: string, key: string, value: string): void {
+		const player = this.players.find((candidate) => candidate.id === playerId);
+		if (!player) return;
+
+		if (value) player.plan.inputs[key] = value;
+		else delete player.plan.inputs[key];
+	}
+
 	/** Moves a capability between the plan lists, or to another position within one. */
 	moveCapability(
 		playerId: string,
@@ -620,6 +646,7 @@ export class SimulatorState {
 		player.plan.available = [...player.plan.available, ...player.plan.planned];
 		player.plan.planned = [];
 		player.plan.confirmed = false;
+		player.plan.inputs = {};
 	}
 
 	/** Confirms a plan, moving the player up with the ones that already confirmed. */
@@ -1026,7 +1053,8 @@ export class SimulatorState {
 					plan: {
 						available: plan.available.map((capability) => capability.key),
 						planned: plan.planned.map((capability) => capability.key),
-						confirmed: plan.confirmed
+						confirmed: plan.confirmed,
+						inputs: { ...player.plan.inputs }
 					}
 				};
 			}),
