@@ -92,8 +92,11 @@
 	import KeyboardCues from './KeyboardCues.svelte';
 	import KingdomPanel from './KingdomPanel.svelte';
 	import { KeyboardController } from './keyboard.svelte';
+	import PlanModal from './PlanModal.svelte';
+	import { PlanController, providePlans } from './plans.svelte';
 	import { provideSelection, SimulatorSelection } from './selection.svelte';
 	import { SimulatorState } from './simulatorstate.svelte';
+	import TurnOrderList from './TurnOrderList.svelte';
 	import { deckIdsInPlay } from './types';
 
 	/** Distance from the bottom of the viewport, in pixels, that reveals the decks. */
@@ -101,9 +104,11 @@
 
 	const simulator = new SimulatorState();
 	const selection = new SimulatorSelection();
-	const keyboard = new KeyboardController(simulator, selection);
+	const plans = new PlanController();
+	const keyboard = new KeyboardController(simulator, selection, plans);
 
 	provideSelection(selection);
+	providePlans(plans);
 
 	let decksElement = $state<HTMLElement>();
 	let decksVisible = $state(false);
@@ -141,6 +146,10 @@
 
 	$effect(() => {
 		selection.prune(simulator);
+	});
+
+	$effect(() => {
+		plans.prune(simulator);
 	});
 
 	function onBackgroundClick(event: MouseEvent) {
@@ -200,6 +209,7 @@
 					{/snippet}
 
 					<div class={styles.tableZones}>
+						<TurnOrderList {simulator} />
 						<CardZone
 							{simulator}
 							cards={simulator.laws}
@@ -257,4 +267,6 @@
 
 		<KeyboardCues controller={keyboard} hidden={decksVisible} />
 	</div>
+
+	<PlanModal {simulator} />
 {/if}

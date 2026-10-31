@@ -42,6 +42,7 @@
 	import CardList from './CardList.svelte';
 	import { cardDropHandlers } from './cardDrop';
 	import { officeDropHandlers } from './officeDrop';
+	import { usePlans } from './plans.svelte';
 	import PlayerChip from './PlayerChip.svelte';
 	import { useSelection } from './selection.svelte';
 	import type { SimulatorState } from './simulatorstate.svelte';
@@ -55,6 +56,7 @@
 	const { simulator, player }: Props = $props();
 
 	const selection = useSelection();
+	const plans = usePlans();
 	const selected = $derived(selection.players.has(player.id));
 
 	function onclick(event: MouseEvent) {
@@ -127,6 +129,11 @@
 
 	{#snippet header()}
 		<div class={styles.headerActions}>
+			<IconButton
+				src="ui/plan.svg"
+				label={`Planifica el torn de ${player.name}`}
+				onclick={() => plans.toggle(player.id)}
+			/>
 			<IconButton
 				src="ui/delete.svg"
 				label={`Elimina ${player.name}`}

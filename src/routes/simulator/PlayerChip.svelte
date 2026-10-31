@@ -33,9 +33,17 @@
 	interface Props {
 		simulator: SimulatorState;
 		player: PlayerState;
+		dragHint?: string;
+		/** Whether the chip can be dragged itself, e.g. when the whole row is draggable. */
+		draggable?: boolean;
 	}
 
-	const { simulator, player }: Props = $props();
+	const {
+		simulator,
+		player,
+		dragHint = 'Arrossega el jugador a un altre regne',
+		draggable = true
+	}: Props = $props();
 
 	// The house card identifies the player, falling back to the generic icon when it is gone.
 	const icon = $derived.by(() => {
@@ -54,9 +62,9 @@
 <span
 	class={styles.chip}
 	role="group"
-	draggable="true"
+	{draggable}
 	ondragstart={onDragStart}
-	title="Arrossega el jugador a un altre regne"
+	title={draggable ? dragHint : undefined}
 >
 	<InlineSvg class={styles.icon} src={icon} aria-hidden="true" />
 	<span class={styles.name}>{player.name}</span>

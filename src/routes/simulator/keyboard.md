@@ -65,6 +65,7 @@ which is their parent.
 | <kbd>←</kbd> / <kbd>→</kbd>      | Select the player before or after the current one, in the same row   |
 | <kbd>↑</kbd> / <kbd>↓</kbd>      | Select the player above or below the current one, in the same column |
 | <kbd>Home</kbd> / <kbd>End</kbd> | Select the first or last player within their kingdoms                |
+| <kbd>l</kbd>                     | Open the plan of the selected player                                 |
 
 Players are laid out in columns, which grow sideways as they fill up. The arrows follow
 that grid instead of cycling through the list, and stay within the kingdom as long as it
@@ -140,6 +141,7 @@ existing cards, but not to acquire new ones.
 | <kbd>=</kbd> amount target         | Set the selected resources or kingdom stats      |
 | <kbd>n</kbd> [amount] <kbd>k</kbd> | Create new kingdoms                              |
 | <kbd>n</kbd> [amount] <kbd>p</kbd> | Create new players                               |
+| <kbd>l</kbd>                       | Open the plan of a single selected player        |
 
 The independents panel behaves like a kingdom for navigation, but it cannot be deleted.
 Discarding or returning cards clears their selection, since the pills no longer appear
@@ -168,6 +170,30 @@ The independents panel has no card area, so acquire cards for its players indivi
 When only card pills are selected, <kbd>a</kbd> selects every card pill of the players
 who own the selected cards. To expand a player selection to all players of their
 kingdoms, press <kbd>k</kbd> and then <kbd>p</kbd>.
+
+### Planning turns
+
+Every player panel has a plan button that opens their plan, and so does double-clicking
+the player in the turn order list. With a single player selected, <kbd>l</kbd> opens the
+same modal.
+
+The plan shows the player's actions, secrets and indications, taken from the cards they
+hold and from the common cards every player has, split into **available** and **planned**
+capabilities. Drag them between the lists, or within a list to reorder them as they pass
+over the other cards, or double-click one to move it to the other list; the plan is saved
+as it changes. <kbd>Esc</kbd> or the close button in the top-right corner hides the modal
+without confirming anything, while the confirm button next to it saves the plan and
+closes it. The reset button beside them moves every capability of the player back to the
+available list.
+
+Confirming a plan marks the player as ready and places them after the players who
+confirmed before them, so the list shows, from top to bottom, the players in the order in
+which they confirmed, followed by the ones who have not confirmed yet. The turn order
+lists every player in the **Partida** panel, and the order can be changed by dragging its
+players, which reorder live as they pass over the others. Players who have not confirmed
+their plan appear dimmed. Clicking a player in the list selects it, and double-clicking it
+opens their plan. The reset button of the list moves every capability of every player
+back to the available list and unconfirms them all, keeping their position in the order.
 
 ### Changing resources and kingdom stats
 

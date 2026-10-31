@@ -2,33 +2,12 @@
 	import * as css from '#lib/styles';
 
 	const styles = css.styles({
-		zone: {
-			...css.column('xs'),
-			position: 'relative',
-			padding: css.spacing.sm,
-			border: `2px dashed ${css.palette.moonMist}`,
-			borderRadius: css.spacing.sm,
-			backgroundColor: css.palette.linen,
-			transition: 'border-color 0.15s, background-color 0.15s',
-			minWidth: 0
-		},
-		over: {
-			borderColor: css.palette.sandal,
-			backgroundColor: css.palette.wheat
-		},
-		header: {
-			...css.row('sm'),
-			fontSize: '0.9em',
-			fontWeight: 900,
-			color: css.palette.wood
-		},
-		actions: {
-			marginLeft: 'auto',
-			...css.row('xs')
-		},
 		cards: {
 			...css.grid('xs'),
 			minHeight: '1.5em'
+		},
+		pileZone: {
+			...css.column('xs')
 		},
 		pileCards: {
 			...css.row('xs'),
@@ -63,6 +42,7 @@
 	import { cardDropHandlers } from './cardDrop';
 	import CardPill from './CardPill.svelte';
 	import CountBadge from './CountBadge.svelte';
+	import PanelSection from './PanelSection.svelte';
 
 	interface Props {
 		simulator: SimulatorState;
@@ -100,25 +80,18 @@
 	});
 </script>
 
-<div
-	class={cx(styles.zone, isOver && styles.over)}
+<PanelSection
+	title={label}
+	ariaLabel={ariaLabel ?? label}
 	role="group"
-	aria-label={ariaLabel ?? label}
-	style:height={pile ? height : undefined}
+	{isOver}
+	style={pile && height ? `height: ${height}` : undefined}
+	contentClass={pile ? styles.pileZone : undefined}
+	{actions}
 	ondragover={drop.ondragover}
 	ondragleave={drop.ondragleave}
 	ondrop={drop.ondrop}
 >
-	{#if label}
-		<div class={styles.header}>
-			<span>{label}</span>
-			{#if actions}
-				<div class={styles.actions}>
-					{@render actions()}
-				</div>
-			{/if}
-		</div>
-	{/if}
 	{#if pile}
 		<div class={cx(styles.cards, styles.pileCards)} role="list">
 			{#if cards.length > 0}
@@ -147,4 +120,4 @@
 			{/if}
 		</div>
 	{/if}
-</div>
+</PanelSection>

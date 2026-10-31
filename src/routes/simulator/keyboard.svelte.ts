@@ -10,6 +10,7 @@ import {
 	type Direction
 } from './gridnav';
 import type { SimulatorSelection, SelectionKind } from './selection.svelte';
+import type { PlanController } from './plans.svelte';
 import type { SimulatorState } from './simulatorstate.svelte';
 import {
 	cardScope,
@@ -98,11 +99,13 @@ function revealElement(kind: SelectionKind, id: string): void {
 export class KeyboardController {
 	readonly simulator: SimulatorState;
 	readonly selection: SimulatorSelection;
+	readonly plans: PlanController;
 	pending = $state<PendingCommand | null>(null);
 
-	constructor(simulator: SimulatorState, selection: SimulatorSelection) {
+	constructor(simulator: SimulatorState, selection: SimulatorSelection, plans: PlanController) {
 		this.simulator = simulator;
 		this.selection = selection;
+		this.plans = plans;
 	}
 
 	get view(): SelectionView {
@@ -122,6 +125,11 @@ export class KeyboardController {
 
 	get hasCounterTargets(): boolean {
 		return this.hasResourceTargets || this.hasStatTargets;
+	}
+
+	/** Whether the plan modal can be opened, which needs a single selected player. */
+	get canOpenPlan(): boolean {
+		return this.view === 'players' && this.selection.players.size === 1;
 	}
 
 	get cues(): Array<CueSection> {
@@ -270,6 +278,7 @@ export class KeyboardController {
 			actions.push({ keys: ['d'], label: 'Descarta' });
 			actions.push({ keys: ['r'], label: 'Retorna a la baralla' });
 		}
+		if (this.canOpenPlan) actions.push({ keys: ['l'], label: 'Planifica el torn' });
 
 		if (actions.length > 0) sections.push({ title: 'Accions', items: actions });
 		return sections;
@@ -323,12 +332,22 @@ export class KeyboardController {
 	}
 
 	private handleKey(event: KeyboardEvent): void {
+		const key = event.key;
+
+		// The plan modal captures the keyboard, so no shortcut acts behind it. It closes on
+		// Escape through its own listener, and on `l` through this shortcut.
+		if (this.plans.playerId) {
+			if (key === 'l') {
+				this.plans.close();
+				event.preventDefault();
+			}
+			return;
+		}
+
 		if (event.defaultPrevented || event.repeat || event.isComposing) return;
 		if (isModifierKey(event.key)) return;
 		if (event.altKey || event.ctrlKey || event.metaKey) return;
 		if (isEditableTarget(event.target)) return;
-
-		const key = event.key;
 
 		if (key === 'Escape') {
 			if (this.pending) {
@@ -409,7 +428,16 @@ export class KeyboardController {
 			case 'n':
 				this.pending = { kind: 'create', amount: '' };
 				return;
+			case 'l':
+				this.openPlan();
+				return;
 		}
+	}
+
+	private openPlan(): void {
+		if (!this.canOpenPlan) return;
+		const [playerId] = this.selection.players;
+		this.plans.open(playerId);
 	}
 
 	private handlePending(key: string): boolean {

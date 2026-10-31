@@ -1,4 +1,5 @@
 import { getCardBackgroundName, type CardBackgroundName } from '#lib/cardattributes';
+import type { CardCapability } from '#lib/models/cardcapabilities';
 import type { Card, CardType } from '#lib/models/cards';
 import { kingdomStatTypes, type KingdomStatType } from '#lib/models/kingdomstats';
 import { officeTypes } from '#lib/models/offices';
@@ -40,6 +41,41 @@ export const officeDragMime = 'application/x-kings-council-office';
 
 /** Set when dragging a player, so kingdoms can adopt it while it hovers over them. */
 export const playerDragMime = 'application/x-kings-council-player';
+
+/** Set when dragging a capability in the plan modal. */
+export const planDragMime = 'application/x-kings-council-plan';
+
+/** Set when dragging a player within the turn order. */
+export const turnOrderDragMime = 'application/x-kings-council-turn-order';
+
+/** The two lists of a player's plan: capabilities kept for later, and capabilities planned. */
+export type PlanListId = 'available' | 'planned';
+
+export interface PlanDragPayload {
+	playerId: string;
+	key: string;
+	from: PlanListId;
+}
+
+/** A capability that can be planned, from one of the player's cards or a common card. */
+export interface PlannableCapability {
+	key: string;
+	cardCapability: CardCapability;
+}
+
+/** The ordered capabilities of a player's plan, as they are shown and stored. */
+export interface PlayerPlanView {
+	available: Array<PlannableCapability>;
+	planned: Array<PlannableCapability>;
+	confirmed: boolean;
+}
+
+/** How the plan of a player is persisted: the order of both lists and whether it is confirmed. */
+export interface PlayerPlan {
+	available: Array<string>;
+	planned: Array<string>;
+	confirmed: boolean;
+}
 
 /** A card in play, identified by its catalog card and a per-instance id. */
 export interface CardRef {
@@ -157,6 +193,7 @@ export interface PlayerState {
 	resources: PlayerResources;
 	hand: Array<CardRef>;
 	offices: Array<CardRef>;
+	plan: PlayerPlan;
 }
 
 export interface KingdomState {
@@ -174,6 +211,7 @@ export interface SerializedPlayer {
 	resources: Partial<PlayerResources>;
 	hand: Array<string>;
 	offices?: Array<string>;
+	plan?: Partial<PlayerPlan>;
 }
 
 export interface SerializedKingdom {
@@ -191,6 +229,8 @@ export interface SimulatorSnapshot {
 	market: Array<string>;
 	decks: Record<DeckId, Array<string>>;
 	discards: Record<DeckId, Array<string>>;
+	/** Player ids in the order in which they confirmed their plans. */
+	turnOrder?: Array<string>;
 }
 
 export function zoneKey(zone: Zone): string {

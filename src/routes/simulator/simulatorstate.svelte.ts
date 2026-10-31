@@ -19,16 +19,20 @@ import {
 	type CardRef,
 	type DeckId,
 	type KingdomState,
+	type PlanListId,
+	type PlayerPlan,
+	type PlayerPlanView,
 	type PlayerResourceType,
 	type PlayerResources,
 	type PlayerState,
+	type PlannableCapability,
 	type SimulatorSnapshot,
 	type Zone
 } from './types';
 
 export const simulatorStorageKey = 'the-kings-council:simulator:v1';
 
-const snapshotVersion = 3;
+const snapshotVersion = 4;
 
 /** Oldest snapshot version that can still be migrated to the current schema. */
 const oldestSnapshotVersion = 1;
@@ -72,6 +76,32 @@ function startingResources(): PlayerResources {
 
 /** Tactic cards a new player is dealt. */
 const startingTacticCount = 3;
+
+/** Capabilities that players can plan: the ones that are played or kept in hand. */
+const plannableCapabilityTypes = new Set(['action', 'secret', 'indication']);
+
+function emptyPlan(): PlayerPlan {
+	return { available: [], planned: [], confirmed: false };
+}
+
+/** Removes repeated entries, keeping the first occurrence of each. */
+function uniqueStrings(values: unknown): Array<string> {
+	if (!Array.isArray(values)) return [];
+	const unique: Array<string> = [];
+	for (const value of values) {
+		if (typeof value === 'string' && !unique.includes(value)) unique.push(value);
+	}
+	return unique;
+}
+
+function normalizePlan(value: unknown): PlayerPlan {
+	const record = asObject(value);
+	return {
+		available: uniqueStrings(record?.available),
+		planned: uniqueStrings(record?.planned),
+		confirmed: record?.confirmed === true
+	};
+}
 
 function clamp(value: number, min: number, max: number): number {
 	return Math.min(max, Math.max(min, Math.round(value)));
@@ -271,6 +301,8 @@ export class SimulatorState {
 	market = $state<Array<CardRef>>([]);
 	decks = $state<Record<DeckId, Array<CardRef>>>(emptyDeckRecord(() => []));
 	discards = $state<Record<DeckId, Array<CardRef>>>(emptyDeckRecord(() => []));
+	/** Every player, in turn order. Everyone is listed, dimmed until they confirm their plan. */
+	turnOrder = $state<Array<string>>([]);
 
 	load(): void {
 		this.reset();
@@ -305,6 +337,7 @@ export class SimulatorState {
 		this.market = [];
 		this.decks = this.createFullDecks();
 		this.discards = emptyDeckRecord(() => []);
+		this.turnOrder = [];
 	}
 
 	// Players
@@ -328,8 +361,11 @@ export class SimulatorState {
 				...this.drawFromDeck('collective-goal', 1),
 				...this.drawFromDeck('personal-goal', 1)
 			],
-			offices: []
+			offices: [],
+			plan: emptyPlan()
 		});
+		// Every player takes part in the turn order, dimmed until they confirm their plan.
+		this.turnOrder.push(id);
 		return id;
 	}
 
@@ -363,6 +399,7 @@ export class SimulatorState {
 			if (card) this.discards[deckIdOf(card)].push(ref);
 		}
 		this.returnOffices(player);
+		this.turnOrder = this.turnOrder.filter((id) => id !== playerId);
 	}
 
 	assignKingdom(playerId: string, kingdomId: string | null): void {
@@ -482,6 +519,140 @@ export class SimulatorState {
 			});
 		}
 		return capabilities;
+	}
+
+	/**
+	 * Capabilities that can be planned, derived from the cards the player holds and from the
+	 * common cards, which every player has. Cards with several identical copies get one key
+	 * per copy, so each copy can be planned separately.
+	 */
+	plannableCapabilities(player: PlayerState): Array<PlannableCapability> {
+		const capabilities: Array<PlannableCapability> = commonCapabilities.flatMap((cardCapability) =>
+			plannableCapabilityTypes.has(cardCapability.capability.type)
+				? [{ key: `common:${cardCapability.id}`, cardCapability }]
+				: []
+		);
+		const occurrences: Record<string, number> = {};
+
+		for (const ref of [...player.hand, ...player.offices]) {
+			const card = this.cardOf(ref);
+			if (!card) continue;
+
+			const occurrence = occurrences[card.id] ?? 0;
+			occurrences[card.id] = occurrence + 1;
+
+			card.capabilities.forEach((capability, index) => {
+				if (!plannableCapabilityTypes.has(capability.type)) return;
+				capabilities.push({
+					key: `${card.id}#${occurrence}:${index}`,
+					cardCapability: new CardCapability(card, capability, index)
+				});
+			});
+		}
+
+		return capabilities;
+	}
+
+	/** The player's plan, completing the persisted order with capabilities gained since. */
+	planOf(player: PlayerState): PlayerPlanView {
+		const capabilities = this.plannableCapabilities(player);
+		const toCapabilities = (keys: Array<string>) =>
+			keys.flatMap((key) => {
+				const capability = capabilities.find((candidate) => candidate.key === key);
+				return capability ? [capability] : [];
+			});
+
+		const available = toCapabilities(uniqueStrings(player.plan.available));
+		const planned = toCapabilities(
+			uniqueStrings(player.plan.planned).filter(
+				(key) => !available.some((capability) => capability.key === key)
+			)
+		);
+
+		const placed = [...available, ...planned].map((capability) => capability.key);
+		for (const capability of capabilities) {
+			if (!placed.includes(capability.key)) available.push(capability);
+		}
+
+		return { available, planned, confirmed: player.plan.confirmed };
+	}
+
+	/** Fills the persisted plan with the capabilities of the player's current cards. */
+	private normalizePlan(player: PlayerState): void {
+		const plan = this.planOf(player);
+		player.plan.available = plan.available.map((capability) => capability.key);
+		player.plan.planned = plan.planned.map((capability) => capability.key);
+	}
+
+	/** Moves a capability between the plan lists, or to another position within one. */
+	moveCapability(
+		playerId: string,
+		key: string,
+		from: PlanListId,
+		to: PlanListId,
+		index?: number
+	): void {
+		const player = this.players.find((candidate) => candidate.id === playerId);
+		if (!player) return;
+
+		this.normalizePlan(player);
+		const source = player.plan[from];
+		const sourceIndex = source.indexOf(key);
+		if (sourceIndex < 0) return;
+
+		source.splice(sourceIndex, 1);
+		const target = player.plan[to];
+
+		// Within a list, the index is taken before the capability was removed.
+		let insertAt = index ?? target.length;
+		if (from === to && index !== undefined && sourceIndex < index) insertAt -= 1;
+		insertAt = Math.min(Math.max(insertAt, 0), target.length);
+
+		target.splice(insertAt, 0, key);
+	}
+
+	/** Returns every capability of a player to the available list and unconfirms the plan. */
+	resetPlan(playerId: string): void {
+		const player = this.players.find((candidate) => candidate.id === playerId);
+		if (!player) return;
+
+		this.normalizePlan(player);
+		player.plan.available = [...player.plan.available, ...player.plan.planned];
+		player.plan.planned = [];
+		player.plan.confirmed = false;
+	}
+
+	/** Confirms a plan, moving the player up with the ones that already confirmed. */
+	confirmPlan(playerId: string): void {
+		const player = this.players.find((candidate) => candidate.id === playerId);
+		if (!player) return;
+
+		this.normalizePlan(player);
+		player.plan.confirmed = true;
+
+		const others = this.turnOrder.filter((id) => id !== playerId);
+		let insertAt = 0;
+		others.forEach((id, index) => {
+			const confirmed = this.players.find((candidate) => candidate.id === id)?.plan.confirmed;
+			if (confirmed) insertAt = index + 1;
+		});
+		this.turnOrder = [...others.slice(0, insertAt), playerId, ...others.slice(insertAt)];
+	}
+
+	/** Returns every capability of every player to their available list and unconfirms them. */
+	resetTurnOrder(): void {
+		for (const player of this.players) this.resetPlan(player.id);
+	}
+
+	/** Moves a player to another position in the turn order. */
+	moveInTurnOrder(playerId: string, index: number): void {
+		const from = this.turnOrder.indexOf(playerId);
+		if (from < 0) return;
+
+		// The index is taken in the list before the player is removed.
+		const [id] = this.turnOrder.splice(from, 1);
+		const insertAt = from < index ? index - 1 : index;
+		this.turnOrder.splice(Math.min(Math.max(insertAt, 0), this.turnOrder.length), 0, id);
 	}
 
 	/**
@@ -843,14 +1014,22 @@ export class SimulatorState {
 
 		return {
 			version: snapshotVersion,
-			players: this.players.map((player) => ({
-				id: player.id,
-				name: player.name,
-				kingdomId: player.kingdomId,
-				resources: { ...player.resources },
-				hand: cardIds(player.hand),
-				offices: cardIds(player.offices)
-			})),
+			players: this.players.map((player) => {
+				const plan = this.planOf(player);
+				return {
+					id: player.id,
+					name: player.name,
+					kingdomId: player.kingdomId,
+					resources: { ...player.resources },
+					hand: cardIds(player.hand),
+					offices: cardIds(player.offices),
+					plan: {
+						available: plan.available.map((capability) => capability.key),
+						planned: plan.planned.map((capability) => capability.key),
+						confirmed: plan.confirmed
+					}
+				};
+			}),
 			kingdoms: this.kingdoms.map((kingdom) => ({
 				id: kingdom.id,
 				name: kingdom.name,
@@ -860,7 +1039,8 @@ export class SimulatorState {
 			laws: cardIds(this.laws),
 			market: cardIds(this.market),
 			decks: emptyDeckRecord((deckId) => cardIds(this.decks[deckId])),
-			discards: emptyDeckRecord((deckId) => cardIds(this.discards[deckId]))
+			discards: emptyDeckRecord((deckId) => cardIds(this.discards[deckId])),
+			turnOrder: [...this.turnOrder]
 		};
 	}
 
@@ -911,11 +1091,20 @@ export class SimulatorState {
 					kingdomId,
 					resources: normalizeResources(record.resources),
 					hand: normalizeRefs(record.hand),
-					offices: kingdomId === null ? [] : normalizeRefs(record.offices, 'office')
+					offices: kingdomId === null ? [] : normalizeRefs(record.offices, 'office'),
+					plan: normalizePlan(record.plan)
 				});
 			}
 		}
 		this.players = players;
+
+		const playerIds = new SvelteSet(players.map((player) => player.id));
+		const turnOrder = Array.isArray(snapshot.turnOrder) ? snapshot.turnOrder : [];
+		this.turnOrder = uniqueStrings(turnOrder).filter((id) => playerIds.has(id));
+		// The list holds every player, so those missing from older snapshots join it at the end.
+		for (const player of players) {
+			if (!this.turnOrder.includes(player.id)) this.turnOrder.push(player.id);
+		}
 
 		this.laws = normalizeRefs(snapshot.laws, 'law');
 		this.market = normalizeRefs(snapshot.market, 'asset');
