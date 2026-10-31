@@ -9,7 +9,7 @@
 			userSelect: 'none'
 		},
 		icon: {
-			height: '0.8em',
+			height: '1em',
 			width: 'auto',
 			flexShrink: 0,
 			color: css.palette.thatch
