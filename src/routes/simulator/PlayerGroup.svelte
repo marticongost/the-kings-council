@@ -17,7 +17,11 @@
 		},
 		player: {
 			flex: '0 0 auto',
-			width: playerColumnWidth
+			display: 'flex',
+			flexDirection: 'column',
+			width: playerColumnWidth,
+			// Let the panel stretch to the shared height given to every column of players.
+			'& > *': { flex: '1 1 auto' }
 		},
 		empty: {
 			margin: 0,
@@ -117,10 +121,40 @@
 
 		return () => observer.disconnect();
 	});
+
+	// Give every panel the height of the tallest one, so that the rows of players and their
+	// card pills line up across columns.
+	$effect(() => {
+		const element = group;
+		if (!element) return;
+
+		const balance = () => {
+			const wrappers = Array.from(element.children) as Array<HTMLElement>;
+			for (const wrapper of wrappers) wrapper.style.removeProperty('min-height');
+
+			const tallest = wrappers.reduce(
+				(height, wrapper) => Math.max(height, wrapper.getBoundingClientRect().height),
+				0
+			);
+			for (const wrapper of wrappers) wrapper.style.minHeight = `${tallest}px`;
+		};
+
+		balance();
+
+		const observer = new ResizeObserver(balance);
+		for (const child of element.children) observer.observe(child);
+
+		return () => observer.disconnect();
+	});
 </script>
 
 {#if players.length > 0}
-	<div class={styles.group} bind:this={group} style:max-height={`${columnHeight}px`}>
+	<div
+		class={styles.group}
+		bind:this={group}
+		style:max-height={`${columnHeight}px`}
+		data-simulator-player-group
+	>
 		{#each players as player (player.id)}
 			<div class={styles.player}>
 				<PlayerPanel {simulator} {player} />

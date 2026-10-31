@@ -37,48 +37,67 @@ apply to every selected element they are relevant to.
 
 ### Kingdoms selected
 
-| Key                              | Action                                                    |
-| -------------------------------- | --------------------------------------------------------- |
-| <kbd>Backspace</kbd>             | Select the page                                           |
-| <kbd>p</kbd>                     | Select the players of the selected kingdoms               |
-| <kbd>c</kbd>                     | Select the card pills in the selected kingdoms            |
-| <kbd>←</kbd> / <kbd>→</kbd>      | Select the previous or next kingdom, wrapping at the ends |
-| <kbd>↑</kbd>                     | Select the last player of the selected kingdoms           |
-| <kbd>↓</kbd>                     | Select the first player of the selected kingdoms          |
-| <kbd>Home</kbd> / <kbd>End</kbd> | Select the first or last kingdom                          |
+| Key                              | Action                                           |
+| -------------------------------- | ------------------------------------------------ |
+| <kbd>Backspace</kbd>             | Select the page                                  |
+| <kbd>p</kbd>                     | Select the players of the selected kingdoms      |
+| <kbd>c</kbd>                     | Select the card pills in the selected kingdoms   |
+| <kbd>←</kbd> / <kbd>→</kbd>      | Select the previous or next kingdom              |
+| <kbd>↑</kbd>                     | Select the last player of the selected kingdoms  |
+| <kbd>↓</kbd>                     | Select the first player of the selected kingdoms |
+| <kbd>Home</kbd> / <kbd>End</kbd> | Select the first or last kingdom                 |
 
 When several kingdoms are selected, <kbd>←</kbd>/<kbd>→</kbd> move from the first
-selected kingdom in the list.
+selected kingdom in the list. Moving past the first or last kingdom selects the page,
+which is their parent.
 
 ### Players selected
 
-| Key                              | Action                                                             |
-| -------------------------------- | ------------------------------------------------------------------ |
-| <kbd>Backspace</kbd>             | Select the page                                                    |
-| <kbd>k</kbd>                     | Select the kingdoms of the selected players                        |
-| <kbd>c</kbd>                     | Select the card pills of the selected players                      |
-| <kbd>←</kbd> / <kbd>→</kbd>      | Select the previous or next kingdom, wrapping at the ends          |
-| <kbd>↑</kbd> / <kbd>↓</kbd>      | Select the previous or next player within their kingdoms, wrapping |
-| <kbd>Home</kbd> / <kbd>End</kbd> | Select the first or last player within their kingdoms              |
+| Key                              | Action                                                               |
+| -------------------------------- | -------------------------------------------------------------------- |
+| <kbd>Backspace</kbd>             | Select the page                                                      |
+| <kbd>k</kbd>                     | Select the kingdoms of the selected players                          |
+| <kbd>c</kbd>                     | Select the card pills of the selected players                        |
+| <kbd>←</kbd> / <kbd>→</kbd>      | Select the player before or after the current one, in the same row   |
+| <kbd>↑</kbd> / <kbd>↓</kbd>      | Select the player above or below the current one, in the same column |
+| <kbd>Home</kbd> / <kbd>End</kbd> | Select the first or last player within their kingdoms                |
+
+Players are laid out in columns, which grow sideways as they fill up. The arrows follow
+that grid instead of cycling through the list, and stay within the kingdom as long as it
+has a player in the requested direction, even when that means changing row: from the
+bottom player of a column with more rows than the next one, the arrow selects the last
+player of that next column. When the kingdom has no player in that direction, the nearest
+player of the neighbouring kingdom is selected; when there is none either, the kingdom the
+players belong to, which is their parent, is selected.
 
 When several players are selected, the arrows move from the first selected player in the
 list.
 
 ### Card pills selected
 
-| Key                              | Action                                                                  |
-| -------------------------------- | ----------------------------------------------------------------------- |
-| <kbd>Backspace</kbd>             | Select the page                                                         |
-| <kbd>k</kbd>                     | Select the kingdoms the selected cards belong to                        |
-| <kbd>p</kbd>                     | Select the players who own any of the selected cards                    |
-| <kbd>←</kbd> / <kbd>→</kbd>      | Select the previous or next kingdom, wrapping at the ends               |
-| <kbd>↑</kbd> / <kbd>↓</kbd>      | Select the previous or next card pill among the owners' cards, wrapping |
-| <kbd>Home</kbd> / <kbd>End</kbd> | Select the first or last card pill among the owners' cards              |
-| <kbd>f</kbd> then a type key     | Keep only the selected cards matching that type                         |
+| Key                              | Action                                                                |
+| -------------------------------- | --------------------------------------------------------------------- |
+| <kbd>Backspace</kbd>             | Select the page                                                       |
+| <kbd>k</kbd>                     | Select the kingdoms the selected cards belong to                      |
+| <kbd>p</kbd>                     | Select the players who own any of the selected cards                  |
+| <kbd>←</kbd> / <kbd>→</kbd>      | Select the card pill before or after the current one, in the same row |
+| <kbd>↑</kbd>                     | Select the player owning the card, or its kingdom                     |
+| <kbd>↓</kbd>                     | Select the first card pill of the next player of the kingdom          |
+| <kbd>Home</kbd> / <kbd>End</kbd> | Select the first or last card pill among the owners' cards            |
+| <kbd>f</kbd> then a type key     | Keep only the selected cards matching that type                       |
+
+Card pills are laid out in rows of three per column of players, so the arrows follow the
+rendered grid. They stay in the current list as long as it has a pill in the requested
+direction, changing row when the next column is shorter: from the bottom pill of a column,
+the arrow selects the last pill of the next column. Only when the list ends, the move
+continues in the neighbouring list, for instance the first pill of the next player's row.
+When there is no card pill in the requested direction, the owner of the selected cards,
+which is their parent, is selected; cards that belong to a kingdom rather than a player
+select that kingdom. Cards without an owner (available laws, market cards and discard piles) have no
+parent, so the selection stays put, and <kbd>k</kbd>/<kbd>p</kbd> have no effect on them.
 
 When several cards are selected, the arrows move from the first selected card in the
-list. Cards without an owner (available laws, market cards and discard piles) are navigated
-across all visible card pills, and <kbd>k</kbd>/<kbd>p</kbd> have no effect on them.
+list.
 
 ## Card type keys
 

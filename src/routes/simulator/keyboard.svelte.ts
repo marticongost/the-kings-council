@@ -1,4 +1,12 @@
 import { SvelteSet } from 'svelte/reactivity';
+import {
+	gridOf,
+	neighbourInDirection,
+	rectOf,
+	selectorOf,
+	visibleItems,
+	type Direction
+} from './gridnav';
 import type { SimulatorSelection, SelectionKind } from './selection.svelte';
 import type { SimulatorState } from './simulatorstate.svelte';
 import {
@@ -8,12 +16,14 @@ import {
 	concreteTypeKeys,
 	counterShortcutApplies,
 	counterShortcuts,
+	groupIdOfPlayer,
 	groupIdsOfPlayers,
 	groupsOfCards,
 	isConcreteTypeKey,
 	isCounterShortcutKey,
 	isTypeKey,
 	independentKingdomId,
+	kingdomGroups,
 	kingdomIdsInOrder,
 	matchesType,
 	nonConcreteTypeKeys,
@@ -71,13 +81,7 @@ function isModifierKey(key: string): boolean {
 
 function revealElement(kind: SelectionKind, id: string): void {
 	if (typeof document === 'undefined') return;
-	const attribute =
-		kind === 'kingdom'
-			? 'data-simulator-kingdom'
-			: kind === 'player'
-				? 'data-simulator-player'
-				: 'data-simulator-card';
-	const selector = `[${attribute}="${CSS.escape(id)}"]`;
+	const selector = selectorOf(kind, id);
 
 	requestAnimationFrame(() => {
 		document
@@ -205,8 +209,7 @@ export class KeyboardController {
 						{ keys: ['⌫'], label: 'Selecciona la pàgina' },
 						{ keys: ['p'], label: 'Jugadors dels regnes' },
 						{ keys: ['c'], label: 'Cartes dels regnes' },
-						{ keys: ['←', '→'], label: 'Regne anterior / següent' },
-						{ keys: ['↑', '↓'], label: 'Últim / primer jugador' },
+						{ keys: ['←', '↑', '↓', '→'], label: 'Mou-te per la graella' },
 						{ keys: ['Home', 'End'], label: 'Primer / últim regne' }
 					]
 				});
@@ -218,8 +221,7 @@ export class KeyboardController {
 						{ keys: ['⌫'], label: 'Selecciona la pàgina' },
 						{ keys: ['k'], label: 'Regnes dels jugadors' },
 						{ keys: ['c'], label: 'Cartes dels jugadors' },
-						{ keys: ['←', '→'], label: 'Regne anterior / següent' },
-						{ keys: ['↑', '↓'], label: 'Jugador anterior / següent' },
+						{ keys: ['←', '↑', '↓', '→'], label: 'Mou-te per la graella' },
 						{ keys: ['Home', 'End'], label: 'Primer / últim jugador' }
 					]
 				});
@@ -231,8 +233,7 @@ export class KeyboardController {
 						{ keys: ['⌫'], label: 'Selecciona la pàgina' },
 						{ keys: ['k'], label: 'Regnes de les cartes' },
 						{ keys: ['p'], label: 'Jugadors propietaris' },
-						{ keys: ['←', '→'], label: 'Regne anterior / següent' },
-						{ keys: ['↑', '↓'], label: 'Carta anterior / següent' },
+						{ keys: ['←', '↑', '↓', '→'], label: 'Mou-te per la graella' },
 						{ keys: ['Home', 'End'], label: 'Primera / última carta' },
 						{ keys: ['f'], label: 'Filtra per tipus' }
 					]
@@ -310,19 +311,19 @@ export class KeyboardController {
 				event.preventDefault();
 				return;
 			case 'ArrowLeft':
-				this.navigateKingdom(-1);
+				this.navigate('left');
 				event.preventDefault();
 				return;
 			case 'ArrowRight':
-				this.navigateKingdom(1);
+				this.navigate('right');
 				event.preventDefault();
 				return;
 			case 'ArrowUp':
-				this.navigateUp();
+				this.navigate('up');
 				event.preventDefault();
 				return;
 			case 'ArrowDown':
-				this.navigateDown();
+				this.navigate('down');
 				event.preventDefault();
 				return;
 			case 'Home':
@@ -473,46 +474,124 @@ export class KeyboardController {
 		}
 	}
 
-	private navigateKingdom(direction: -1 | 1): void {
-		const groups = this.groupsForSelection();
-		if (groups.size === 0) return;
+	private selectKingdom(id: string): void {
+		this.selection.replace('kingdom', [id]);
+		revealElement('kingdom', id);
+	}
 
+	private selectPlayer(id: string): void {
+		this.selection.replace('player', [id]);
+		revealElement('player', id);
+	}
+
+	private selectCard(uid: string): void {
+		this.selection.replace('card', [uid]);
+		revealElement('card', uid);
+	}
+
+	private navigate(direction: Direction): void {
+		switch (this.view) {
+			case 'kingdoms':
+				this.navigateFromKingdoms(direction);
+				return;
+			case 'players':
+				this.navigateFromPlayers(direction);
+				return;
+			case 'cards':
+				this.navigateFromCards(direction);
+				return;
+		}
+	}
+
+	/**
+	 * Kingdoms are laid out in a row: sideways moves select the adjacent panel, and vertical
+	 * ones enter the grid of players. Leaving the row selects the page, their parent.
+	 */
+	private navigateFromKingdoms(direction: Direction): void {
 		const order = kingdomIdsInOrder(this.simulator);
-		const pivot = order.find((id) => groups.has(id));
+		const selected = this.groupsForSelection();
+		const pivot = order.find((id) => selected.has(id));
 		if (!pivot) return;
 
-		const index = order.indexOf(pivot);
-		const next = order[(index + direction + order.length) % order.length];
-		this.selection.replace('kingdom', [next]);
-		revealElement('kingdom', next);
-	}
-
-	private navigateUp(): void {
-		switch (this.view) {
-			case 'kingdoms':
+		switch (direction) {
+			case 'up':
 				this.selectKingdomPlayer('last');
 				return;
-			case 'players':
-				this.navigatePlayer(-1);
-				return;
-			case 'cards':
-				this.navigateCard(-1);
-				return;
-		}
-	}
-
-	private navigateDown(): void {
-		switch (this.view) {
-			case 'kingdoms':
+			case 'down':
 				this.selectKingdomPlayer('first');
 				return;
-			case 'players':
-				this.navigatePlayer(1);
-				return;
-			case 'cards':
-				this.navigateCard(1);
-				return;
 		}
+
+		const origin = rectOf('kingdom', pivot);
+		const neighbour = origin
+			? neighbourInDirection(origin, null, visibleItems('kingdom'), direction)
+			: null;
+		if (neighbour) return this.selectKingdom(neighbour);
+
+		this.selection.clear();
+	}
+
+	private navigateFromPlayers(direction: Direction): void {
+		const groups = groupIdsOfPlayers(this.selectedPlayerStates());
+		const scope = playersInGroups(this.simulator, groups);
+		const pivot = scope.find((player) => this.selection.players.has(player.id));
+		if (!pivot) return;
+
+		const origin = rectOf('player', pivot.id);
+		const neighbour = origin
+			? neighbourInDirection(origin, gridOf('player', pivot.id), visibleItems('player'), direction)
+			: null;
+		if (neighbour) return this.selectPlayer(neighbour);
+
+		this.selectKingdom(groupIdOfPlayer(pivot));
+	}
+
+	private navigateFromCards(direction: Direction): void {
+		const scope = cardScope(this.simulator, this.selection.cards);
+		const pivot = scope.find((entry) => this.selection.cards.has(entry.uid));
+		if (!pivot) return;
+
+		const origin = rectOf('card', pivot.uid);
+		const neighbour = origin
+			? neighbourInDirection(origin, gridOf('card', pivot.uid), visibleItems('card'), direction)
+			: null;
+		if (neighbour) return this.selectCard(neighbour);
+
+		if (direction === 'down' && this.selectNextPlayerCard(pivot)) return;
+		this.selectCardOwner(pivot);
+	}
+
+	/** Selects the player owning a card, or its kingdom for cards that belong to a kingdom. */
+	private selectCardOwner(entry: CardEntry): void {
+		if (entry.playerId) return this.selectPlayer(entry.playerId);
+		if (entry.kingdomId) this.selectKingdom(entry.kingdomId);
+	}
+
+	/**
+	 * Continues below a card list: to the first card of the next player of the group, or to
+	 * the kingdom when the player is the last one. Returns whether a card was selected.
+	 */
+	private selectNextPlayerCard(entry: CardEntry): boolean {
+		if (!entry.playerId) return false;
+
+		const owner = this.simulator.players.find((player) => player.id === entry.playerId);
+		if (!owner) return false;
+
+		const groupId = groupIdOfPlayer(owner);
+		const group = kingdomGroups(this.simulator).find((candidate) => candidate.id === groupId);
+		const players = group?.players ?? [];
+		const index = players.findIndex((player) => player.id === owner.id);
+
+		for (const player of players.slice(index + 1)) {
+			const first = orderedCards(this.simulator).find((card) => card.playerId === player.id);
+			if (!first) continue;
+
+			this.selectCard(first.uid);
+			return true;
+		}
+
+		this.selectKingdom(groupId);
+		return true;
 	}
 
 	private selectKingdomPlayer(edge: 'first' | 'last'): void {
@@ -520,31 +599,7 @@ export class KeyboardController {
 		if (players.length === 0) return;
 
 		const player = edge === 'first' ? players[0] : players[players.length - 1];
-		this.selection.replace('player', [player.id]);
-		revealElement('player', player.id);
-	}
-
-	private navigatePlayer(direction: -1 | 1): void {
-		const groups = groupIdsOfPlayers(this.selectedPlayerStates());
-		const scope = playersInGroups(this.simulator, groups);
-		const pivot = scope.find((player) => this.selection.players.has(player.id));
-		if (!pivot) return;
-
-		const index = scope.indexOf(pivot);
-		const next = scope[(index + direction + scope.length) % scope.length];
-		this.selection.replace('player', [next.id]);
-		revealElement('player', next.id);
-	}
-
-	private navigateCard(direction: -1 | 1): void {
-		const scope = cardScope(this.simulator, this.selection.cards);
-		const pivot = scope.find((entry) => this.selection.cards.has(entry.uid));
-		if (!pivot) return;
-
-		const index = scope.indexOf(pivot);
-		const next = scope[(index + direction + scope.length) % scope.length];
-		this.selection.replace('card', [next.uid]);
-		revealElement('card', next.uid);
+		this.selectPlayer(player.id);
 	}
 
 	private navigateEdge(edge: 'first' | 'last'): void {
@@ -552,8 +607,7 @@ export class KeyboardController {
 			case 'kingdoms': {
 				const order = kingdomIdsInOrder(this.simulator);
 				const id = edge === 'first' ? order[0] : order[order.length - 1];
-				this.selection.replace('kingdom', [id]);
-				revealElement('kingdom', id);
+				this.selectKingdom(id);
 				return;
 			}
 			case 'players': {
@@ -561,16 +615,14 @@ export class KeyboardController {
 				const scope = playersInGroups(this.simulator, groups);
 				if (scope.length === 0) return;
 				const player = edge === 'first' ? scope[0] : scope[scope.length - 1];
-				this.selection.replace('player', [player.id]);
-				revealElement('player', player.id);
+				this.selectPlayer(player.id);
 				return;
 			}
 			case 'cards': {
 				const scope = cardScope(this.simulator, this.selection.cards);
 				if (scope.length === 0) return;
 				const entry = edge === 'first' ? scope[0] : scope[scope.length - 1];
-				this.selection.replace('card', [entry.uid]);
-				revealElement('card', entry.uid);
+				this.selectCard(entry.uid);
 				return;
 			}
 		}
