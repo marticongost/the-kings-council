@@ -2,6 +2,7 @@ import { type TacticData } from '#lib/models/cards';
 
 export default {
 	title: 'Difamar',
+	copies: 2,
 	discardBonus: { intrigue: 1 },
 	properties: ['machination'],
 	capabilities: [

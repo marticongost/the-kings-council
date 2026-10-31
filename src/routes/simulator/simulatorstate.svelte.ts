@@ -828,7 +828,9 @@ export class SimulatorState {
 			// Common action cards are reference cards and offices belong to kingdoms,
 			// so neither type is drawn from a deck.
 			if (card.type === 'common' || card.type === 'office') continue;
-			decks[deckIdOf(card)].push({ uid: makeUid(), cardId: card.id });
+			for (let copy = 0; copy < card.copies; copy += 1) {
+				decks[deckIdOf(card)].push({ uid: makeUid(), cardId: card.id });
+			}
 		}
 		for (const deckId of deckIds) {
 			shuffle(decks[deckId]);

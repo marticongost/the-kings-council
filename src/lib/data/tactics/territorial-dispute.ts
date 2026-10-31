@@ -2,6 +2,7 @@ import { type TacticData } from '#lib/models/cards';
 
 export default {
 	title: 'Disputa territorial',
+	copies: 2,
 	discardBonus: { power: 1 },
 	properties: ['agression'],
 	capabilities: [

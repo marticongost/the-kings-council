@@ -2,6 +2,7 @@ import { type TacticData } from '#lib/models/cards';
 
 export default {
 	title: 'Corrupció',
+	copies: 2,
 	discardBonus: { power: 1 },
 	properties: ['machination', 'selfishness'],
 	capabilities: [

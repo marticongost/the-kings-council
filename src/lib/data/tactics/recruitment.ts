@@ -2,6 +2,7 @@ import { type TacticData } from '#lib/models/cards';
 
 export default {
 	title: 'Reclutament',
+	copies: 2,
 	properties: ['boost'],
 	discardBonus: { gold: 1 },
 	capabilities: [

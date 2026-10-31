@@ -2,6 +2,7 @@ import { type TacticData } from '#lib/models/cards';
 
 export default {
 	title: 'Voltor',
+	copies: 2,
 	discardBonus: { intrigue: 1 },
 	properties: ['selfishness'],
 	capabilities: [

@@ -20,19 +20,23 @@ export interface CardData {
 	title: string;
 	capabilities?: ReadonlyArray<CapabilitySpec>;
 	properties?: ReadonlyArray<PropertyId>;
+	/** Number of physical copies of this card included in its deck. */
+	copies?: number;
 }
 
 export abstract class BaseCard {
 	readonly id: string;
 	readonly title: string;
 	readonly capabilities: Array<Capability>;
+	readonly copies: number;
 	abstract readonly type: CardType;
 	private readonly ownProperties: ReadonlyArray<PropertyId>;
 
-	constructor(id: string, { title, capabilities, properties }: CardData) {
+	constructor(id: string, { title, capabilities, properties, copies = 1 }: CardData) {
 		this.id = id;
 		this.title = title;
 		this.capabilities = capabilities ? capabilities.map(buildCapability) : [];
+		this.copies = copies;
 		this.ownProperties = properties ?? [];
 	}
 

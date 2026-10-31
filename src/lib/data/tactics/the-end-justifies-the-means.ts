@@ -2,6 +2,7 @@ import { type TacticData } from '#lib/models/cards';
 
 export default {
 	title: 'El fi justifica els mitjans',
+	copies: 2,
 	discardBonus: { power: 1 },
 	capabilities: [
 		{
