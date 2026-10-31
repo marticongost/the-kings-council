@@ -20,9 +20,18 @@
 		cards: Array<CardRef>;
 		/** The zone a card is shown from; offices and other cards use different zones. */
 		zone: (card: Card) => Zone;
+		/** When set, each pill gets a fixed width so exactly this many fit per row. */
+		columns?: number;
 	}
 
-	const { simulator, cards, zone }: Props = $props();
+	const { simulator, cards, zone, columns }: Props = $props();
+
+	// Fixed-width pills that fit `columns` per row, subtracting the `xs` grid gaps.
+	const itemStyle = $derived(
+		columns
+			? `flex: 0 0 auto; width: calc((100% - ${css.getSpacing('xs')} * ${columns - 1}) / ${columns})`
+			: undefined
+	);
 
 	const orderedCards = $derived(
 		[...cards]
@@ -34,6 +43,6 @@
 
 <div class={styles.list} role="list">
 	{#each orderedCards as { ref, card } (ref.uid)}
-		<CardPill {card} source={zone(card)} uid={ref.uid} />
+		<CardPill {card} source={zone(card)} uid={ref.uid} style={itemStyle} />
 	{/each}
 </div>

@@ -197,7 +197,7 @@
 			{/each}
 		</div>
 
-		<CardList {simulator} cards={kingdom.cards} zone={zoneOf} />
+		<CardList {simulator} cards={kingdom.cards} zone={zoneOf} columns={3} />
 
 		<PlayerGroup {simulator} players={members} />
 	</div>

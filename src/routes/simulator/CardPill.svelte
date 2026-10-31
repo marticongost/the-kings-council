@@ -45,6 +45,7 @@
 			...css.row('xs'),
 			minWidth: 0,
 			maxWidth: '100%',
+			flex: '1 1 auto',
 			...css.hpadding('md'),
 			...css.vpadding('sm'),
 			borderRadius: '0.3em',
@@ -100,9 +101,10 @@
 		cardCapability?: CardCapability;
 		source?: Zone;
 		uid?: string;
+		style?: string;
 	}
 
-	const { card, cardCapability, source, uid }: Props = $props();
+	const { card, cardCapability, source, uid, style }: Props = $props();
 
 	const selection = useSelection();
 	const selected = $derived(uid ? selection.cards.has(uid) : false);
@@ -222,7 +224,7 @@
 </script>
 
 {#if subject}
-	<div class={styles.wrapper} bind:this={wrapper} role="listitem" data-simulator-card={uid}>
+	<div class={styles.wrapper} bind:this={wrapper} role="listitem" data-simulator-card={uid} {style}>
 		<button
 			class={cx(styles.pill, !source && styles.staticPill, selected && styles.selectedPill)}
 			style:background-color={colors.background}

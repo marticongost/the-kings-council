@@ -151,7 +151,7 @@
 			{/each}
 		</div>
 
-		<CardList {simulator} {cards} zone={zoneOf} />
+		<CardList {simulator} {cards} zone={zoneOf} columns={3} />
 		{#if cards.length === 0}
 			<p class={styles.empty}>Sense cartes</p>
 		{/if}
