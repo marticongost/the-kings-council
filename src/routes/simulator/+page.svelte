@@ -219,7 +219,16 @@
 							zone={{ kind: 'laws' }}
 							label="Lleis disponibles"
 							emptyLabel="No hi ha lleis disponibles"
-						/>
+							columns={3}
+						>
+							{#snippet actions()}
+								<IconButton
+									src="ui/refill.svg"
+									label="Reomple les lleis"
+									onclick={() => simulator.refillLaws()}
+								/>
+							{/snippet}
+						</CardZone>
 						<CardZone
 							{simulator}
 							cards={simulator.market}

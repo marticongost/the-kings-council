@@ -18,7 +18,7 @@ export default {
 		{
 			title: 'Fixar impostos',
 			type: 'action',
-			cost: { power: '1 + {friction}' },
+			cost: { power: '1 + {kingdom-stat-friction}' },
 			effects:
 				'Moure {wealth} un espai en qualsevol direcció. Canviar {stability} en la mateixa quantitat, en la direcció oposada.'
 		}

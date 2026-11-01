@@ -1022,6 +1022,17 @@ export class SimulatorState {
 	}
 
 	/**
+	 * Fills the available laws back up to two laws plus one more for every
+	 * three players, drawing from the laws deck. When the deck runs out, its
+	 * discard pile is shuffled back into the deck first.
+	 */
+	refillLaws(): void {
+		const target = 2 + Math.floor(this.players.length / 3);
+		const missing = Math.max(0, target - this.laws.length);
+		this.laws.push(...this.drawFromDeck('law', missing));
+	}
+
+	/**
 	 * Prepares a market row as the rules describe: one asset per player, half
 	 * drawn from the visible assets (rounded up) and half from the hidden ones
 	 * (rounded down). Cards already on the market are discarded, as they are at
