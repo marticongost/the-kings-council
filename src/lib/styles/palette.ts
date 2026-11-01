@@ -23,6 +23,7 @@ export const cedar: HexColor = '#330f1b';
 export const dawn: HexColor = '#a3a09d';
 export const sandal: HexColor = '#a68e6d';
 export const tobacco: HexColor = '#7a684e';
+export const crisis: HexColor = '#812925';
 export const carrara: HexColor = '#f5f4f2';
 export const twine: HexColor = '#be824e';
 export const wheat: HexColor = '#f3eacc';

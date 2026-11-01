@@ -27,7 +27,7 @@
 			minWidth: 0
 		},
 		stats: {
-			...css.row('lg'),
+			...css.row('md'),
 			justifyContent: 'space-between',
 			flexWrap: 'nowrap',
 			overflow: 'hidden',
@@ -44,6 +44,10 @@
 			borderRadius: 0,
 			flexShrink: 0
 		},
+		crisisDefenseIcon: {
+			// Matches the crisis cards; overrides the Counter default via the SVG colour variable.
+			'--svg-color': css.palette.crisis
+		},
 		selected: {
 			outline: `2px solid ${css.palette.cedar}88`,
 			outlineOffset: '-2px'
@@ -52,6 +56,7 @@
 </script>
 
 <script lang="ts">
+	import { cx } from '@emotion/css';
 	import IconButton from '#lib/components/IconButton.svelte';
 	import InlineSvg from '#lib/components/InlineSvg.svelte';
 	import KingdomStatIcon from '#lib/components/KingdomStatIcon.svelte';
@@ -208,6 +213,19 @@
 					{/snippet}
 				</Counter>
 			{/each}
+			<Counter
+				value={kingdom.crisisDefense}
+				label="Defensa de crisi"
+				onchange={(value) => simulator.setCrisisDefense(kingdom.id, value)}
+			>
+				{#snippet icon()}
+					<InlineSvg
+						class={cx(styles.statIcon, styles.crisisDefenseIcon)}
+						src="ui/crisis-defense.svg"
+						aria-hidden="true"
+					/>
+				{/snippet}
+			</Counter>
 		</div>
 
 		<CardList {simulator} cards={kingdom.cards} zone={zoneOf} columns={cardColumns} />

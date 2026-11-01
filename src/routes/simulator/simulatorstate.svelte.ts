@@ -239,6 +239,10 @@ function normalizeStats(value: unknown): KingdomState['stats'] {
 	return stats;
 }
 
+function normalizeCrisisDefense(value: unknown): number {
+	return clamp(asNumber(value, 0), 0, Number.POSITIVE_INFINITY);
+}
+
 function normalizeResources(value: unknown): PlayerResources {
 	const record = asObject(value);
 	const resources = emptyResources();
@@ -517,6 +521,7 @@ export class SimulatorState {
 			id,
 			name: nextKingdomName(this.kingdoms),
 			stats: emptyKingdomStats(),
+			crisisDefense: 0,
 			cards: createOfficeRefs(),
 			fateDeck: this.drawFateDeck()
 		});
@@ -606,6 +611,12 @@ export class SimulatorState {
 		if (!kingdom) return;
 		const types = stat ? [stat] : kingdomStatTypes;
 		for (const type of types) this.setStat(kingdomId, type, value);
+	}
+
+	setCrisisDefense(kingdomId: string, value: number): void {
+		const kingdom = this.kingdoms.find((candidate) => candidate.id === kingdomId);
+		if (!kingdom || !Number.isFinite(value)) return;
+		kingdom.crisisDefense = Math.max(0, Math.round(value));
 	}
 
 	// Cards
@@ -828,6 +839,7 @@ export class SimulatorState {
 			this.resetPlan(player.id);
 			this.resetIndications(player.id);
 		}
+		for (const kingdom of this.kingdoms) kingdom.crisisDefense = 0;
 	}
 
 	/** Moves a player to another position in the turn order. */
@@ -1260,6 +1272,7 @@ export class SimulatorState {
 				id: kingdom.id,
 				name: kingdom.name,
 				stats: { ...kingdom.stats },
+				crisisDefense: kingdom.crisisDefense,
 				cards: cardIds(kingdom.cards),
 				fate: cardIds(kingdom.fateDeck)
 			})),
@@ -1291,6 +1304,7 @@ export class SimulatorState {
 							? record.name
 							: nextKingdomName(kingdoms),
 					stats: normalizeStats(record.stats),
+					crisisDefense: normalizeCrisisDefense(record.crisisDefense),
 					// New snapshots store a general card list; older ones only kept the
 					// kingdom's unassigned offices, and the earliest had no offices at all.
 					cards: Array.isArray(record.cards)

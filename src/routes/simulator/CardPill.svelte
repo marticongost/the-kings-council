@@ -15,7 +15,7 @@
 		'collective-goal': { background: '#dfcba7', color: css.palette.cedar },
 		'personal-goal': { background: '#c4ae99', color: css.palette.cedar },
 		event: { background: '#6e846f', color: css.palette.white },
-		crisis: { background: '#812925', color: css.palette.white },
+		crisis: { background: css.palette.crisis, color: css.palette.white },
 		law: { background: '#987f98', color: css.palette.white },
 		tactic: { background: '#616f95', color: css.palette.white },
 		asset: { background: '#bdb8a7', color: css.palette.cedar },

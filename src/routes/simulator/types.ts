@@ -233,6 +233,8 @@ export interface KingdomState {
 	id: string;
 	name: string;
 	stats: KingdomStats;
+	/** Crisis defence accumulated during the turn, cleared when the turn is reset. */
+	crisisDefense: number;
 	/** Any card attached to the kingdom, including its unassigned offices. */
 	cards: Array<CardRef>;
 	/** The kingdom's face-down fate deck, holding its crisis and event cards. */
@@ -255,6 +257,7 @@ export interface SerializedKingdom {
 	id: string;
 	name: string;
 	stats: KingdomStats;
+	crisisDefense?: number;
 	cards?: Array<string>;
 	/** Card ids in the kingdom's fate deck. */
 	fate?: Array<string>;
