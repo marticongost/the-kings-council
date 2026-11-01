@@ -108,7 +108,7 @@
 
 {#snippet decrementButton()}
 	<IconButton
-		src="ui/increase.svg"
+		src="ui/decrease.svg"
 		class={cx(styles.button, compact && styles.compactButton)}
 		disabled={!canDecrease}
 		label={`Disminueix ${label}`}
@@ -118,7 +118,7 @@
 
 {#snippet incrementButton()}
 	<IconButton
-		src="ui/decrease.svg"
+		src="ui/increase.svg"
 		class={cx(styles.button, compact && styles.compactButton)}
 		disabled={!canIncrease}
 		label={`Augmenta ${label}`}
@@ -132,7 +132,7 @@
 	</span>
 	<span class={cx(styles.value, compact && styles.compactValue)} aria-live="polite">{value}</span>
 	<div class={styles.buttons}>
-		{@render decrementButton()}
 		{@render incrementButton()}
+		{@render decrementButton()}
 	</div>
 </div>
