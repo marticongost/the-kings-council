@@ -5,9 +5,14 @@ export default {
 	properties: ['land', 'holy'],
 	capabilities: [
 		{
+			type: 'reaction',
+			trigger: 'turnStart',
+			effects: 'Guanyar {faith 1} per cada {asset} {visible} amb la propietat {holy}.'
+		},
+		{
 			type: 'action',
-			title: 'Centre de culte',
-			effects: 'Guanyar {faith 2} i {gold 1}.'
+			title: 'Delme',
+			effects: 'Canviar fins a 3 {faith} per {gold}.'
 		}
 	]
 } satisfies AssetData;
