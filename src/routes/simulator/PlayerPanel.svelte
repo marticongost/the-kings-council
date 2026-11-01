@@ -2,8 +2,26 @@
 	import * as css from '#lib/styles';
 
 	const styles = css.styles({
-		headerActions: {
-			marginLeft: 'auto'
+		headerControls: {
+			marginLeft: 'auto',
+			...css.row('xs')
+		},
+		vigilance: {
+			...css.row('xs'),
+			...css.hpadding('sm'),
+			...css.vpadding('0.15em'),
+			borderRadius: '0.3em',
+			backgroundColor: css.palette.carrara,
+			color: css.palette.wood,
+			fontFamily: css.fonts.number,
+			fontWeight: 900,
+			whiteSpace: 'nowrap'
+		},
+		vigilanceIcon: {
+			height: '1.1em',
+			width: 'auto',
+			color: css.palette.dawn,
+			flexShrink: 0
 		},
 		resources: {
 			...css.grid('xs'),
@@ -128,7 +146,15 @@
 	{/snippet}
 
 	{#snippet header()}
-		<div class={styles.headerActions}>
+		<div class={styles.headerControls}>
+			<span
+				class={styles.vigilance}
+				title={`Vigilància: ${player.vigilance}`}
+				aria-label={`Vigilància: ${player.vigilance}`}
+			>
+				<InlineSvg class={styles.vigilanceIcon} src="keywords/vigilance.svg" />
+				<span>{player.vigilance}</span>
+			</span>
 			<IconButton
 				src="ui/plan.svg"
 				label={`Planifica el torn de ${player.name}`}

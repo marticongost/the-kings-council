@@ -25,26 +25,51 @@
 		lists: {
 			...css.column('lg')
 		},
-		cards: {
-			...css.grid('sm'),
-			alignContent: 'flex-start',
-			alignItems: 'flex-start'
+		indications: {
+			...css.row(),
+			gap: css.spacing.xl
 		},
-		empty: {
+		indication: {
+			...css.row('md'),
+			alignItems: 'center'
+		},
+		indicationLabel: {
+			fontFamily: css.fonts.heading,
+			fontSize: '0.9em',
+			color: css.palette.wood,
+			flexShrink: 0
+		},
+		indicationIcon: {
+			height: '1.3em',
+			width: 'auto',
+			color: css.palette.dawn,
+			flexShrink: 0
+		},
+		select: {
+			flex: '1 1 auto',
+			minWidth: 0,
+			height: css.forms.controlHeight,
+			boxSizing: 'border-box',
 			margin: 0,
-			fontSize: '0.85em',
-			fontStyle: 'italic',
-			color: css.text.subtleColor
+			padding: '0 0.5em',
+			border: css.forms.controlBorder,
+			borderRadius: '0.3em',
+			backgroundColor: css.forms.controlBackgroundColor,
+			color: 'inherit',
+			font: 'inherit',
+			fontVariantNumeric: 'lining-nums',
+			cursor: 'pointer'
 		}
 	});
 </script>
 
 <script lang="ts">
-	import CardCapabilityFront from '#lib/components/CardCapabilityFront.svelte';
 	import IconButton from '#lib/components/IconButton.svelte';
+	import InlineSvg from '#lib/components/InlineSvg.svelte';
 	import Panel from '#lib/components/Panel.svelte';
 	import { provideCapabilityInputs, type CapabilityInputs } from '#lib/components/capabilityinputs';
 	import CapabilityPlanner from './CapabilityPlanner.svelte';
+	import Counter from './Counter.svelte';
 	import PanelSection from './PanelSection.svelte';
 	import { usePlans } from './plans.svelte';
 	import type { SimulatorState } from './simulatorstate.svelte';
@@ -66,6 +91,19 @@
 	);
 	const secretCapabilities = $derived(
 		capabilities.filter((capability) => capability.cardCapability.capability.type === 'secret')
+	);
+
+	/** Cards available in the assets market, without repeating cards of the same catalog entry. */
+	const marketCards = $derived(
+		simulator.market.flatMap((ref) => {
+			const card = simulator.cardOf(ref);
+			return card ? [card] : [];
+		})
+	);
+	const uniqueMarketCards = $derived(
+		marketCards.filter(
+			(card, index) => marketCards.findIndex((candidate) => candidate.id === card.id) === index
+		)
 	);
 
 	const capabilityInputs: CapabilityInputs = {
@@ -142,23 +180,55 @@
 				{/snippet}
 
 				<div class={styles.lists}>
-					<PanelSection
-						title="Indicacions"
-						ariaLabel="Indicacions"
-						role="list"
-						contentClass={styles.cards}
-					>
-						{#each plan.indications as capability (capability.key)}
-							<div role="listitem">
-								<CardCapabilityFront
-									cardCapability={capability.cardCapability}
-									editable
-									inputKey={capability.key}
-								/>
+					<PanelSection title="Indicacions" ariaLabel="Indicacions">
+						<div class={styles.indications}>
+							<div class={styles.indication}>
+								<span class={styles.indicationLabel}>Vigilància</span>
+								<Counter
+									compact
+									value={player.vigilance}
+									label="Vigilància"
+									min={0}
+									onchange={(value) => simulator.setVigilance(player.id, value)}
+								>
+									{#snippet icon()}
+										<InlineSvg class={styles.indicationIcon} src="resources/intrigue.svg" />
+									{/snippet}
+								</Counter>
 							</div>
-						{:else}
-							<p class={styles.empty}>Cap indicació</p>
-						{/each}
+
+							{#each player.acquisitions as acquisition, index (index)}
+								<div class={styles.indication}>
+									<span class={styles.indicationLabel}>Adquisició {index + 1}</span>
+									<select
+										class={styles.select}
+										aria-label={`Carta adquirida ${index + 1}`}
+										value={acquisition.cardId ?? ''}
+										onchange={(event) =>
+											simulator.setAcquisition(player.id, index, {
+												cardId: event.currentTarget.value || null
+											})}
+									>
+										<option value="">—</option>
+										{#each uniqueMarketCards as card (card.id)}
+											<option value={card.id}>{card.title}</option>
+										{/each}
+									</select>
+									<Counter
+										compact
+										value={acquisition.gold}
+										label={`Or pagat per l'adquisició ${index + 1}`}
+										min={0}
+										onchange={(value) =>
+											simulator.setAcquisition(player.id, index, { gold: value })}
+									>
+										{#snippet icon()}
+											<InlineSvg class={styles.indicationIcon} src="resources/gold.svg" />
+										{/snippet}
+									</Counter>
+								</div>
+							{/each}
+						</div>
 					</PanelSection>
 					<CapabilityPlanner
 						{simulator}

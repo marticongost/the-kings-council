@@ -18,6 +18,7 @@ import {
 	playerResourceTypes,
 	planListOf,
 	zoneKey,
+	type Acquisition,
 	type CardRef,
 	type DeckId,
 	type KingdomState,
@@ -92,6 +93,25 @@ const plannableCapabilityTypes = new Set(['action', 'secret', 'indication']);
 
 function emptyPlan(): PlayerPlan {
 	return { actions: [], secrets: [], confirmed: false, inputs: {} };
+}
+
+/** The two acquisition slots a player fills while planning. */
+function emptyAcquisitions(): Array<Acquisition> {
+	return [
+		{ cardId: null, gold: 0 },
+		{ cardId: null, gold: 0 }
+	];
+}
+
+function normalizeAcquisitions(value: unknown): Array<Acquisition> {
+	const entries = Array.isArray(value) ? value : [];
+	return emptyAcquisitions().map((fallback, index) => {
+		const record = asObject(entries[index]);
+		return {
+			cardId: typeof record?.cardId === 'string' ? record.cardId : fallback.cardId,
+			gold: Math.max(0, Math.round(asNumber(record?.gold, fallback.gold)))
+		};
+	});
 }
 
 /** Removes repeated entries, keeping the first occurrence of each. */
@@ -388,7 +408,9 @@ export class SimulatorState {
 				...this.drawFromDeck('personal-goal', 1)
 			],
 			offices: [],
-			plan: emptyPlan()
+			plan: emptyPlan(),
+			vigilance: 0,
+			acquisitions: emptyAcquisitions()
 		});
 		// Every player takes part in the turn order, dimmed until they confirm their plan.
 		this.turnOrder.push(id);
@@ -678,6 +700,39 @@ export class SimulatorState {
 		else delete player.plan.inputs[key];
 	}
 
+	/** Sets the vigilance a player gives while planning. */
+	setVigilance(playerId: string, value: number): void {
+		const player = this.players.find((candidate) => candidate.id === playerId);
+		if (!player || !Number.isFinite(value)) return;
+		player.vigilance = Math.max(0, Math.round(value));
+	}
+
+	/** Updates one acquisition of a player's plan, e.g. its card or the gold paid. */
+	setAcquisition(playerId: string, index: number, patch: Partial<Acquisition>): void {
+		const player = this.players.find((candidate) => candidate.id === playerId);
+		if (!player || index < 0 || index >= player.acquisitions.length) return;
+
+		const acquisition = player.acquisitions[index];
+		if (patch.cardId !== undefined) acquisition.cardId = patch.cardId;
+		if (patch.gold !== undefined && Number.isFinite(patch.gold)) {
+			acquisition.gold = Math.max(0, Math.round(patch.gold));
+		}
+	}
+
+	/** Clears the indications a player gave while planning: vigilance and acquisitions. */
+	resetIndications(playerId: string): void {
+		const player = this.players.find((candidate) => candidate.id === playerId);
+		if (!player) return;
+
+		player.vigilance = 0;
+		player.acquisitions = emptyAcquisitions();
+	}
+
+	/** Resets every player's vigilance and acquisitions to their defaults. */
+	clearAllIndications(): void {
+		for (const player of this.players) this.resetIndications(player.id);
+	}
+
 	/** Appends a capability to the plan list of its type, ignoring the ones that cannot be planned. */
 	addToPlan(playerId: string, key: string): void {
 		const player = this.players.find((candidate) => candidate.id === playerId);
@@ -769,7 +824,10 @@ export class SimulatorState {
 
 	/** Returns every capability of every player to their available list and unconfirms them. */
 	resetTurnOrder(): void {
-		for (const player of this.players) this.resetPlan(player.id);
+		for (const player of this.players) {
+			this.resetPlan(player.id);
+			this.resetIndications(player.id);
+		}
 	}
 
 	/** Moves a player to another position in the turn order. */
@@ -1182,7 +1240,9 @@ export class SimulatorState {
 						secrets: plan.secrets.map((capability) => capability.key),
 						confirmed: plan.confirmed,
 						inputs: { ...player.plan.inputs }
-					}
+					},
+					vigilance: player.vigilance,
+					acquisitions: player.acquisitions.map((acquisition) => ({ ...acquisition }))
 				};
 			}),
 			kingdoms: this.kingdoms.map((kingdom) => ({
@@ -1255,7 +1315,9 @@ export class SimulatorState {
 					resources: normalizeResources(record.resources),
 					hand: normalizeRefs(record.hand),
 					offices: kingdomId === null ? [] : normalizeRefs(record.offices, 'office'),
-					plan: normalizePlan(record.plan)
+					plan: normalizePlan(record.plan),
+					vigilance: Math.max(0, Math.round(asNumber(record.vigilance, 0))),
+					acquisitions: normalizeAcquisitions(record.acquisitions)
 				});
 			}
 		}

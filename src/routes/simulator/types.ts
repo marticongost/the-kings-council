@@ -209,6 +209,12 @@ export interface PlayerDragPayload {
 	playerId: string;
 }
 
+/** One acquisition a player plans: an asset card and the gold paid for it. */
+export interface Acquisition {
+	cardId: string | null;
+	gold: number;
+}
+
 export interface PlayerState {
 	id: string;
 	name: string;
@@ -217,6 +223,10 @@ export interface PlayerState {
 	hand: Array<CardRef>;
 	offices: Array<CardRef>;
 	plan: PlayerPlan;
+	/** Vigilance the player gives while planning, shown on their panel. */
+	vigilance: number;
+	/** The two acquisitions a player can declare while planning. */
+	acquisitions: Array<Acquisition>;
 }
 
 export interface KingdomState {
@@ -237,6 +247,8 @@ export interface SerializedPlayer {
 	hand: Array<string>;
 	offices?: Array<string>;
 	plan?: Partial<PlayerPlan>;
+	vigilance?: number;
+	acquisitions?: Array<{ cardId?: string | null; gold?: number }>;
 }
 
 export interface SerializedKingdom {

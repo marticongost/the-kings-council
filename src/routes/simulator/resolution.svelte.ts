@@ -75,6 +75,7 @@ export class TurnResolution {
 	stop(): void {
 		this.active = false;
 		this.index = 0;
+		this.simulator.clearAllIndications();
 	}
 
 	next(): void {
