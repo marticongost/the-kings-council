@@ -11,7 +11,6 @@ export const keywords = {
 	law: 'llei',
 	vote: 'votació',
 	votes: 'votacions',
-	vigilance: 'vigilància',
 	machination: 'maquinació',
 	aggression: 'agressió',
 	duel: 'Duel',
@@ -55,6 +54,7 @@ export const keywords = {
 	reaction: undefined,
 	constant: undefined,
 	danger: undefined,
+	vigilance: undefined,
 	...Object.fromEntries(getProperties().map((property) => [property.id, property.title])),
 	...Object.fromEntries(officeTypes.map((type) => [type, getOfficeName(type)]))
 };
