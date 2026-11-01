@@ -176,6 +176,11 @@
 	{#snippet header()}
 		<div class={styles.headerActions}>
 			<IconButton
+				src="ui/draw-fate.svg"
+				label={`Roba una carta de destí per a ${kingdom.name}`}
+				onclick={() => simulator.drawFateCard(kingdom.id)}
+			/>
+			<IconButton
 				src="ui/add-player.svg"
 				label={`Afegeix jugador a ${kingdom.name}`}
 				onclick={() => simulator.addPlayer(kingdom.id)}

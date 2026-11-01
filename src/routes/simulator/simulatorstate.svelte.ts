@@ -34,7 +34,7 @@ import {
 
 export const simulatorStorageKey = 'the-kings-council:simulator:v1';
 
-const snapshotVersion = 5;
+const snapshotVersion = 6;
 
 /** Oldest snapshot version that can still be migrated to the current schema. */
 const oldestSnapshotVersion = 1;
@@ -78,6 +78,14 @@ function startingResources(): PlayerResources {
 
 /** Tactic cards a new player is dealt. */
 const startingTacticCount = 3;
+
+/** Crisis and event cards dealt to the fate deck of each new kingdom. */
+const fateCardsPerType = 5;
+
+/** Cards that live in a kingdom's fate deck instead of the shared piles. */
+function isFateCard(card: Card): boolean {
+	return card.type === 'crisis' || card.type === 'event';
+}
 
 /** Capabilities that players can plan: the ones that are played or kept in hand. */
 const plannableCapabilityTypes = new Set(['action', 'secret', 'indication']);
@@ -412,9 +420,14 @@ export class SimulatorState {
 		if (index < 0) return;
 
 		const [player] = this.players.splice(index, 1);
+		const fateDeck = player.kingdomId
+			? this.kingdoms.find((kingdom) => kingdom.id === player.kingdomId)?.fateDeck
+			: undefined;
 		for (const ref of player.hand) {
 			const card = this.cardOf(ref);
-			if (card) this.discards[deckIdOf(card)].push(ref);
+			if (!card) continue;
+			if (isFateCard(card) && fateDeck) fateDeck.unshift(ref);
+			else this.discards[deckIdOf(card)].push(ref);
 		}
 		this.returnOffices(player);
 		this.turnOrder = this.turnOrder.filter((id) => id !== playerId);
@@ -482,16 +495,68 @@ export class SimulatorState {
 			id,
 			name: nextKingdomName(this.kingdoms),
 			stats: emptyKingdomStats(),
-			cards: createOfficeRefs()
+			cards: createOfficeRefs(),
+			fateDeck: this.drawFateDeck()
 		});
 		return id;
+	}
+
+	/** Deals a new fate deck, with crisis and event cards drawn from their shared piles. */
+	private drawFateDeck(): Array<CardRef> {
+		const fateDeck = [
+			...this.drawFromDeck('crisis', fateCardsPerType),
+			...this.drawFromDeck('event', fateCardsPerType)
+		];
+		this.completeFateDeck(fateDeck, 'crisis');
+		this.completeFateDeck(fateDeck, 'event');
+		shuffle(fateDeck);
+		return fateDeck;
+	}
+
+	/**
+	 * Fills a fate deck up to the dealt amount. The shared piles hold a limited number
+	 * of cards, so extra kingdoms are completed with further copies from the catalog.
+	 */
+	private completeFateDeck(fateDeck: Array<CardRef>, type: 'crisis' | 'event'): void {
+		const dealt = fateDeck.filter((ref) => this.cardOf(ref)?.type === type).length;
+		const missing = fateCardsPerType - dealt;
+		if (missing <= 0) return;
+
+		const candidates = cardsCatalog.all().filter((card) => card.type === type);
+		if (candidates.length === 0) return;
+
+		const isDealt = (card: Card) => fateDeck.some((ref) => ref.cardId === card.id);
+		const unused = candidates.filter((card) => !isDealt(card));
+		const used = candidates.filter(isDealt);
+		shuffle(unused);
+		shuffle(used);
+
+		// Cards not dealt yet come first, keeping the deck varied.
+		const pool = [...unused, ...used];
+		for (let index = 0; index < missing; index += 1) {
+			fateDeck.push({ uid: makeUid(), cardId: pool[index].id });
+		}
+	}
+
+	/** Draws the top card of a kingdom's fate deck into its card area. */
+	drawFateCard(kingdomId: string): void {
+		const kingdom = this.kingdoms.find((candidate) => candidate.id === kingdomId);
+		if (!kingdom) return;
+
+		const ref = kingdom.fateDeck.pop();
+		if (ref) kingdom.cards.push(ref);
 	}
 
 	removeKingdom(kingdomId: string): void {
 		const index = this.kingdoms.findIndex((kingdom) => kingdom.id === kingdomId);
 		if (index < 0) return;
 
-		this.kingdoms.splice(index, 1);
+		const [kingdom] = this.kingdoms.splice(index, 1);
+		// Its crisis and event cards go back to the shared piles, so other kingdoms can be dealt them.
+		for (const ref of [...kingdom.fateDeck, ...kingdom.cards]) {
+			const card = this.cardOf(ref);
+			if (card && isFateCard(card)) this.decks[deckIdOf(card)].push(ref);
+		}
 		for (const player of this.players) {
 			if (player.kingdomId !== kingdomId) continue;
 			player.kingdomId = null;
@@ -743,8 +808,34 @@ export class SimulatorState {
 		const card = this.cardOf(ref);
 		if (!card || !this.canPlace(card, target)) return;
 
+		// Discarded or returned fate cards go back to the deck of their kingdom.
+		if ((target.kind === 'deck' || target.kind === 'discard') && isFateCard(card)) {
+			const fateDeck = this.fateDeckOf(source);
+			if (fateDeck) {
+				sourceCards.splice(index, 1);
+				fateDeck.unshift(ref);
+				return;
+			}
+		}
+
 		sourceCards.splice(index, 1);
 		targetCards.push(ref);
+	}
+
+	/** The fate deck a crisis or event card belongs to, judged by where it currently is. */
+	private fateDeckOf(zone: Zone): Array<CardRef> | null {
+		switch (zone.kind) {
+			case 'kingdom-cards':
+			case 'kingdom-offices':
+				return this.kingdoms.find((kingdom) => kingdom.id === zone.kingdomId)?.fateDeck ?? null;
+			case 'hand':
+			case 'player-offices': {
+				const kingdomId = this.players.find((player) => player.id === zone.playerId)?.kingdomId;
+				return this.kingdoms.find((kingdom) => kingdom.id === kingdomId)?.fateDeck ?? null;
+			}
+			default:
+				return null;
+		}
 	}
 
 	/** Finds a card instance and the zone that currently holds it. */
@@ -1098,7 +1189,8 @@ export class SimulatorState {
 				id: kingdom.id,
 				name: kingdom.name,
 				stats: { ...kingdom.stats },
-				cards: cardIds(kingdom.cards)
+				cards: cardIds(kingdom.cards),
+				fate: cardIds(kingdom.fateDeck)
 			})),
 			laws: cardIds(this.laws),
 			market: cardIds(this.market),
@@ -1115,11 +1207,13 @@ export class SimulatorState {
 
 		const usedKingdomIds = new SvelteSet<string>();
 		const kingdoms: Array<KingdomState> = [];
+		/** Kingdoms from older snapshots, which are dealt a fate deck once the piles are restored. */
+		const kingdomsWithoutFate: Array<KingdomState> = [];
 		if (Array.isArray(snapshot.kingdoms)) {
 			for (const raw of snapshot.kingdoms) {
 				const record = asObject(raw);
 				if (!record) continue;
-				kingdoms.push({
+				const kingdom: KingdomState = {
 					id: uniqueId(record.id, usedKingdomIds),
 					name:
 						typeof record.name === 'string' && record.name
@@ -1132,8 +1226,13 @@ export class SimulatorState {
 						? normalizeRefs(record.cards)
 						: Array.isArray(record.offices)
 							? normalizeRefs(record.offices, 'office')
-							: createOfficeRefs()
-				});
+							: createOfficeRefs(),
+					fateDeck: Array.isArray(record.fate)
+						? normalizeRefs(record.fate, undefined, isFateCard)
+						: []
+				};
+				if (!Array.isArray(record.fate)) kingdomsWithoutFate.push(kingdom);
+				kingdoms.push(kingdom);
 			}
 		}
 		this.kingdoms = kingdoms;
@@ -1175,5 +1274,7 @@ export class SimulatorState {
 
 		this.decks = normalizeDeckRefs(snapshot.decks);
 		this.discards = normalizeDeckRefs(snapshot.discards);
+
+		for (const kingdom of kingdomsWithoutFate) kingdom.fateDeck = this.drawFateDeck();
 	}
 }

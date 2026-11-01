@@ -166,6 +166,11 @@ Offices are unique to each kingdom. Acquiring an office for a player assigns tha
 kingdom's copy to them, and acquiring it for a kingdom returns it to the kingdom's
 reserve.
 
+Crisis and event cards are not dealt from the decks bar. Every kingdom gets its own
+face-down fate deck of five crisis and five event cards, and the draw button in its
+header reveals the top card into its card area. Discarded or returned fate cards go back
+to their kingdom's fate deck.
+
 The independents panel has no card area, so acquire cards for its players individually.
 
 When only card pills are selected, <kbd>a</kbd> selects every card pill of the players

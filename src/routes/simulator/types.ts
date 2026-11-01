@@ -120,8 +120,14 @@ export const deckIds = [
 
 export type DeckId = (typeof deckIds)[number];
 
-/** Decks rendered in the decks bar. Common actions are reference cards, and offices live in kingdoms. */
-export const deckIdsInPlay = deckIds.filter((deckId) => deckId !== 'common' && deckId !== 'office');
+/**
+ * Decks rendered in the decks bar. Common actions are reference cards, offices live in
+ * kingdoms, and crisis and event cards are dealt to each kingdom's fate deck.
+ */
+export const deckIdsInPlay = deckIds.filter(
+	(deckId) =>
+		deckId !== 'common' && deckId !== 'office' && deckId !== 'crisis' && deckId !== 'event'
+);
 
 /** Identifies the independent players panel when it acts as a kingdom. */
 export const independentKingdomId = '__independents__';
@@ -219,6 +225,8 @@ export interface KingdomState {
 	stats: KingdomStats;
 	/** Any card attached to the kingdom, including its unassigned offices. */
 	cards: Array<CardRef>;
+	/** The kingdom's face-down fate deck, holding its crisis and event cards. */
+	fateDeck: Array<CardRef>;
 }
 
 export interface SerializedPlayer {
@@ -236,6 +244,8 @@ export interface SerializedKingdom {
 	name: string;
 	stats: KingdomStats;
 	cards?: Array<string>;
+	/** Card ids in the kingdom's fate deck. */
+	fate?: Array<string>;
 }
 
 export interface SimulatorSnapshot {

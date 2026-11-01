@@ -125,11 +125,11 @@ preparar el mercat d'actius, robant dels dos pilons.
 Reunir les cartes de {law} en un piló. Remenar el piló, robar 3 cartes i disposar les
 cartes en fila a l'espai dedicat del taulell.
 
-## 11. Preparar la pila de destí
+## 11. Preparar les piles de destí #prepare-fate-deck
 
 Separar les cartes de crisis i les cartes d'esdeveniment en dos pilons. Barrejar cada
-un dels pilons. Robar 5 cartes de crisis i 5 cartes d'esdeveniment; barrejar-les per
-formar la pila de destí.
+un dels pilons. Per cada regne, robar 5 cartes de crisis i 5 cartes d'esdeveniment;
+barrejar-les per formar la pila de destí del regne.
 
 ## Recursos
 
@@ -935,7 +935,15 @@ dues vegades, quedant en un total de 2.
 Si un o més jugadors decideix unir-se al nou regne, el {king} pot assignar-los càrrecs
 immediatament.
 
-Els {kingdom-stats} del nou regne s'estableixen al valor neutre (3).
+Els {kingdom-stats} del nou regne s'estableixen al valor neutre (3). Es segueixen les
+indicacions de [](#prepare-fate-deck) per preparar la pila de destí del regne, però en
+comptes de 10 cartes se'n roben tantes com torns quedin, arrodonint amunt cap al següent
+nombre parell.
+
+```example
+El nou regne del Marc s'ha creat quan queden 7 torns de joc. Robarà 4 cartes de crisi i
+4 cartes d'esdeveniment per conformar la baralla de destí del seu regne.
+```
 
 ### Unir-se a un regne
 
