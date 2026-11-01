@@ -132,7 +132,7 @@
 				{#snippet header()}
 					<div class={styles.headerActions}>
 						<IconButton
-							src="ui/restart.svg"
+							src="ui/reset.svg"
 							label="Reinicia el pla"
 							onclick={() => simulator.resetPlan(player.id)}
 						/>

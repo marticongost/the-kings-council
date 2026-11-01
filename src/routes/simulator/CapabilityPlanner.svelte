@@ -311,7 +311,7 @@
 >
 	{#snippet actions()}
 		<IconButton
-			src="ui/restart.svg"
+			src="ui/reset.svg"
 			label={resetLabel}
 			onclick={() => simulator.clearPlanList(playerId, listId)}
 		/>

@@ -157,8 +157,8 @@
 >
 	{#snippet actions()}
 		<IconButton
-			src="ui/restart.svg"
-			label="Reinicia l'ordre de torn"
+			src="ui/reset.svg"
+			label="Reinicia la planificació del torn"
 			onclick={() => simulator.resetTurnOrder()}
 		/>
 	{/snippet}

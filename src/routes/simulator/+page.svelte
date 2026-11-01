@@ -204,7 +204,7 @@
 								label="Afegeix regne"
 								onclick={() => simulator.addKingdom()}
 							/>
-							<IconButton src="ui/restart.svg" label="Neteja" onclick={clearSimulator} />
+							<IconButton src="ui/reset.svg" label="Neteja" onclick={clearSimulator} />
 						</div>
 					{/snippet}
 
