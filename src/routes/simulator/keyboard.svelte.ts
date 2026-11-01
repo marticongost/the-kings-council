@@ -11,6 +11,7 @@ import {
 } from './gridnav';
 import type { SimulatorSelection, SelectionKind } from './selection.svelte';
 import type { PlanController } from './plans.svelte';
+import type { TurnResolution } from './resolution.svelte';
 import type { SimulatorState } from './simulatorstate.svelte';
 import {
 	cardScope,
@@ -100,12 +101,19 @@ export class KeyboardController {
 	readonly simulator: SimulatorState;
 	readonly selection: SimulatorSelection;
 	readonly plans: PlanController;
+	readonly resolution: TurnResolution;
 	pending = $state<PendingCommand | null>(null);
 
-	constructor(simulator: SimulatorState, selection: SimulatorSelection, plans: PlanController) {
+	constructor(
+		simulator: SimulatorState,
+		selection: SimulatorSelection,
+		plans: PlanController,
+		resolution: TurnResolution
+	) {
 		this.simulator = simulator;
 		this.selection = selection;
 		this.plans = plans;
+		this.resolution = resolution;
 	}
 
 	get view(): SelectionView {
@@ -129,7 +137,7 @@ export class KeyboardController {
 
 	/** Whether the plan modal can be opened, which needs a single selected player. */
 	get canOpenPlan(): boolean {
-		return this.view === 'players' && this.selection.players.size === 1;
+		return this.view === 'players' && this.selection.players.size === 1 && !this.resolution.active;
 	}
 
 	get cues(): Array<CueSection> {
@@ -202,6 +210,17 @@ export class KeyboardController {
 		}
 
 		const sections: Array<CueSection> = [];
+
+		if (this.resolution.active) {
+			sections.push({
+				title: 'Resolució del torn',
+				items: [
+					{ keys: ['Espai'], label: 'Capacitat següent' },
+					{ keys: ['Shift', 'Espai'], label: 'Capacitat anterior' },
+					{ keys: ['Esc'], label: 'Atura la resolució' }
+				]
+			});
+		}
 
 		switch (this.view) {
 			case 'page':
@@ -280,6 +299,10 @@ export class KeyboardController {
 		}
 		if (this.canOpenPlan) actions.push({ keys: ['l'], label: 'Planifica el torn' });
 
+		if (!this.resolution.active && this.resolution.entries.length > 0) {
+			actions.push({ keys: ['Espai'], label: 'Resol el torn' });
+		}
+
 		if (actions.length > 0) sections.push({ title: 'Accions', items: actions });
 		return sections;
 	}
@@ -356,12 +379,21 @@ export class KeyboardController {
 			if (this.pending) {
 				this.pending = null;
 				event.preventDefault();
+			} else if (this.resolution.active) {
+				this.resolution.stop();
+				event.preventDefault();
 			}
 			return;
 		}
 
 		if (this.pending) {
 			if (this.handlePending(key)) event.preventDefault();
+			return;
+		}
+
+		if (key === ' ') {
+			this.stepThroughResolution(event.shiftKey);
+			event.preventDefault();
 			return;
 		}
 
@@ -435,6 +467,17 @@ export class KeyboardController {
 				this.openPlan();
 				return;
 		}
+	}
+
+	/** Starts the resolution, or moves through its capabilities once it has started. */
+	private stepThroughResolution(backwards: boolean): void {
+		if (!this.resolution.active) {
+			this.resolution.start();
+			return;
+		}
+
+		if (backwards) this.resolution.previous();
+		else this.resolution.next();
 	}
 
 	private openPlan(): void {

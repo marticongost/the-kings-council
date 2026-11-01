@@ -94,6 +94,7 @@
 	import { KeyboardController } from './keyboard.svelte';
 	import PlanModal from './PlanModal.svelte';
 	import { PlanController, providePlans } from './plans.svelte';
+	import { provideTurnResolution, TurnResolution } from './resolution.svelte';
 	import { provideSelection, SimulatorSelection } from './selection.svelte';
 	import { SimulatorState } from './simulatorstate.svelte';
 	import TurnOrderList from './TurnOrderList.svelte';
@@ -105,10 +106,12 @@
 	const simulator = new SimulatorState();
 	const selection = new SimulatorSelection();
 	const plans = new PlanController();
-	const keyboard = new KeyboardController(simulator, selection, plans);
+	const resolution = new TurnResolution(simulator);
+	const keyboard = new KeyboardController(simulator, selection, plans, resolution);
 
 	provideSelection(selection);
 	providePlans(plans);
+	provideTurnResolution(resolution);
 
 	let decksElement = $state<HTMLElement>();
 	let decksVisible = $state(false);

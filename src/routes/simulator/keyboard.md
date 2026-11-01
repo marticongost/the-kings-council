@@ -142,6 +142,7 @@ existing cards, but not to acquire new ones.
 | <kbd>n</kbd> [amount] <kbd>k</kbd> | Create new kingdoms                              |
 | <kbd>n</kbd> [amount] <kbd>p</kbd> | Create new players                               |
 | <kbd>l</kbd>                       | Open the plan of a single selected player        |
+| <kbd>Space</kbd>                   | Start resolving the turn, or show the next one   |
 
 The independents panel behaves like a kingdom for navigation, but it cannot be deleted.
 Discarding or returning cards clears their selection, since the pills no longer appear
@@ -201,6 +202,21 @@ players, which reorder live as they pass over the others. Players who have not c
 their plan appear dimmed. Clicking a player in the list selects it, and double-clicking it
 opens their plan. The reset button of the list moves every capability of every player
 back to the available list and unconfirms them all, keeping their position in the order.
+
+### Resolving turns
+
+The play button of the **Planificació del torn** section starts resolving the turn, and so
+does <kbd>Space</kbd>. The players are replaced by the planned capabilities, presented one
+at a time on the card of the capability, with a chip of the player who planned it and a
+counter of the position within the turn.
+
+Actions go first, one round at a time: the first action of each player in turn order, then
+their second action, and so on. Secrets follow once every action has been presented.
+
+While the resolution lasts, the play button is replaced by previous and next buttons.
+<kbd>Space</kbd> moves to the next capability and <kbd>Shift</kbd>+<kbd>Space</kbd> moves
+back to the previous one. The resolution stops at the last capability. The close button
+beside the arrows, or <kbd>Esc</kbd>, returns to the list of players.
 
 ### Changing resources and kingdom stats
 
