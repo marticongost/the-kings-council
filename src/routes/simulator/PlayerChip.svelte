@@ -14,8 +14,21 @@
 			flexShrink: 0,
 			color: css.palette.thatch
 		},
+		confirm: {
+			height: '0.5em',
+			width: 'auto',
+			flexShrink: 0,
+			color: css.palette.grass
+		},
 		name: {
 			fontSize: '0.8em',
+			minWidth: 0,
+			overflow: 'hidden',
+			textOverflow: 'ellipsis',
+			whiteSpace: 'nowrap'
+		},
+		nameLarge: {
+			fontSize: '1em',
 			minWidth: 0,
 			overflow: 'hidden',
 			textOverflow: 'ellipsis',
@@ -36,13 +49,16 @@
 		dragHint?: string;
 		/** Whether the chip can be dragged itself, e.g. when the whole row is draggable. */
 		draggable?: boolean;
+		/** Whether the chip is rendered at full size, e.g. in the turn order list. */
+		large?: boolean;
 	}
 
 	const {
 		simulator,
 		player,
 		dragHint = 'Arrossega el jugador a un altre regne',
-		draggable = true
+		draggable = true,
+		large = false
 	}: Props = $props();
 
 	// The house card identifies the player, falling back to the generic icon when it is gone.
@@ -67,5 +83,8 @@
 	title={draggable ? dragHint : undefined}
 >
 	<InlineSvg class={styles.icon} src={icon} aria-hidden="true" />
-	<span class={styles.name}>{player.name}</span>
+	<span class={large ? styles.nameLarge : styles.name}>{player.name}</span>
+	{#if player.plan.confirmed}
+		<InlineSvg class={styles.confirm} src="ui/confirm.svg" role="img" aria-label="Pla confirmat" />
+	{/if}
 </span>

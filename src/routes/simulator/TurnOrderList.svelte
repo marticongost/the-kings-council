@@ -270,7 +270,7 @@
 				onclick={(event) => onclick(event, player.id)}
 				ondblclick={(event) => ondblclick(event, player.id)}
 			>
-				<PlayerChip {simulator} {player} draggable={false} />
+				<PlayerChip {simulator} {player} draggable={false} large />
 			</div>
 		{:else}
 			<p class={styles.empty}>Cap jugador</p>
