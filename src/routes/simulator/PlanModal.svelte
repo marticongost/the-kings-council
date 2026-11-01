@@ -24,16 +24,29 @@
 		},
 		lists: {
 			...css.column('lg')
+		},
+		cards: {
+			...css.grid('sm'),
+			alignContent: 'flex-start',
+			alignItems: 'flex-start'
+		},
+		empty: {
+			margin: 0,
+			fontSize: '0.85em',
+			fontStyle: 'italic',
+			color: css.text.subtleColor
 		}
 	});
 </script>
 
 <script lang="ts">
+	import CardCapabilityFront from '#lib/components/CardCapabilityFront.svelte';
 	import IconButton from '#lib/components/IconButton.svelte';
 	import Panel from '#lib/components/Panel.svelte';
 	import { provideCapabilityInputs, type CapabilityInputs } from '#lib/components/capabilityinputs';
+	import CapabilityPlanner from './CapabilityPlanner.svelte';
+	import PanelSection from './PanelSection.svelte';
 	import { usePlans } from './plans.svelte';
-	import PlanCapabilityList from './PlanCapabilityList.svelte';
 	import type { SimulatorState } from './simulatorstate.svelte';
 
 	interface Props {
@@ -47,6 +60,13 @@
 		simulator.players.find((candidate) => candidate.id === plans.playerId) ?? null
 	);
 	const plan = $derived(player ? simulator.planOf(player) : null);
+	const capabilities = $derived(player ? simulator.plannableCapabilities(player) : []);
+	const actionCapabilities = $derived(
+		capabilities.filter((capability) => capability.cardCapability.capability.type === 'action')
+	);
+	const secretCapabilities = $derived(
+		capabilities.filter((capability) => capability.cardCapability.capability.type === 'secret')
+	);
 
 	const capabilityInputs: CapabilityInputs = {
 		value: (key) => (player ? simulator.planInput(player.id, key) : ''),
@@ -122,21 +142,43 @@
 				{/snippet}
 
 				<div class={styles.lists}>
-					<PlanCapabilityList
+					<PanelSection
+						title="Indicacions"
+						ariaLabel="Indicacions"
+						role="list"
+						contentClass={styles.cards}
+					>
+						{#each plan.indications as capability (capability.key)}
+							<div role="listitem">
+								<CardCapabilityFront
+									cardCapability={capability.cardCapability}
+									editable
+									inputKey={capability.key}
+								/>
+							</div>
+						{:else}
+							<p class={styles.empty}>Cap indicació</p>
+						{/each}
+					</PanelSection>
+					<CapabilityPlanner
 						{simulator}
 						playerId={player.id}
-						listId="available"
-						title="Capacitats disponibles"
-						capabilities={plan.available}
-						emptyLabel="Cap capacitat disponible"
+						listId="actions"
+						title="Accions"
+						capabilities={actionCapabilities}
+						planned={plan.actions}
+						addLabel="Afegeix una acció"
+						resetLabel="Buida les accions"
 					/>
-					<PlanCapabilityList
+					<CapabilityPlanner
 						{simulator}
 						playerId={player.id}
-						listId="planned"
-						title="Capacitats planificades"
-						capabilities={plan.planned}
-						emptyLabel="Cap capacitat planificada"
+						listId="secrets"
+						title="Secrets"
+						capabilities={secretCapabilities}
+						planned={plan.secrets}
+						addLabel="Afegeix un secret"
+						resetLabel="Buida els secrets"
 					/>
 				</div>
 			</Panel>

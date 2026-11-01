@@ -1,4 +1,5 @@
 import { cardsCatalog } from '#lib/data/catalog';
+import type { CapabilityType } from '#lib/models/capabilities';
 import { CardCapability } from '#lib/models/cardcapabilities';
 import { type Card, type CardType } from '#lib/models/cards';
 import { kingdomStatTypes, type KingdomStatType } from '#lib/models/kingdomstats';
@@ -15,6 +16,7 @@ import {
 	kingdomStatMin,
 	kingdomStatNeutral,
 	playerResourceTypes,
+	planListOf,
 	zoneKey,
 	type CardRef,
 	type DeckId,
@@ -32,7 +34,7 @@ import {
 
 export const simulatorStorageKey = 'the-kings-council:simulator:v1';
 
-const snapshotVersion = 4;
+const snapshotVersion = 5;
 
 /** Oldest snapshot version that can still be migrated to the current schema. */
 const oldestSnapshotVersion = 1;
@@ -81,7 +83,7 @@ const startingTacticCount = 3;
 const plannableCapabilityTypes = new Set(['action', 'secret', 'indication']);
 
 function emptyPlan(): PlayerPlan {
-	return { available: [], planned: [], confirmed: false, inputs: {} };
+	return { actions: [], secrets: [], confirmed: false, inputs: {} };
 }
 
 /** Removes repeated entries, keeping the first occurrence of each. */
@@ -106,9 +108,14 @@ function normalizeInputs(value: unknown): Record<string, string> {
 
 function normalizePlan(value: unknown): PlayerPlan {
 	const record = asObject(value);
+	// Plans used to split every capability between an available and a planned list, so the
+	// keys of that list seed both new lists, each keeping the capabilities of its type.
+	const legacy = uniqueStrings(record?.planned);
+	const list = (key: PlanListId) =>
+		record?.[key] === undefined ? [...legacy] : uniqueStrings(record[key]);
 	return {
-		available: uniqueStrings(record?.available),
-		planned: uniqueStrings(record?.planned),
+		actions: list('actions'),
+		secrets: list('secrets'),
 		confirmed: record?.confirmed === true,
 		inputs: normalizeInputs(record?.inputs)
 	};
@@ -567,32 +574,28 @@ export class SimulatorState {
 	/** The player's plan, completing the persisted order with capabilities gained since. */
 	planOf(player: PlayerState): PlayerPlanView {
 		const capabilities = this.plannableCapabilities(player);
-		const toCapabilities = (keys: Array<string>) =>
-			keys.flatMap((key) => {
+		// Keys of capabilities the player no longer has, or that moved to another list, are dropped.
+		const plannedList = (keys: Array<string>, type: CapabilityType) =>
+			uniqueStrings(keys).flatMap((key) => {
 				const capability = capabilities.find((candidate) => candidate.key === key);
-				return capability ? [capability] : [];
+				return capability && capability.cardCapability.capability.type === type ? [capability] : [];
 			});
 
-		const available = toCapabilities(uniqueStrings(player.plan.available));
-		const planned = toCapabilities(
-			uniqueStrings(player.plan.planned).filter(
-				(key) => !available.some((capability) => capability.key === key)
-			)
-		);
-
-		const placed = [...available, ...planned].map((capability) => capability.key);
-		for (const capability of capabilities) {
-			if (!placed.includes(capability.key)) available.push(capability);
-		}
-
-		return { available, planned, confirmed: player.plan.confirmed };
+		return {
+			indications: capabilities.filter(
+				(capability) => capability.cardCapability.capability.type === 'indication'
+			),
+			actions: plannedList(player.plan.actions, 'action'),
+			secrets: plannedList(player.plan.secrets, 'secret'),
+			confirmed: player.plan.confirmed
+		};
 	}
 
 	/** Fills the persisted plan with the capabilities of the player's current cards. */
 	private normalizePlan(player: PlayerState): void {
 		const plan = this.planOf(player);
-		player.plan.available = plan.available.map((capability) => capability.key);
-		player.plan.planned = plan.planned.map((capability) => capability.key);
+		player.plan.actions = plan.actions.map((capability) => capability.key);
+		player.plan.secrets = plan.secrets.map((capability) => capability.key);
 	}
 
 	/** The value typed into an `{input …}` field of a player's plan. */
@@ -610,41 +613,74 @@ export class SimulatorState {
 		else delete player.plan.inputs[key];
 	}
 
-	/** Moves a capability between the plan lists, or to another position within one. */
-	moveCapability(
-		playerId: string,
-		key: string,
-		from: PlanListId,
-		to: PlanListId,
-		index?: number
-	): void {
+	/** Appends a capability to the plan list of its type, ignoring the ones that cannot be planned. */
+	addToPlan(playerId: string, key: string): void {
 		const player = this.players.find((candidate) => candidate.id === playerId);
 		if (!player) return;
 
 		this.normalizePlan(player);
-		const source = player.plan[from];
-		const sourceIndex = source.indexOf(key);
-		if (sourceIndex < 0) return;
+		const capability = this.plannableCapabilities(player).find(
+			(candidate) => candidate.key === key
+		);
+		const list = capability && planListOf(capability.cardCapability.capability.type);
+		if (!list || player.plan[list].includes(key)) return;
 
-		source.splice(sourceIndex, 1);
-		const target = player.plan[to];
-
-		// Within a list, the index is taken before the capability was removed.
-		let insertAt = index ?? target.length;
-		if (from === to && index !== undefined && sourceIndex < index) insertAt -= 1;
-		insertAt = Math.min(Math.max(insertAt, 0), target.length);
-
-		target.splice(insertAt, 0, key);
+		player.plan[list].push(key);
 	}
 
-	/** Returns every capability of a player to the available list and unconfirms the plan. */
+	/** Removes a capability from the plan. */
+	removeFromPlan(playerId: string, key: string): void {
+		const player = this.players.find((candidate) => candidate.id === playerId);
+		if (!player) return;
+
+		this.normalizePlan(player);
+		const without = (keys: Array<string>) => keys.filter((candidate) => candidate !== key);
+		player.plan.actions = without(player.plan.actions);
+		player.plan.secrets = without(player.plan.secrets);
+	}
+
+	/** Moves a planned capability to another position within its list. */
+	moveInPlan(playerId: string, key: string, index: number): void {
+		const player = this.players.find((candidate) => candidate.id === playerId);
+		if (!player) return;
+
+		this.normalizePlan(player);
+		const list = player.plan.actions.includes(key)
+			? player.plan.actions
+			: player.plan.secrets.includes(key)
+				? player.plan.secrets
+				: null;
+		const from = list?.indexOf(key) ?? -1;
+		if (!list || from < 0) return;
+
+		list.splice(from, 1);
+		// Within the same list, the index is taken before the capability was removed.
+		const insertAt = from < index ? index - 1 : index;
+		list.splice(Math.min(Math.max(insertAt, 0), list.length), 0, key);
+	}
+
+	/** Empties the planned capabilities of one type, including the values typed into them. */
+	clearPlanList(playerId: string, list: PlanListId): void {
+		const player = this.players.find((candidate) => candidate.id === playerId);
+		if (!player) return;
+
+		const removed = player.plan[list];
+		for (const key of removed) {
+			const prefix = `${key}:`;
+			for (const inputKey of Object.keys(player.plan.inputs)) {
+				if (inputKey.startsWith(prefix)) delete player.plan.inputs[inputKey];
+			}
+		}
+		player.plan[list] = [];
+	}
+
+	/** Empties the plan of a player and unconfirms it. */
 	resetPlan(playerId: string): void {
 		const player = this.players.find((candidate) => candidate.id === playerId);
 		if (!player) return;
 
-		this.normalizePlan(player);
-		player.plan.available = [...player.plan.available, ...player.plan.planned];
-		player.plan.planned = [];
+		player.plan.actions = [];
+		player.plan.secrets = [];
 		player.plan.confirmed = false;
 		player.plan.inputs = {};
 	}
@@ -1051,8 +1087,8 @@ export class SimulatorState {
 					hand: cardIds(player.hand),
 					offices: cardIds(player.offices),
 					plan: {
-						available: plan.available.map((capability) => capability.key),
-						planned: plan.planned.map((capability) => capability.key),
+						actions: plan.actions.map((capability) => capability.key),
+						secrets: plan.secrets.map((capability) => capability.key),
 						confirmed: plan.confirmed,
 						inputs: { ...player.plan.inputs }
 					}

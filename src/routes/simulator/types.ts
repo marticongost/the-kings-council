@@ -1,4 +1,5 @@
 import { getCardBackgroundName, type CardBackgroundName } from '#lib/cardattributes';
+import type { CapabilityType } from '#lib/models/capabilities';
 import type { CardCapability } from '#lib/models/cardcapabilities';
 import type { Card, CardType } from '#lib/models/cards';
 import { kingdomStatTypes, type KingdomStatType } from '#lib/models/kingdomstats';
@@ -48,13 +49,25 @@ export const planDragMime = 'application/x-kings-council-plan';
 /** Set when dragging a player within the turn order. */
 export const turnOrderDragMime = 'application/x-kings-council-turn-order';
 
-/** The two lists of a player's plan: capabilities kept for later, and capabilities planned. */
-export type PlanListId = 'available' | 'planned';
+/** The two lists of a player's plan, holding the planned capabilities of each type. */
+export type PlanListId = 'actions' | 'secrets';
+
+/** The list of the plan that accepts capabilities of a type, if they can be planned. */
+export function planListOf(type: CapabilityType): PlanListId | null {
+	switch (type) {
+		case 'action':
+			return 'actions';
+		case 'secret':
+			return 'secrets';
+		default:
+			return null;
+	}
+}
 
 export interface PlanDragPayload {
 	playerId: string;
 	key: string;
-	from: PlanListId;
+	list: PlanListId;
 }
 
 /** A capability that can be planned, from one of the player's cards or a common card. */
@@ -65,15 +78,17 @@ export interface PlannableCapability {
 
 /** The ordered capabilities of a player's plan, as they are shown and stored. */
 export interface PlayerPlanView {
-	available: Array<PlannableCapability>;
-	planned: Array<PlannableCapability>;
+	/** Every indication of the player, which is always planned and cannot be moved. */
+	indications: Array<PlannableCapability>;
+	actions: Array<PlannableCapability>;
+	secrets: Array<PlannableCapability>;
 	confirmed: boolean;
 }
 
 /** How the plan of a player is persisted: the order of both lists, whether it is confirmed, and its inputs. */
 export interface PlayerPlan {
-	available: Array<string>;
-	planned: Array<string>;
+	actions: Array<string>;
+	secrets: Array<string>;
 	confirmed: boolean;
 	/** Values typed into the `{input …}` fields of the plan's capabilities, by input path. */
 	inputs: Record<string, string>;
