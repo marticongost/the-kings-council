@@ -8,7 +8,7 @@ export default {
 			type: 'reaction',
 			trigger: 'gameEnd',
 			effects:
-				'Si ets el jugador que ha participat en més batalles, guanya {prestige 1} per cada 3 jugadors presents a la partida (arrodonint avall).'
+				'Si ets el jugador que ha participat en més crisis {strength}, guanya {prestige 1} per cada 3 jugadors presents a la partida (arrodonint avall).'
 		}
 	]
 } satisfies GoalData;

@@ -8,7 +8,7 @@ export default {
 			type: 'reaction',
 			trigger: 'gameEnd',
 			effects:
-				'Si has estat el principal contribuïdor (o empatat al capdavant) en 3 o més batalles, guanya {prestige 3}.'
+				'Si has estat el principal contribuïdor (o empatat al capdavant) en 3 o més crisis {strength}, guanya {prestige 3}.'
 		}
 	]
 } satisfies GoalData;
