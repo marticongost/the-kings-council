@@ -226,6 +226,7 @@
 							zone={{ kind: 'market' }}
 							label="Mercat d'actius"
 							emptyLabel="Cap actiu al mercat"
+							columns={3}
 						>
 							{#snippet actions()}
 								<IconButton

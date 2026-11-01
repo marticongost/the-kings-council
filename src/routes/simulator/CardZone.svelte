@@ -6,6 +6,11 @@
 			...css.grid('xs'),
 			minHeight: '1.5em'
 		},
+		columns: {
+			display: 'grid',
+			gridTemplateColumns: 'repeat(var(--zone-columns, 1), minmax(0, 1fr))',
+			alignItems: 'start'
+		},
 		pileZone: {
 			...css.column('xs')
 		},
@@ -53,6 +58,8 @@
 		emptyLabel?: string;
 		emptyIcon?: string;
 		pile?: boolean;
+		/** Lays the cards out in a fixed number of columns instead of a wrapping row. */
+		columns?: number;
 		height?: string;
 		/** Extra controls rendered in the header, after the label. */
 		actions?: Snippet;
@@ -67,6 +74,7 @@
 		emptyLabel,
 		emptyIcon,
 		pile = false,
+		columns,
 		height,
 		actions
 	}: Props = $props();
@@ -108,7 +116,11 @@
 		</div>
 		<CountBadge count={cards.length} />
 	{:else}
-		<div class={styles.cards} role="list">
+		<div
+			class={cx(styles.cards, columns != null && styles.columns)}
+			style={columns != null ? `--zone-columns: ${columns}` : undefined}
+			role="list"
+		>
 			{#each cards as ref (ref.uid)}
 				{@const card = cardsCatalog.byId(ref.cardId)}
 				{#if card}
