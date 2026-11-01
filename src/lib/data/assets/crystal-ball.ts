@@ -7,7 +7,7 @@ export default {
 	capabilities: [
 		{
 			type: 'reaction',
-			trigger: 'turnEnd',
+			trigger: 'turnStart',
 			effects: 'Guanyar {intrigue 1}'
 		},
 		{
