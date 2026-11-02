@@ -27,6 +27,17 @@ export const kingdomStatMin = 1;
 export const kingdomStatMax = 5;
 export const kingdomStatNeutral = 3;
 
+/** The game lasts ten turns; danger grows with the current turn. */
+export const minTurn = 1;
+export const maxTurn = 10;
+
+/** The danger value of a turn, following the turn table in the rules. */
+export function dangerForTurn(turn: number): number {
+	if (turn <= 4) return 1;
+	if (turn <= 7) return 2;
+	return 3;
+}
+
 export function emptyKingdomStats(): KingdomStats {
 	const stats = {} as KingdomStats;
 	for (const type of kingdomStatTypes) {
@@ -273,6 +284,8 @@ export interface SerializedKingdom {
 
 export interface SimulatorSnapshot {
 	version: number;
+	/** Current game turn, from which the danger value is derived. */
+	turn?: number;
 	players: Array<SerializedPlayer>;
 	kingdoms: Array<SerializedKingdom>;
 	laws: Array<string>;

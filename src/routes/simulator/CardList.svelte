@@ -43,6 +43,6 @@
 
 <div class={styles.list} role="list">
 	{#each orderedCards as { ref, card } (ref.uid)}
-		<CardPill {card} source={zone(card)} uid={ref.uid} style={itemStyle} />
+		<CardPill {card} {simulator} source={zone(card)} uid={ref.uid} style={itemStyle} />
 	{/each}
 </div>

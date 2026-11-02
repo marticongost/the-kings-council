@@ -21,7 +21,7 @@ export default {
 				'Aposta {input gold} per adquirir {input text} i/o {input gold} per adquirir {input text}.'
 		},
 		{
-			type: 'action',
+			type: 'indication',
 			title: 'Contribuir a la crisi',
 			effects:
 				'Contribueix amb {input gold} {input power} {input strength} {input faith} {input intrigue} {input favour} a la crisi.'

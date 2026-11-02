@@ -79,6 +79,20 @@
 			textOverflow: 'ellipsis',
 			whiteSpace: 'nowrap'
 		},
+		badge: {
+			marginLeft: 'auto',
+			flexShrink: 0,
+			minWidth: '1.2em',
+			padding: '0.05em 0.45em',
+			borderRadius: '999px',
+			backgroundColor: css.palette.carrara,
+			color: css.palette.crisis,
+			fontFamily: css.fonts.number,
+			fontWeight: 900,
+			fontSize: '1.2em',
+			lineHeight: 1,
+			textAlign: 'center'
+		},
 		popup: {
 			position: 'fixed',
 			zIndex: 50,
@@ -97,7 +111,9 @@
 	import InlineSvg from '#lib/components/InlineSvg.svelte';
 	import type { CardCapability } from '#lib/models/cardcapabilities';
 	import type { Card } from '#lib/models/cards';
+	import { evaluateCrisisDifficulty } from './crisisdifficulty';
 	import { useSelection } from './selection.svelte';
+	import type { SimulatorState } from './simulatorstate.svelte';
 	import { officeDragMime, simulatorDragMime, type DragPayload, type Zone } from './types';
 
 	interface Props {
@@ -106,9 +122,10 @@
 		source?: Zone;
 		uid?: string;
 		style?: string;
+		simulator?: SimulatorState;
 	}
 
-	const { card, cardCapability, source, uid, style }: Props = $props();
+	const { card, cardCapability, source, uid, style, simulator }: Props = $props();
 
 	const selection = useSelection();
 	const selected = $derived(uid ? selection.cards.has(uid) : false);
@@ -117,6 +134,23 @@
 	const colors = $derived(subject ? pillColors[getCardBackgroundName(subject)] : pillColors.common);
 	const title = $derived(
 		cardCapability ? getCapabilityTitle(cardCapability.capability) : subject?.title
+	);
+
+	// Only crisis cards drawn into a kingdom's card area get a difficulty badge.
+	const attachedKingdom = $derived(
+		subject?.type === 'crisis' && source?.kind === 'kingdom-cards' && simulator
+			? simulator.kingdoms.find((kingdom) => kingdom.id === source.kingdomId)
+			: undefined
+	);
+
+	const difficulty = $derived(
+		subject?.type === 'crisis' && attachedKingdom && simulator
+			? evaluateCrisisDifficulty(subject, {
+					members: simulator.membersOf(attachedKingdom.id).length,
+					danger: simulator.danger,
+					stats: attachedKingdom.stats
+				})
+			: null
 	);
 
 	let wrapper = $state<HTMLDivElement>();
@@ -249,6 +283,11 @@
 		>
 			<InlineSvg class={styles.icon} src={getCardIcon(subject)} aria-hidden="true" />
 			<span class={styles.title}>{title}</span>
+			{#if difficulty !== null}
+				<span class={styles.badge} title={`Dificultat de la crisi: ${difficulty}`}>
+					{difficulty}
+				</span>
+			{/if}
 		</button>
 		{#if open && popupPosition}
 			<!-- svelte-ignore a11y_click_events_have_key_events -->

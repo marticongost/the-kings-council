@@ -27,6 +27,23 @@
 		tableZones: {
 			...css.column('sm')
 		},
+		turn: {
+			...css.row('md')
+		},
+		turnLabel: {
+			fontFamily: css.fonts.heading,
+			fontWeight: 900,
+			color: css.palette.wood
+		},
+		danger: {
+			...css.row('xs'),
+			color: css.palette.wood
+		},
+		dangerIcon: {
+			height: '1.1em',
+			width: 'auto',
+			color: css.palette.crisis
+		},
 		decks: {
 			display: 'grid',
 			gridTemplateColumns: 'repeat(auto-fit, minmax(15em, max-content))',
@@ -87,6 +104,7 @@
 	import InlineSvg from '#lib/components/InlineSvg.svelte';
 	import Panel from '#lib/components/Panel.svelte';
 	import CardZone from './CardZone.svelte';
+	import Counter from './Counter.svelte';
 	import DeckZone from './DeckZone.svelte';
 	import IndependentPlayersPanel from './IndependentPlayersPanel.svelte';
 	import KeyboardCues from './KeyboardCues.svelte';
@@ -98,12 +116,14 @@
 	import { provideSelection, SimulatorSelection } from './selection.svelte';
 	import { SimulatorState } from './simulatorstate.svelte';
 	import TurnOrderList from './TurnOrderList.svelte';
-	import { deckIdsInPlay } from './types';
+	import { deckIdsInPlay, maxTurn, minTurn } from './types';
 
 	/** Distance from the bottom of the viewport, in pixels, that reveals the decks. */
 	const decksRevealDistance = 30;
 
 	const simulator = new SimulatorState();
+	/** One skull per point of danger, so danger 3 renders as three skulls. */
+	const dangerSkulls = $derived(Array.from({ length: simulator.danger }));
 	const selection = new SimulatorSelection();
 	const plans = new PlanController();
 	const resolution = new TurnResolution(simulator);
@@ -212,6 +232,34 @@
 					{/snippet}
 
 					<div class={styles.tableZones}>
+						<div class={styles.turn}>
+							<Counter
+								compact
+								value={simulator.turn}
+								label="Torn"
+								min={minTurn}
+								max={maxTurn}
+								onchange={(value) => simulator.setTurn(value)}
+							>
+								{#snippet icon()}
+									<span class={styles.turnLabel}>Torn</span>
+								{/snippet}
+							</Counter>
+							<span
+								class={styles.danger}
+								title="Perill"
+								role="img"
+								aria-label={`Perill ${simulator.danger}`}
+							>
+								{#each dangerSkulls as _, index (index)}
+									<InlineSvg
+										class={styles.dangerIcon}
+										src="keywords/danger.svg"
+										aria-hidden="true"
+									/>
+								{/each}
+							</span>
+						</div>
 						<TurnOrderList {simulator} />
 						<CardZone
 							{simulator}

@@ -106,7 +106,7 @@
 				{@const top = cards[cards.length - 1]}
 				{@const card = cardsCatalog.byId(top.cardId)}
 				{#if card}
-					<CardPill {card} source={zone} uid={top.uid} />
+					<CardPill {card} {simulator} source={zone} uid={top.uid} />
 				{/if}
 			{:else if emptyIcon}
 				<InlineSvg class={styles.emptyIcon} src={emptyIcon} aria-hidden="true" />
@@ -124,7 +124,7 @@
 			{#each cards as ref (ref.uid)}
 				{@const card = cardsCatalog.byId(ref.cardId)}
 				{#if card}
-					<CardPill {card} source={zone} uid={ref.uid} />
+					<CardPill {card} {simulator} source={zone} uid={ref.uid} />
 				{/if}
 			{/each}
 			{#if cards.length === 0 && emptyLabel}

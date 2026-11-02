@@ -7,6 +7,7 @@ import { officeTypes } from '#lib/models/offices';
 import { SvelteSet } from 'svelte/reactivity';
 import { deckIdForType, isOfficeTypeKey, officeCardId, type ConcreteTypeKey } from './keyboardnav';
 import {
+	dangerForTurn,
 	deckCardType,
 	deckIdOf,
 	deckIds,
@@ -15,6 +16,8 @@ import {
 	kingdomStatMax,
 	kingdomStatMin,
 	kingdomStatNeutral,
+	maxTurn,
+	minTurn,
 	playerResourceTypes,
 	planListOf,
 	zoneKey,
@@ -36,7 +39,7 @@ import {
 
 export const simulatorStorageKey = 'the-kings-council:simulator:v1';
 
-const snapshotVersion = 6;
+const snapshotVersion = 7;
 
 /** Oldest snapshot version that can still be migrated to the current schema. */
 const oldestSnapshotVersion = 1;
@@ -360,10 +363,17 @@ export class SimulatorState {
 	market = $state<Array<CardRef>>([]);
 	decks = $state<Record<DeckId, Array<CardRef>>>(emptyDeckRecord(() => []));
 	discards = $state<Record<DeckId, Array<CardRef>>>(emptyDeckRecord(() => []));
+	/** Current game turn, from which the danger value is derived. */
+	turn = $state(minTurn);
 	/** Every player, in turn order. Everyone is listed, dimmed until they confirm their plan. */
 	turnOrder = $state<Array<string>>([]);
 	/** The turn resolution, which presents the planned capabilities while the turn is being played. */
 	resolution = $state<ResolutionState>({ active: false, index: 0 });
+
+	/** The current danger value, used by crisis difficulty calculations. */
+	get danger(): number {
+		return dangerForTurn(this.turn);
+	}
 
 	load(): void {
 		this.reset();
@@ -398,8 +408,14 @@ export class SimulatorState {
 		this.market = [];
 		this.decks = this.createFullDecks();
 		this.discards = emptyDeckRecord(() => []);
+		this.turn = minTurn;
 		this.turnOrder = [];
 		this.resolution = { active: false, index: 0 };
+	}
+
+	setTurn(value: number): void {
+		if (!Number.isFinite(value)) return;
+		this.turn = clamp(value, minTurn, maxTurn);
 	}
 
 	// Players
@@ -1261,6 +1277,7 @@ export class SimulatorState {
 
 		return {
 			version: snapshotVersion,
+			turn: this.turn,
 			players: this.players.map((player) => {
 				const plan = this.planOf(player);
 				return {
@@ -1301,6 +1318,8 @@ export class SimulatorState {
 		const snapshot = asObject(value);
 		const version = asNumber(snapshot?.version, 0);
 		if (!snapshot || version < oldestSnapshotVersion || version > snapshotVersion) return;
+
+		this.turn = clamp(asNumber(snapshot.turn, minTurn), minTurn, maxTurn);
 
 		const usedKingdomIds = new SvelteSet<string>();
 		const kingdoms: Array<KingdomState> = [];
