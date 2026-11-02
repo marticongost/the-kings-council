@@ -72,6 +72,24 @@
 		editableResourceInput: {
 			width: '3em'
 		},
+		// A presented mark grows with the value it shows, instead of holding a control.
+		presentedInput: {
+			width: 'auto',
+			maxWidth: '100%',
+			paddingRight: '0.1em',
+			overflow: 'hidden'
+		},
+		presentedCheck: {
+			backgroundColor: css.palette.dawn
+		},
+		presentedValue: {
+			verticalAlign: 'middle',
+			whiteSpace: 'nowrap'
+		},
+		presentedListValue: {
+			whiteSpace: 'pre-wrap',
+			wordBreak: 'break-word'
+		},
 		control: {
 			flex: '1 1 auto',
 			boxSizing: 'border-box',
@@ -174,7 +192,7 @@
 	import { isResourceType } from '#lib/models/resources';
 	import InlineSvg from './InlineSvg.svelte';
 	import ResourceDisplay from './ResourceDisplay.svelte';
-	import { useCapabilityInputs } from './capabilityinputs';
+	import { useCapabilityInputs, useCapabilityInputValues } from './capabilityinputs';
 
 	interface Props {
 		format: InputChunk['format'];
@@ -187,9 +205,14 @@
 	const { format, editable = false, inputKey }: Props = $props();
 
 	const inputs = useCapabilityInputs();
+	const givenValues = useCapabilityInputValues();
 	let localValue = $state('');
 
-	const value = $derived(inputKey && inputs ? inputs.value(inputKey) : localValue);
+	/** The values of the surrounding capability, editable or only presented. */
+	const values = $derived(inputs ?? givenValues);
+	const value = $derived(inputKey && values ? values.value(inputKey) : localValue);
+	/** Whether the mark presents the value it was filled in with instead of an empty mark. */
+	const presented = $derived(!editable && inputKey !== undefined && givenValues !== null);
 
 	function setValue(next: string) {
 		if (inputKey && inputs) inputs.setValue(inputKey, next);
@@ -204,13 +227,18 @@
 	);
 	const isKingdom = $derived(format === 'kingdom');
 	const choices = $derived(
-		isPlayer ? (inputs?.players ?? []) : isKingdom ? (inputs?.kingdoms ?? []) : []
+		isPlayer ? (values?.players ?? []) : isKingdom ? (values?.kingdoms ?? []) : []
 	);
 	const isMultiPlayer = $derived(format === 'players' || format === 'kingdom-members');
 	const selected = $derived(value ? value.split(',') : []);
 	const selectedLabels = $derived(
 		selected.map((id) => choices.find((choice) => choice.value === id)?.label ?? id).join(', ')
 	);
+	/** The value presented in the mark: names instead of ids, and nothing for check marks. */
+	const presentedValue = $derived(
+		format === 'check' ? '' : isPlayer || isKingdom ? selectedLabels : value
+	);
+	const presentedChecked = $derived(format === 'check' && value !== '');
 
 	const formatWrapperClass = $derived(
 		cx(styles.formatWrapper, editable && styles.editableFormatWrapper)
@@ -269,7 +297,9 @@
 		[styles.resourceInput]: isResourceType(format),
 		[styles.editableKingdomInput]: editable && format === 'kingdom',
 		[styles.editablePlayerInput]: editable && (format === 'player' || format === 'kingdom-member'),
-		[styles.editableResourceInput]: editable && isResourceType(format)
+		[styles.editableResourceInput]: editable && isResourceType(format),
+		[styles.presentedInput]: presented && format !== 'check',
+		[styles.presentedCheck]: presented && presentedChecked
 	})}
 	bind:this={mark}
 >
@@ -370,5 +400,9 @@
 				oninput={(event) => setValue(event.currentTarget.value)}
 			/>
 		{/if}
+	{:else if presented && presentedValue}
+		<span class={cx(styles.presentedValue, format === 'list' && styles.presentedListValue)}
+			>{presentedValue}</span
+		>
 	{/if}
 </span>

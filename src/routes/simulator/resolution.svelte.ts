@@ -14,15 +14,23 @@ export interface ResolutionEntry {
  * Walks through the planned capabilities of every player, in turn order, to resolve a turn.
  * Actions go first, in rounds: each player's first action, then their second, and so on.
  * Secrets follow once every action has been presented.
+ *
+ * The state of the resolution lives in the simulator, so that it is persisted with the rest
+ * of the game and a reload comes back to the capability that was being presented.
  */
 export class TurnResolution {
-	active = $state(false);
-	index = $state(0);
-
 	readonly simulator: SimulatorState;
 
 	constructor(simulator: SimulatorState) {
 		this.simulator = simulator;
+	}
+
+	get active(): boolean {
+		return this.simulator.resolution.active;
+	}
+
+	get index(): number {
+		return this.simulator.resolution.index;
 	}
 
 	/** Every capability of the turn, in the order in which it is presented. */
@@ -68,22 +76,20 @@ export class TurnResolution {
 	/** Starts the resolution, unless no capability has been planned. */
 	start(): void {
 		if (this.entries.length === 0) return;
-		this.index = 0;
-		this.active = true;
+		this.simulator.resolution = { active: true, index: 0 };
 	}
 
 	stop(): void {
-		this.active = false;
-		this.index = 0;
+		this.simulator.resolution = { active: false, index: 0 };
 		this.simulator.clearAllIndications();
 	}
 
 	next(): void {
-		if (!this.atEnd) this.index = this.position + 1;
+		if (!this.atEnd) this.simulator.resolution.index = this.position + 1;
 	}
 
 	previous(): void {
-		if (!this.atStart) this.index = this.position - 1;
+		if (!this.atStart) this.simulator.resolution.index = this.position - 1;
 	}
 }
 

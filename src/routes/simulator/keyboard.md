@@ -213,7 +213,8 @@ back to the available list and unconfirms them all, keeping their position in th
 The play button of the **Planificació del torn** section starts resolving the turn, and so
 does <kbd>Space</kbd>. The players are replaced by the planned capabilities, presented one
 at a time on the card of the capability, with a chip of the player who planned it and a
-counter of the position within the turn.
+counter of the position within the turn. The marks of the capability show the values they
+were filled in with while planning.
 
 Actions go first, one round at a time: the first action of each player in turn order, then
 their second action, and so on. Secrets follow once every action has been presented.
@@ -222,6 +223,9 @@ While the resolution lasts, the play button is replaced by previous and next but
 <kbd>Space</kbd> moves to the next capability and <kbd>Shift</kbd>+<kbd>Space</kbd> moves
 back to the previous one. The resolution stops at the last capability. The close button
 beside the arrows, or <kbd>Esc</kbd>, returns to the list of players.
+
+The resolution is saved with the simulator state, so reloading the page comes back to the
+capability that was being presented, or to the list of players if it had been closed.
 
 ### Changing resources and kingdom stats
 

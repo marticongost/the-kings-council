@@ -29,6 +29,7 @@ import {
 	type PlayerResources,
 	type PlayerState,
 	type PlannableCapability,
+	type ResolutionState,
 	type SimulatorSnapshot,
 	type Zone
 } from './types';
@@ -243,6 +244,14 @@ function normalizeCrisisDefense(value: unknown): number {
 	return clamp(asNumber(value, 0), 0, Number.POSITIVE_INFINITY);
 }
 
+function normalizeResolution(value: unknown): ResolutionState {
+	const record = asObject(value);
+	return {
+		active: record?.active === true,
+		index: clamp(asNumber(record?.index, 0), 0, Number.POSITIVE_INFINITY)
+	};
+}
+
 function normalizeResources(value: unknown): PlayerResources {
 	const record = asObject(value);
 	const resources = emptyResources();
@@ -353,6 +362,8 @@ export class SimulatorState {
 	discards = $state<Record<DeckId, Array<CardRef>>>(emptyDeckRecord(() => []));
 	/** Every player, in turn order. Everyone is listed, dimmed until they confirm their plan. */
 	turnOrder = $state<Array<string>>([]);
+	/** The turn resolution, which presents the planned capabilities while the turn is being played. */
+	resolution = $state<ResolutionState>({ active: false, index: 0 });
 
 	load(): void {
 		this.reset();
@@ -388,6 +399,7 @@ export class SimulatorState {
 		this.decks = this.createFullDecks();
 		this.discards = emptyDeckRecord(() => []);
 		this.turnOrder = [];
+		this.resolution = { active: false, index: 0 };
 	}
 
 	// Players
@@ -1280,7 +1292,8 @@ export class SimulatorState {
 			market: cardIds(this.market),
 			decks: emptyDeckRecord((deckId) => cardIds(this.decks[deckId])),
 			discards: emptyDeckRecord((deckId) => cardIds(this.discards[deckId])),
-			turnOrder: [...this.turnOrder]
+			turnOrder: [...this.turnOrder],
+			resolution: { ...this.resolution }
 		};
 	}
 
@@ -1361,6 +1374,8 @@ export class SimulatorState {
 
 		this.decks = normalizeDeckRefs(snapshot.decks);
 		this.discards = normalizeDeckRefs(snapshot.discards);
+
+		this.resolution = normalizeResolution(snapshot.resolution);
 
 		for (const kingdom of kingdomsWithoutFate) kingdom.fateDeck = this.drawFateDeck();
 	}

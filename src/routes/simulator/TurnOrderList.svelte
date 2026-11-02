@@ -71,6 +71,10 @@
 <script lang="ts">
 	import { cx } from '@emotion/css';
 	import CardCapabilityFront from '#lib/components/CardCapabilityFront.svelte';
+	import {
+		provideCapabilityInputValues,
+		type CapabilityInputValues
+	} from '#lib/components/capabilityinputs';
 	import IconButton from '#lib/components/IconButton.svelte';
 	import PanelSection from './PanelSection.svelte';
 	import { usePlans } from './plans.svelte';
@@ -99,6 +103,19 @@
 
 	const entry = $derived(resolution.current);
 	const total = $derived(resolution.entries.length);
+
+	// The capability being presented shows the values it was filled in with while planning.
+	const capabilityValues: CapabilityInputValues = {
+		value: (key) => (entry ? simulator.planInput(entry.player.id, key) : ''),
+		get players() {
+			return simulator.players.map((player) => ({ value: player.id, label: player.name }));
+		},
+		get kingdoms() {
+			return simulator.kingdoms.map((kingdom) => ({ value: kingdom.id, label: kingdom.name }));
+		}
+	};
+
+	provideCapabilityInputValues(capabilityValues);
 
 	// Resetting the plans while resolving leaves nothing to present, so the list comes back.
 	$effect(() => {
@@ -241,7 +258,10 @@
 		<div class={styles.slideshow} aria-live="polite">
 			{#if entry}
 				<div class={styles.slide}>
-					<CardCapabilityFront cardCapability={entry.capability.cardCapability} />
+					<CardCapabilityFront
+						cardCapability={entry.capability.cardCapability}
+						inputKey={entry.capability.key}
+					/>
 					<div class={styles.owner}>
 						<PlayerChip {simulator} player={entry.player} draggable={false} />
 					</div>

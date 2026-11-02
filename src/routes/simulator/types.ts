@@ -209,6 +209,14 @@ export interface PlayerDragPayload {
 	playerId: string;
 }
 
+/** State of the turn resolution, which presents the planned capabilities one at a time. */
+export interface ResolutionState {
+	/** Whether the turn is being resolved. */
+	active: boolean;
+	/** Position of the presented capability within the turn. */
+	index: number;
+}
+
 /** One acquisition a player plans: an asset card and the gold paid for it. */
 export interface Acquisition {
 	cardId: string | null;
@@ -273,6 +281,8 @@ export interface SimulatorSnapshot {
 	discards: Record<DeckId, Array<string>>;
 	/** Player ids in the order in which they confirmed their plans. */
 	turnOrder?: Array<string>;
+	/** Turn resolution in progress, so that the turn is presented where it was left. */
+	resolution?: Partial<ResolutionState>;
 }
 
 export function zoneKey(zone: Zone): string {
