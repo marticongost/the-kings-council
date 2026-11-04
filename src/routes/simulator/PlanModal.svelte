@@ -27,6 +27,7 @@
 		},
 		indications: {
 			...css.row(),
+			flexWrap: 'wrap',
 			gap: css.spacing.xl
 		},
 		indication: {
@@ -68,8 +69,10 @@
 	import InlineSvg from '#lib/components/InlineSvg.svelte';
 	import Panel from '#lib/components/Panel.svelte';
 	import { provideCapabilityInputs, type CapabilityInputs } from '#lib/components/capabilityinputs';
+	import { getResource } from '#lib/models/resources';
 	import CapabilityPlanner from './CapabilityPlanner.svelte';
 	import Counter from './Counter.svelte';
+	import { crisisContributionResources } from './crisiscontributions';
 	import PanelSection from './PanelSection.svelte';
 	import { usePlans } from './plans.svelte';
 	import type { SimulatorState } from './simulatorstate.svelte';
@@ -92,6 +95,8 @@
 	const secretCapabilities = $derived(
 		capabilities.filter((capability) => capability.cardCapability.capability.type === 'secret')
 	);
+	const crisis = $derived(player ? simulator.kingdomCrisis(player.kingdomId) : null);
+	const contributionResources = $derived(crisis ? crisisContributionResources(crisis) : []);
 
 	/** Cards available in the assets market, without repeating cards of the same catalog entry. */
 	const marketCards = $derived(
@@ -228,6 +233,28 @@
 									</Counter>
 								</div>
 							{/each}
+
+							{#if contributionResources.length > 0}
+								<div class={styles.indication}>
+									<span class={styles.indicationLabel}>Contribució a la crisi</span>
+									{#each contributionResources as resource (resource)}
+										<Counter
+											compact
+											value={player.contribution[resource] ?? 0}
+											label={getResource(resource).title}
+											min={0}
+											onchange={(value) => simulator.setContribution(player.id, resource, value)}
+										>
+											{#snippet icon()}
+												<InlineSvg
+													class={styles.indicationIcon}
+													src={`resources/${resource}.svg`}
+												/>
+											{/snippet}
+										</Counter>
+									{/each}
+								</div>
+							{/if}
 						</div>
 					</PanelSection>
 					<CapabilityPlanner

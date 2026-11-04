@@ -16,6 +16,10 @@
 			...css.focus.mixin,
 			'&:hover': {
 				backgroundColor: css.palette.tobacco
+			},
+			'&:disabled': {
+				opacity: 0.5,
+				cursor: 'not-allowed'
 			}
 		}
 	});

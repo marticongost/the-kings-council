@@ -1,10 +1,11 @@
 import { cardsCatalog } from '#lib/data/catalog';
 import type { CapabilityType } from '#lib/models/capabilities';
 import { CardCapability } from '#lib/models/cardcapabilities';
-import { type Card, type CardType } from '#lib/models/cards';
+import { type Card, type Crisis, type CardType } from '#lib/models/cards';
 import { kingdomStatTypes, type KingdomStatType } from '#lib/models/kingdomstats';
 import { officeTypes } from '#lib/models/offices';
 import { SvelteSet } from 'svelte/reactivity';
+import { crisisContributionResources } from './crisiscontributions';
 import { deckIdForType, isOfficeTypeKey, officeCardId, type ConcreteTypeKey } from './keyboardnav';
 import {
 	dangerForTurn,
@@ -28,6 +29,7 @@ import {
 	type PlanListId,
 	type PlayerPlan,
 	type PlayerPlanView,
+	type PlayerContribution,
 	type PlayerResourceType,
 	type PlayerResources,
 	type PlayerState,
@@ -116,6 +118,29 @@ function normalizeAcquisitions(value: unknown): Array<Acquisition> {
 			gold: Math.max(0, Math.round(asNumber(record?.gold, fallback.gold)))
 		};
 	});
+}
+
+function normalizeContribution(value: unknown): PlayerContribution {
+	const record = asObject(value);
+	const contribution: PlayerContribution = {};
+	if (!record) return contribution;
+
+	for (const resource of playerResourceTypes) {
+		const amount = Math.max(0, Math.round(asNumber(record[resource], 0)));
+		if (amount) contribution[resource] = amount;
+	}
+	return contribution;
+}
+
+function normalizeCrisisPayments(value: unknown): Record<string, PlayerContribution> {
+	const record = asObject(value);
+	const payments: Record<string, PlayerContribution> = {};
+	if (!record) return payments;
+
+	for (const [kingdomId, raw] of Object.entries(record)) {
+		payments[kingdomId] = normalizeContribution(raw);
+	}
+	return payments;
 }
 
 /** Removes repeated entries, keeping the first occurrence of each. */
@@ -418,6 +443,11 @@ export class SimulatorState {
 		this.turn = clamp(value, minTurn, maxTurn);
 	}
 
+	/** Advances to the next turn, capped at the last turn of the game. */
+	advanceTurn(): void {
+		this.turn = clamp(this.turn + 1, minTurn, maxTurn);
+	}
+
 	// Players
 
 	/**
@@ -442,7 +472,9 @@ export class SimulatorState {
 			offices: [],
 			plan: emptyPlan(),
 			vigilance: 0,
-			acquisitions: emptyAcquisitions()
+			acquisitions: emptyAcquisitions(),
+			contribution: {},
+			crisisPayments: {}
 		});
 		// Every player takes part in the turn order, dimmed until they confirm their plan.
 		this.turnOrder.push(id);
@@ -550,6 +582,7 @@ export class SimulatorState {
 			name: nextKingdomName(this.kingdoms),
 			stats: emptyKingdomStats(),
 			crisisDefense: 0,
+			crisisPaid: false,
 			cards: createOfficeRefs(),
 			fateDeck: this.drawFateDeck()
 		});
@@ -645,6 +678,68 @@ export class SimulatorState {
 		const kingdom = this.kingdoms.find((candidate) => candidate.id === kingdomId);
 		if (!kingdom || !Number.isFinite(value)) return;
 		kingdom.crisisDefense = Math.max(0, Math.round(value));
+	}
+
+	/** The crisis a kingdom is facing: the first crisis card in its card area, if any. */
+	kingdomCrisis(kingdomId: string | null): Crisis | null {
+		if (!kingdomId) return null;
+		const kingdom = this.kingdoms.find((candidate) => candidate.id === kingdomId);
+		if (!kingdom) return null;
+
+		for (const ref of kingdom.cards) {
+			const card = this.cardOf(ref);
+			if (card?.type === 'crisis') return card;
+		}
+		return null;
+	}
+
+	/**
+	 * The effective amounts a player contributes to a crisis: the amounts they selected
+	 * while planning, limited by the resources they still have available.
+	 */
+	effectiveCrisisContribution(player: PlayerState, crisis: Crisis): PlayerContribution {
+		const contribution: PlayerContribution = {};
+		for (const resource of crisisContributionResources(crisis)) {
+			const amount = Math.min(player.contribution[resource] ?? 0, player.resources[resource]);
+			if (amount > 0) contribution[resource] = amount;
+		}
+		return contribution;
+	}
+
+	/**
+	 * Detracts each member's effective crisis contribution from their reserve, leaving the
+	 * crisis card in place. Paying only moves resources; the step and card are unchanged.
+	 * The paid amounts are remembered, so later navigation shows what was actually paid.
+	 */
+	payCrisisContributions(kingdomId: string): void {
+		const crisis = this.kingdomCrisis(kingdomId);
+		if (!crisis) return;
+
+		for (const player of this.membersOf(kingdomId)) {
+			const effective = this.effectiveCrisisContribution(player, crisis);
+			for (const resource of playerResourceTypes) {
+				const amount = effective[resource] ?? 0;
+				if (amount > 0) {
+					player.resources[resource] = Math.max(0, player.resources[resource] - amount);
+				}
+			}
+			player.crisisPayments[kingdomId] = effective;
+		}
+
+		const kingdom = this.kingdoms.find((candidate) => candidate.id === kingdomId);
+		if (kingdom) kingdom.crisisPaid = true;
+	}
+
+	/**
+	 * What a player effectively contributes to a crisis: the amounts actually paid once the
+	 * crisis has been paid, otherwise the planned amounts limited by available resources.
+	 */
+	crisisContributionFor(
+		player: PlayerState,
+		kingdomId: string,
+		crisis: Crisis
+	): PlayerContribution {
+		return player.crisisPayments[kingdomId] ?? this.effectiveCrisisContribution(player, crisis);
 	}
 
 	// Cards
@@ -758,16 +853,28 @@ export class SimulatorState {
 		}
 	}
 
-	/** Clears the indications a player gave while planning: vigilance and acquisitions. */
+	/** Sets how much a player contributes to the current crisis with one resource. */
+	setContribution(playerId: string, resource: PlayerResourceType, value: number): void {
+		const player = this.players.find((candidate) => candidate.id === playerId);
+		if (!player || !Number.isFinite(value)) return;
+
+		const amount = Math.max(0, Math.round(value));
+		if (amount) player.contribution[resource] = amount;
+		else delete player.contribution[resource];
+	}
+
+	/** Clears the indications a player gave while planning: vigilance, acquisitions and contribution. */
 	resetIndications(playerId: string): void {
 		const player = this.players.find((candidate) => candidate.id === playerId);
 		if (!player) return;
 
 		player.vigilance = 0;
 		player.acquisitions = emptyAcquisitions();
+		player.contribution = {};
+		player.crisisPayments = {};
 	}
 
-	/** Resets every player's vigilance and acquisitions to their defaults. */
+	/** Resets every player's vigilance, acquisitions and contribution to their defaults. */
 	clearAllIndications(): void {
 		for (const player of this.players) this.resetIndications(player.id);
 	}
@@ -867,7 +974,10 @@ export class SimulatorState {
 			this.resetPlan(player.id);
 			this.resetIndications(player.id);
 		}
-		for (const kingdom of this.kingdoms) kingdom.crisisDefense = 0;
+		for (const kingdom of this.kingdoms) {
+			kingdom.crisisDefense = 0;
+			kingdom.crisisPaid = false;
+		}
 	}
 
 	/** Moves a player to another position in the turn order. */
@@ -1294,7 +1404,9 @@ export class SimulatorState {
 						inputs: { ...player.plan.inputs }
 					},
 					vigilance: player.vigilance,
-					acquisitions: player.acquisitions.map((acquisition) => ({ ...acquisition }))
+					acquisitions: player.acquisitions.map((acquisition) => ({ ...acquisition })),
+					contribution: { ...player.contribution },
+					crisisPayments: { ...player.crisisPayments }
 				};
 			}),
 			kingdoms: this.kingdoms.map((kingdom) => ({
@@ -1302,6 +1414,7 @@ export class SimulatorState {
 				name: kingdom.name,
 				stats: { ...kingdom.stats },
 				crisisDefense: kingdom.crisisDefense,
+				crisisPaid: kingdom.crisisPaid,
 				cards: cardIds(kingdom.cards),
 				fate: cardIds(kingdom.fateDeck)
 			})),
@@ -1337,6 +1450,7 @@ export class SimulatorState {
 							: nextKingdomName(kingdoms),
 					stats: normalizeStats(record.stats),
 					crisisDefense: normalizeCrisisDefense(record.crisisDefense),
+					crisisPaid: record.crisisPaid === true,
 					// New snapshots store a general card list; older ones only kept the
 					// kingdom's unassigned offices, and the earliest had no offices at all.
 					cards: Array.isArray(record.cards)
@@ -1374,7 +1488,9 @@ export class SimulatorState {
 					offices: kingdomId === null ? [] : normalizeRefs(record.offices, 'office'),
 					plan: normalizePlan(record.plan),
 					vigilance: Math.max(0, Math.round(asNumber(record.vigilance, 0))),
-					acquisitions: normalizeAcquisitions(record.acquisitions)
+					acquisitions: normalizeAcquisitions(record.acquisitions),
+					contribution: normalizeContribution(record.contribution),
+					crisisPayments: normalizeCrisisPayments(record.crisisPayments)
 				});
 			}
 		}

@@ -212,11 +212,17 @@ export class KeyboardController {
 		const sections: Array<CueSection> = [];
 
 		if (this.resolution.active) {
+			const onCrisis = this.resolution.current?.kind === 'crisis';
+			const nextLabel = onCrisis
+				? 'Pagar contribucions'
+				: this.resolution.atEnd
+					? 'Finalitza el torn'
+					: 'Capacitat següent';
 			sections.push({
 				title: 'Resolució del torn',
 				items: [
-					{ keys: ['Espai'], label: 'Capacitat següent' },
-					{ keys: ['Shift', 'Espai'], label: 'Capacitat anterior' },
+					{ keys: ['Espai'], label: nextLabel },
+					{ keys: ['Shift', 'Espai'], label: 'Pas anterior' },
 					{ keys: ['Esc'], label: 'Atura la resolució' }
 				]
 			});
@@ -299,7 +305,7 @@ export class KeyboardController {
 		}
 		if (this.canOpenPlan) actions.push({ keys: ['l'], label: 'Planifica el torn' });
 
-		if (!this.resolution.active && this.resolution.entries.length > 0) {
+		if (!this.resolution.active && this.resolution.steps.length > 0) {
 			actions.push({ keys: ['Espai'], label: 'Resol el torn' });
 		}
 
@@ -469,7 +475,7 @@ export class KeyboardController {
 		}
 	}
 
-	/** Starts the resolution, or moves through its capabilities once it has started. */
+	/** Starts the resolution, or moves through its steps once it has started. */
 	private stepThroughResolution(backwards: boolean): void {
 		if (!this.resolution.active) {
 			this.resolution.start();
@@ -477,7 +483,9 @@ export class KeyboardController {
 		}
 
 		if (backwards) this.resolution.previous();
-		else this.resolution.next();
+		else if (this.resolution.current?.kind === 'crisis') {
+			this.simulator.payCrisisContributions(this.resolution.current.kingdomId);
+		} else this.resolution.next();
 	}
 
 	private openPlan(): void {

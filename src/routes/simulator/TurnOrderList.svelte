@@ -76,10 +76,15 @@
 		type CapabilityInputValues
 	} from '#lib/components/capabilityinputs';
 	import IconButton from '#lib/components/IconButton.svelte';
+	import CrisisStep from './CrisisStep.svelte';
 	import PanelSection from './PanelSection.svelte';
 	import { usePlans } from './plans.svelte';
 	import PlayerChip from './PlayerChip.svelte';
-	import { useTurnResolution } from './resolution.svelte';
+	import {
+		useTurnResolution,
+		type CapabilityResolutionStep,
+		type CrisisResolutionStep
+	} from './resolution.svelte';
 	import { useSelection } from './selection.svelte';
 	import type { SimulatorState } from './simulatorstate.svelte';
 	import { turnOrderDragMime, type PlayerDragPayload } from './types';
@@ -102,11 +107,17 @@
 	);
 
 	const entry = $derived(resolution.current);
-	const total = $derived(resolution.entries.length);
+	const total = $derived(resolution.steps.length);
+	const capabilityEntry = $derived<CapabilityResolutionStep | null>(
+		entry?.kind === 'capability' ? entry : null
+	);
+	const crisisEntry = $derived<CrisisResolutionStep | null>(
+		entry?.kind === 'crisis' ? entry : null
+	);
 
 	// The capability being presented shows the values it was filled in with while planning.
 	const capabilityValues: CapabilityInputValues = {
-		value: (key) => (entry ? simulator.planInput(entry.player.id, key) : ''),
+		value: (key) => (capabilityEntry ? simulator.planInput(capabilityEntry.player.id, key) : ''),
 		get players() {
 			return simulator.players.map((player) => ({ value: player.id, label: player.name }));
 		},
@@ -223,14 +234,12 @@
 				src="ui/previous.svg"
 				class={cx(resolution.atStart && styles.disabledButton)}
 				disabled={resolution.atStart}
-				label="Capacitat anterior"
+				label="Pas anterior"
 				onclick={() => resolution.previous()}
 			/>
 			<IconButton
-				src="ui/next.svg"
-				class={cx(resolution.atEnd && styles.disabledButton)}
-				disabled={resolution.atEnd}
-				label="Capacitat següent"
+				src={resolution.atEnd ? 'ui/confirm.svg' : 'ui/next.svg'}
+				label={resolution.atEnd ? 'Finalitza el torn' : 'Pas següent'}
 				onclick={() => resolution.next()}
 			/>
 			<IconButton
@@ -255,24 +264,28 @@
 	{/snippet}
 
 	{#if resolution.active}
-		<div class={styles.slideshow} aria-live="polite">
-			{#if entry}
-				<div class={styles.slide}>
-					<CardCapabilityFront
-						cardCapability={entry.capability.cardCapability}
-						inputKey={entry.capability.key}
-					/>
-					<div class={styles.owner}>
-						<PlayerChip {simulator} player={entry.player} draggable={false} />
+		{#if crisisEntry}
+			<CrisisStep {simulator} kingdomId={crisisEntry.kingdomId} />
+		{:else}
+			<div class={styles.slideshow} aria-live="polite">
+				{#if capabilityEntry}
+					<div class={styles.slide}>
+						<CardCapabilityFront
+							cardCapability={capabilityEntry.capability.cardCapability}
+							inputKey={capabilityEntry.capability.key}
+						/>
+						<div class={styles.owner}>
+							<PlayerChip {simulator} player={capabilityEntry.player} draggable={false} />
+						</div>
 					</div>
-				</div>
-			{:else}
-				<p class={styles.empty}>Cap capacitat planificada</p>
-			{/if}
-			{#if total > 0}
-				<span class={styles.counter}>{resolution.position + 1} / {total}</span>
-			{/if}
-		</div>
+				{:else}
+					<p class={styles.empty}>Cap capacitat planificada</p>
+				{/if}
+				{#if total > 0}
+					<span class={styles.counter}>{resolution.position + 1} / {total}</span>
+				{/if}
+			</div>
+		{/if}
 	{:else}
 		{#each players as player, index (player.id)}
 			<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->

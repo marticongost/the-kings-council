@@ -21,6 +21,9 @@ export type PlayerResourceType = (typeof playerResourceTypes)[number];
 
 export type PlayerResources = Record<PlayerResourceType, number>;
 
+/** Resources a player contributes to a crisis while planning, keeping only the amounts entered. */
+export type PlayerContribution = Partial<Record<PlayerResourceType, number>>;
+
 export type KingdomStats = Record<KingdomStatType, number>;
 
 export const kingdomStatMin = 1;
@@ -246,6 +249,10 @@ export interface PlayerState {
 	vigilance: number;
 	/** The two acquisitions a player can declare while planning. */
 	acquisitions: Array<Acquisition>;
+	/** Resources the player contributes to the current crisis while planning. */
+	contribution: PlayerContribution;
+	/** What the player actually paid for each kingdom's crisis, keyed by kingdom id. */
+	crisisPayments: Record<string, PlayerContribution>;
 }
 
 export interface KingdomState {
@@ -254,6 +261,8 @@ export interface KingdomState {
 	stats: KingdomStats;
 	/** Crisis defence accumulated during the turn, cleared when the turn is reset. */
 	crisisDefense: number;
+	/** Whether the kingdom's crisis contributions have been paid this turn. */
+	crisisPaid: boolean;
 	/** Any card attached to the kingdom, including its unassigned offices. */
 	cards: Array<CardRef>;
 	/** The kingdom's face-down fate deck, holding its crisis and event cards. */
@@ -270,6 +279,8 @@ export interface SerializedPlayer {
 	plan?: Partial<PlayerPlan>;
 	vigilance?: number;
 	acquisitions?: Array<{ cardId?: string | null; gold?: number }>;
+	contribution?: PlayerContribution;
+	crisisPayments?: Record<string, PlayerContribution>;
 }
 
 export interface SerializedKingdom {
@@ -277,6 +288,7 @@ export interface SerializedKingdom {
 	name: string;
 	stats: KingdomStats;
 	crisisDefense?: number;
+	crisisPaid?: boolean;
 	cards?: Array<string>;
 	/** Card ids in the kingdom's fate deck. */
 	fate?: Array<string>;

@@ -38,6 +38,7 @@
 </script>
 
 <script lang="ts">
+	import { cx } from '@emotion/css';
 	import { getCardIcon } from '#lib/cardattributes';
 	import InlineSvg from '#lib/components/InlineSvg.svelte';
 	import type { SimulatorState } from './simulatorstate.svelte';
@@ -51,6 +52,8 @@
 		draggable?: boolean;
 		/** Whether the chip is rendered at full size, e.g. in the turn order list. */
 		large?: boolean;
+		/** Extra classes applied to the chip, e.g. to highlight it. */
+		class?: string;
 	}
 
 	const {
@@ -58,7 +61,8 @@
 		player,
 		dragHint = 'Arrossega el jugador a un altre regne',
 		draggable = true,
-		large = false
+		large = false,
+		class: className = undefined
 	}: Props = $props();
 
 	// The house card identifies the player, falling back to the generic icon when it is gone.
@@ -76,7 +80,7 @@
 </script>
 
 <span
-	class={styles.chip}
+	class={cx(styles.chip, className)}
 	role="group"
 	{draggable}
 	ondragstart={onDragStart}

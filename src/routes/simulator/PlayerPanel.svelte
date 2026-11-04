@@ -4,24 +4,30 @@
 	const styles = css.styles({
 		headerControls: {
 			marginLeft: 'auto',
+			...css.row('md')
+		},
+		indicators: {
+			...css.row('sm')
+		},
+		indicator: {
 			...css.row('xs')
 		},
-		vigilance: {
-			...css.row('xs'),
-			...css.hpadding('sm'),
-			...css.vpadding('0.15em'),
-			borderRadius: '0.3em',
-			backgroundColor: css.palette.carrara,
-			color: css.palette.wood,
-			fontFamily: css.fonts.number,
-			fontWeight: 900,
-			whiteSpace: 'nowrap'
-		},
-		vigilanceIcon: {
-			height: '1.1em',
+		indicatorIcon: {
+			height: '1.2em',
 			width: 'auto',
 			color: css.palette.dawn,
 			flexShrink: 0
+		},
+		indicatorValue: {
+			color: css.palette.wood,
+			fontSize: '1.1em',
+			fontWeight: 900,
+			fontFamily: css.fonts.number,
+			position: 'relative',
+			top: '-0.1em'
+		},
+		buttons: {
+			...css.row('xs')
 		},
 		resources: {
 			...css.grid('xs'),
@@ -76,6 +82,10 @@
 	const selection = useSelection();
 	const plans = usePlans();
 	const selected = $derived(selection.players.has(player.id));
+
+	const contributionTotal = $derived(
+		playerResourceTypes.reduce((sum, resource) => sum + (player.contribution[resource] ?? 0), 0)
+	);
 
 	function onclick(event: MouseEvent) {
 		event.stopPropagation();
@@ -147,24 +157,36 @@
 
 	{#snippet header()}
 		<div class={styles.headerControls}>
-			<span
-				class={styles.vigilance}
-				title={`Vigilància: ${player.vigilance}`}
-				aria-label={`Vigilància: ${player.vigilance}`}
-			>
-				<InlineSvg class={styles.vigilanceIcon} src="keywords/vigilance.svg" />
-				<span>{player.vigilance}</span>
-			</span>
-			<IconButton
-				src="ui/plan.svg"
-				label={`Planifica el torn de ${player.name}`}
-				onclick={() => plans.toggle(player.id)}
-			/>
-			<IconButton
-				src="ui/delete.svg"
-				label={`Elimina ${player.name}`}
-				onclick={() => simulator.removePlayer(player.id)}
-			/>
+			<div class={styles.indicators}>
+				<span
+					class={styles.indicator}
+					title={`Vigilància: ${player.vigilance}`}
+					aria-label={`Vigilància: ${player.vigilance}`}
+				>
+					<InlineSvg class={styles.indicatorIcon} src="keywords/vigilance.svg" />
+					<span class={styles.indicatorValue}>{player.vigilance}</span>
+				</span>
+				<span
+					class={styles.indicator}
+					title={`Contribució a la crisi: ${contributionTotal}`}
+					aria-label={`Contribució a la crisi: ${contributionTotal}`}
+				>
+					<InlineSvg class={styles.indicatorIcon} src="ui/crisis-defense.svg" />
+					<span class={styles.indicatorValue}>{contributionTotal}</span>
+				</span>
+			</div>
+			<div class={styles.buttons}>
+				<IconButton
+					src="ui/plan.svg"
+					label={`Planifica el torn de ${player.name}`}
+					onclick={() => plans.toggle(player.id)}
+				/>
+				<IconButton
+					src="ui/delete.svg"
+					label={`Elimina ${player.name}`}
+					onclick={() => simulator.removePlayer(player.id)}
+				/>
+			</div>
 		</div>
 	{/snippet}
 
