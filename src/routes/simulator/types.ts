@@ -34,6 +34,13 @@ export const kingdomStatNeutral = 3;
 export const minTurn = 1;
 export const maxTurn = 10;
 
+/** The player counts a new game can be started with. */
+export const minPlayers = 4;
+export const maxPlayers = 16;
+
+/** Players per kingdom, which also sets how many kingdoms a game has. */
+export const playersPerKingdom = 4;
+
 /** The danger value of a turn, following the turn table in the rules. */
 export function dangerForTurn(turn: number): number {
 	if (turn <= 4) return 1;

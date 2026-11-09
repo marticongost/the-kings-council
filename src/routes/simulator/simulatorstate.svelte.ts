@@ -24,9 +24,12 @@ import {
 	kingdomStatMax,
 	kingdomStatMin,
 	kingdomStatNeutral,
+	maxPlayers,
 	maxTurn,
+	minPlayers,
 	minTurn,
 	playerResourceTypes,
+	playersPerKingdom,
 	planListOf,
 	zoneKey,
 	type Acquisition,
@@ -645,6 +648,57 @@ export class SimulatorState {
 		this.clearState();
 		this.clearHistory();
 		this.persist();
+	}
+
+	/**
+	 * Starts a new game of the given size, wiping the previous game and the undo history.
+	 * Every full group of four players gets a kingdom, players are spread evenly between
+	 * them, and each kingdom is set up with its king, offices and fate card.
+	 */
+	newGame(playerCount: number): void {
+		const count = clamp(playerCount, minPlayers, maxPlayers);
+		this.clearState();
+		this.clearHistory();
+
+		const kingdomCount = Math.floor(count / playersPerKingdom);
+		const kingdomIds = Array.from({ length: kingdomCount }, () => this.addKingdom());
+		for (let index = 0; index < count; index += 1) {
+			this.addPlayer(kingdomIds[index % kingdomCount]);
+		}
+
+		for (const kingdom of this.kingdoms) this.setupKingdom(kingdom);
+
+		this.refillLaws();
+		this.refillMarket();
+		this.clearHistory();
+		this.persist();
+	}
+
+	/**
+	 * Makes the first member of a kingdom its king, gives the rest a random office each,
+	 * and deals the kingdom its first fate card.
+	 */
+	private setupKingdom(kingdom: KingdomState): void {
+		const [king, ...subjects] = this.membersOf(kingdom.id);
+		if (king) this.assignOffice(kingdom, king, officeCardId('K'));
+
+		const offices = kingdom.cards.filter((ref) => this.cardOf(ref)?.type === 'office');
+		shuffle(offices);
+		for (const [index, subject] of subjects.entries()) {
+			const office = offices[index];
+			if (office) this.assignOffice(kingdom, subject, office.cardId);
+		}
+
+		this.drawFateCard(kingdom.id);
+	}
+
+	/** Moves one of a kingdom's unassigned offices to one of its players. */
+	private assignOffice(kingdom: KingdomState, player: PlayerState, cardId: string): void {
+		const index = kingdom.cards.findIndex((ref) => ref.cardId === cardId);
+		if (index < 0) return;
+
+		const [office] = kingdom.cards.splice(index, 1);
+		player.offices.push(office);
 	}
 
 	/** Empties the game state without recording it in the history. */

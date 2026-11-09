@@ -9,6 +9,53 @@
 			marginLeft: 'auto',
 			...css.row('xs')
 		},
+		resetAnchor: {
+			position: 'relative',
+			display: 'flex'
+		},
+		resetMenu: {
+			position: 'absolute',
+			top: '100%',
+			right: 0,
+			zIndex: 20,
+			display: 'flex',
+			flexDirection: 'column',
+			gap: css.spacing.xs,
+			marginTop: '0.2em',
+			padding: css.spacing.sm,
+			border: css.forms.controlBorder,
+			borderRadius: '0.3em',
+			backgroundColor: css.forms.controlBackgroundColor,
+			boxShadow: '0 0.2em 0.5em rgba(0, 0, 0, 0.25)'
+		},
+		resetMenuTitle: {
+			fontFamily: css.fonts.heading,
+			fontWeight: 900,
+			fontSize: '0.9em',
+			color: css.palette.wood,
+			whiteSpace: 'nowrap'
+		},
+		resetMenuGrid: {
+			display: 'grid',
+			gridTemplateColumns: 'repeat(4, 2.2em)',
+			gap: css.spacing.xs
+		},
+		resetMenuOption: {
+			height: '2.2em',
+			border: css.forms.controlBorder,
+			borderRadius: '0.2em',
+			backgroundColor: css.palette.carrara,
+			color: css.palette.wood,
+			fontFamily: css.fonts.number,
+			fontSize: '0.9em',
+			cursor: 'pointer',
+			'&:hover': {
+				backgroundColor: css.palette.ivory
+			},
+			'&:focus-visible': {
+				outline: css.focus.outline
+			}
+		},
 		disabledButton: {
 			opacity: 0.35
 		},
@@ -102,7 +149,7 @@
 
 <script lang="ts">
 	import { cx } from '@emotion/css';
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import IconButton from '#lib/components/IconButton.svelte';
 	import InlineSvg from '#lib/components/InlineSvg.svelte';
 	import Panel from '#lib/components/Panel.svelte';
@@ -119,10 +166,16 @@
 	import { provideSelection, SimulatorSelection } from './selection.svelte';
 	import { SimulatorState } from './simulatorstate.svelte';
 	import TurnOrderList from './TurnOrderList.svelte';
-	import { deckIdsInPlay, maxTurn, minTurn } from './types';
+	import { deckIdsInPlay, maxPlayers, maxTurn, minPlayers, minTurn } from './types';
 
 	/** Distance from the bottom of the viewport, in pixels, that reveals the decks. */
 	const decksRevealDistance = 30;
+
+	/** The player counts a new game can be started with, one box per count. */
+	const playerCounts = Array.from(
+		{ length: maxPlayers - minPlayers + 1 },
+		(_, index) => minPlayers + index
+	);
 
 	const simulator = new SimulatorState();
 	/** One skull per point of danger, so danger 3 renders as three skulls. */
@@ -138,6 +191,10 @@
 
 	let decksElement = $state<HTMLElement>();
 	let decksVisible = $state(false);
+
+	let resetMenuOpen = $state(false);
+	let resetMenuAnchor = $state<HTMLElement>();
+	let resetMenu = $state<HTMLDivElement>();
 
 	/**
 	 * Reveals the decks once the pointer is close to the bottom of the viewport, and keeps them
@@ -178,6 +235,41 @@
 		plans.prune(simulator);
 	});
 
+	// The new game menu closes when the pointer goes elsewhere, and Escape closes it without
+	// reaching the simulator keyboard shortcuts.
+	$effect(() => {
+		if (!resetMenuOpen) return;
+
+		const closeOnOutside = (event: PointerEvent) => {
+			if (
+				resetMenuAnchor &&
+				event.target instanceof Node &&
+				resetMenuAnchor.contains(event.target)
+			) {
+				return;
+			}
+			resetMenuOpen = false;
+		};
+		const closeOnEscape = (event: KeyboardEvent) => {
+			if (event.key !== 'Escape') return;
+			event.preventDefault();
+			event.stopPropagation();
+			resetMenuOpen = false;
+		};
+
+		document.addEventListener('pointerdown', closeOnOutside);
+		document.addEventListener('keydown', closeOnEscape, true);
+		return () => {
+			document.removeEventListener('pointerdown', closeOnOutside);
+			document.removeEventListener('keydown', closeOnEscape, true);
+		};
+	});
+
+	$effect(() => {
+		if (!resetMenuOpen) return;
+		void tick().then(() => resetMenu?.querySelector('button')?.focus());
+	});
+
 	function onBackgroundClick(event: MouseEvent) {
 		const target = event.target;
 		if (!(target instanceof Element)) {
@@ -203,10 +295,9 @@
 		};
 	}
 
-	function clearSimulator() {
-		if (window.confirm('Segur que vols netejar el simulador? Es perdrà tot l’estat desat.')) {
-			simulator.clear();
-		}
+	function startNewGame(playerCount: number) {
+		simulator.newGame(playerCount);
+		resetMenuOpen = false;
 	}
 </script>
 
@@ -246,7 +337,37 @@
 								label="Afegeix regne"
 								onclick={() => simulator.addKingdom()}
 							/>
-							<IconButton src="ui/reset.svg" label="Neteja" onclick={clearSimulator} />
+							<div class={styles.resetAnchor} bind:this={resetMenuAnchor}>
+								<IconButton
+									src="ui/reset.svg"
+									label="Nova partida"
+									aria-haspopup="true"
+									aria-expanded={resetMenuOpen}
+									onclick={() => (resetMenuOpen = !resetMenuOpen)}
+								/>
+								{#if resetMenuOpen}
+									<div
+										class={styles.resetMenu}
+										role="group"
+										aria-label="Nova partida"
+										bind:this={resetMenu}
+									>
+										<span class={styles.resetMenuTitle}>Jugadors</span>
+										<div class={styles.resetMenuGrid}>
+											{#each playerCounts as count (count)}
+												<button
+													type="button"
+													class={styles.resetMenuOption}
+													aria-label={`Nova partida de ${count} jugadors`}
+													onclick={() => startNewGame(count)}
+												>
+													{count}
+												</button>
+											{/each}
+										</div>
+									</div>
+								{/if}
+							</div>
 						</div>
 					{/snippet}
 
