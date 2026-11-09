@@ -217,7 +217,14 @@ counter of the position within the turn. The marks of the capability show the va
 were filled in with while planning.
 
 Actions go first, one round at a time: the first action of each player in turn order, then
-their second action, and so on. Secrets follow once every action has been presented.
+their second action, and so on. Secrets follow once every action has been presented. The
+asset bids come next, with one step per bidding round that has offers, and the kingdom
+crises are resolved last.
+
+On an asset bid step, the market assets are listed with their bidders, from the highest
+to the lowest corrected offer, and <kbd>Space</kbd> (or the _Repartir actius_ button)
+moves every asset with a single top bidder to its winner and removes it from the market.
+Advancing past the last bid step clears the market and fills it up again.
 
 While the resolution lasts, the play button is replaced by previous and next buttons.
 <kbd>Space</kbd> moves to the next capability and <kbd>Shift</kbd>+<kbd>Space</kbd> moves

@@ -853,6 +853,78 @@ export class SimulatorState {
 		}
 	}
 
+	/**
+	 * The corrected offers of one bidding round: one per player, holding the asset they
+	 * declared and the gold they can actually pay. Favour counts as gold for the
+	 * correction, and offers of value zero (or with no asset) are ignored.
+	 */
+	assetBidOffers(index: number): Array<{ player: PlayerState; cardId: string; gold: number }> {
+		const offers: Array<{ player: PlayerState; cardId: string; gold: number }> = [];
+		for (const player of this.players) {
+			const acquisition = player.acquisitions[index];
+			if (!acquisition?.cardId) continue;
+			const gold = Math.max(
+				0,
+				Math.min(Math.round(acquisition.gold), player.resources.gold + player.resources.favour)
+			);
+			if (gold <= 0) continue;
+			offers.push({ player, cardId: acquisition.cardId, gold });
+		}
+		return offers;
+	}
+
+	/**
+	 * The single winner of an asset's bidding round, or null when there is none: the
+	 * highest offer wins, ties are broken by the lowest prestige, and a tie that
+	 * remains after that leaves the asset unresolved.
+	 */
+	assetBidWinner(index: number, cardId: string): PlayerState | null {
+		const offers = this.assetBidOffers(index).filter((offer) => offer.cardId === cardId);
+		if (offers.length === 0) return null;
+
+		const maxGold = Math.max(...offers.map((offer) => offer.gold));
+		const highest = offers.filter((offer) => offer.gold === maxGold);
+		if (highest.length === 1) return highest[0].player;
+
+		const minPrestige = Math.min(...highest.map((offer) => offer.player.resources.prestige));
+		const tied = highest.filter((offer) => offer.player.resources.prestige === minPrestige);
+		return tied.length === 1 ? tied[0].player : null;
+	}
+
+	/**
+	 * Resolves a bidding round: every market asset with a single winner moves to that
+	 * winner's hand, the winner pays the offer from their gold and favour, and the
+	 * asset leaves the market.
+	 */
+	resolveAssetBids(index: number): void {
+		const wins: Array<{ ref: CardRef; winner: PlayerState; gold: number }> = [];
+		for (const ref of this.market) {
+			const card = this.cardOf(ref);
+			if (!card) continue;
+			const winner = this.assetBidWinner(index, card.id);
+			if (!winner) continue;
+			const offer = this.assetBidOffers(index).find(
+				(candidate) => candidate.player.id === winner.id && candidate.cardId === card.id
+			);
+			if (!offer) continue;
+			wins.push({ ref, winner, gold: offer.gold });
+		}
+		if (wins.length === 0) return;
+
+		this.market = this.market.filter((ref) => !wins.some((win) => win.ref.uid === ref.uid));
+		for (const { ref, winner, gold } of wins) {
+			this.payBidCost(winner, gold);
+			winner.hand.push(ref);
+		}
+	}
+
+	/** Pays a bid from a player's gold first, then their favour, as the rules allow. */
+	private payBidCost(player: PlayerState, amount: number): void {
+		const paidGold = Math.min(amount, player.resources.gold);
+		player.resources.gold = Math.max(0, player.resources.gold - paidGold);
+		player.resources.favour = Math.max(0, player.resources.favour - (amount - paidGold));
+	}
+
 	/** Sets how much a player contributes to the current crisis with one resource. */
 	setContribution(playerId: string, resource: PlayerResourceType, value: number): void {
 		const player = this.players.find((candidate) => candidate.id === playerId);

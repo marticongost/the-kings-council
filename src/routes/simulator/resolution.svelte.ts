@@ -17,13 +17,24 @@ export interface CrisisResolutionStep {
 	kingdomId: string;
 }
 
-/** One step of the turn resolution: a planned capability or a kingdom's crisis. */
-export type ResolutionStep = CapabilityResolutionStep | CrisisResolutionStep;
+/** One round of the asset bid resolution: the primary or the secondary acquisitions. */
+export interface AssetsBidResolutionStep {
+	kind: 'assets-bid';
+	/** The acquisition slot being resolved: 0 for primary bids, 1 for secondary bids. */
+	acquisitionIndex: number;
+	/** Whether this is the last bid step, after which the market is refilled. */
+	last: boolean;
+}
+
+/** One step of the turn resolution: a planned capability, an asset bid, or a kingdom's crisis. */
+export type ResolutionStep =
+	CapabilityResolutionStep | AssetsBidResolutionStep | CrisisResolutionStep;
 
 /**
  * Walks through the planned capabilities of every player, in turn order, to resolve a turn.
  * Actions go first, in rounds: each player's first action, then their second, and so on.
- * Secrets follow once every action has been presented, and crisis steps come last.
+ * Secrets follow once every action has been presented, asset bids come next, and crisis
+ * steps come last.
  *
  * The state of the resolution lives in the simulator, so that it is persisted with the rest
  * of the game and a reload comes back to the step that was being presented.
@@ -94,9 +105,23 @@ export class TurnResolution {
 		return steps.map(({ kingdomId }) => ({ kind: 'crisis' as const, kingdomId }));
 	}
 
+	/**
+	 * Asset bid steps, one per bidding round with at least one declared offer. Rounds
+	 * without any bids are skipped, so a turn presents up to two steps: the primary and
+	 * the secondary bids.
+	 */
+	private get assetsBidSteps(): Array<AssetsBidResolutionStep> {
+		const included = [0, 1].filter((index) => this.simulator.assetBidOffers(index).length > 0);
+		return included.map((index, order, rounds) => ({
+			kind: 'assets-bid' as const,
+			acquisitionIndex: index,
+			last: order === rounds.length - 1
+		}));
+	}
+
 	/** Every step of the turn, in the order in which it is presented. */
 	get steps(): Array<ResolutionStep> {
-		return [...this.capabilitySteps, ...this.crisisSteps];
+		return [...this.capabilitySteps, ...this.assetsBidSteps, ...this.crisisSteps];
 	}
 
 	/** Position of the presented step, clamped to the steps that still exist. */
@@ -130,11 +155,15 @@ export class TurnResolution {
 	/** Moves to the next step, finishing the turn after the last one. */
 	next(): void {
 		if (!this.active) return;
+		const current = this.current;
 		if (this.atEnd) {
-			this.finish();
+			this.finish(current);
 			return;
 		}
 		this.simulator.resolution.index = this.position + 1;
+		if (current?.kind === 'assets-bid' && current.last) {
+			this.simulator.refillMarket();
+		}
 	}
 
 	previous(): void {
@@ -143,10 +172,13 @@ export class TurnResolution {
 	}
 
 	/** Ends the resolution, shows the player order again, and advances the turn. */
-	private finish(): void {
+	private finish(current: ResolutionStep | null): void {
 		this.simulator.advanceTurn();
 		this.simulator.resetTurnOrder();
 		this.simulator.resolution = { active: false, index: 0 };
+		if (current?.kind === 'assets-bid' && current.last) {
+			this.simulator.refillMarket();
+		}
 	}
 }
 

@@ -76,12 +76,14 @@
 		type CapabilityInputValues
 	} from '#lib/components/capabilityinputs';
 	import IconButton from '#lib/components/IconButton.svelte';
+	import AssetsBidStep from './AssetsBidStep.svelte';
 	import CrisisStep from './CrisisStep.svelte';
 	import PanelSection from './PanelSection.svelte';
 	import { usePlans } from './plans.svelte';
 	import PlayerChip from './PlayerChip.svelte';
 	import {
 		useTurnResolution,
+		type AssetsBidResolutionStep,
 		type CapabilityResolutionStep,
 		type CrisisResolutionStep
 	} from './resolution.svelte';
@@ -113,6 +115,9 @@
 	);
 	const crisisEntry = $derived<CrisisResolutionStep | null>(
 		entry?.kind === 'crisis' ? entry : null
+	);
+	const assetsBidEntry = $derived<AssetsBidResolutionStep | null>(
+		entry?.kind === 'assets-bid' ? entry : null
 	);
 
 	// The capability being presented shows the values it was filled in with while planning.
@@ -266,6 +271,10 @@
 	{#if resolution.active}
 		{#if crisisEntry}
 			<CrisisStep {simulator} kingdomId={crisisEntry.kingdomId} />
+		{:else if assetsBidEntry}
+			{#key assetsBidEntry.acquisitionIndex}
+				<AssetsBidStep {simulator} acquisitionIndex={assetsBidEntry.acquisitionIndex} />
+			{/key}
 		{:else}
 			<div class={styles.slideshow} aria-live="polite">
 				{#if capabilityEntry}

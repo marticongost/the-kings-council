@@ -21,24 +21,37 @@
 			color: css.palette.grass
 		},
 		name: {
-			fontSize: '0.8em',
+			fontSize: '0.9em',
 			minWidth: 0,
 			overflow: 'hidden',
 			textOverflow: 'ellipsis',
 			whiteSpace: 'nowrap'
 		},
 		nameLarge: {
-			fontSize: '1em',
+			fontSize: '1.1em',
 			minWidth: 0,
 			overflow: 'hidden',
 			textOverflow: 'ellipsis',
 			whiteSpace: 'nowrap'
+		},
+		status: {
+			borderRadius: '0.3em',
+			padding: css.spacing.sm
+		},
+		statusWinner: {
+			color: css.palette.green,
+			backgroundColor: css.palette.willow
+		},
+		statusLoser: {
+			color: css.palette.buccaneer,
+			backgroundColor: css.palette.blush
 		}
 	});
 </script>
 
 <script lang="ts">
 	import { cx } from '@emotion/css';
+	import type { Snippet } from 'svelte';
 	import { getCardIcon } from '#lib/cardattributes';
 	import InlineSvg from '#lib/components/InlineSvg.svelte';
 	import type { SimulatorState } from './simulatorstate.svelte';
@@ -52,6 +65,12 @@
 		draggable?: boolean;
 		/** Whether the chip is rendered at full size, e.g. in the turn order list. */
 		large?: boolean;
+		/** Whether the plan-confirmed marker is shown, e.g. on bid rows it is hidden. */
+		ready?: boolean;
+		/** Trailing content rendered after the name, e.g. a bid resource. */
+		children?: Snippet;
+		/** Optional emphasis, e.g. the outcome of an asset bid. */
+		status?: 'winner' | 'loser';
 		/** Extra classes applied to the chip, e.g. to highlight it. */
 		class?: string;
 	}
@@ -62,6 +81,9 @@
 		dragHint = 'Arrossega el jugador a un altre regne',
 		draggable = true,
 		large = false,
+		ready = true,
+		children,
+		status,
 		class: className = undefined
 	}: Props = $props();
 
@@ -80,7 +102,13 @@
 </script>
 
 <span
-	class={cx(styles.chip, className)}
+	class={cx(
+		styles.chip,
+		status && styles.status,
+		status === 'winner' && styles.statusWinner,
+		status === 'loser' && styles.statusLoser,
+		className
+	)}
 	role="group"
 	{draggable}
 	ondragstart={onDragStart}
@@ -88,7 +116,10 @@
 >
 	<InlineSvg class={styles.icon} src={icon} aria-hidden="true" />
 	<span class={large ? styles.nameLarge : styles.name}>{player.name}</span>
-	{#if player.plan.confirmed}
+	{#if children}
+		{@render children()}
+	{/if}
+	{#if ready && player.plan.confirmed}
 		<InlineSvg class={styles.confirm} src="ui/confirm.svg" role="img" aria-label="Pla confirmat" />
 	{/if}
 </span>

@@ -212,12 +212,15 @@ export class KeyboardController {
 		const sections: Array<CueSection> = [];
 
 		if (this.resolution.active) {
-			const onCrisis = this.resolution.current?.kind === 'crisis';
-			const nextLabel = onCrisis
-				? 'Pagar contribucions'
-				: this.resolution.atEnd
-					? 'Finalitza el torn'
-					: 'Capacitat següent';
+			const current = this.resolution.current;
+			const nextLabel =
+				current?.kind === 'crisis'
+					? 'Pagar contribucions'
+					: current?.kind === 'assets-bid'
+						? 'Repartir actius'
+						: this.resolution.atEnd
+							? 'Finalitza el torn'
+							: 'Capacitat següent';
 			sections.push({
 				title: 'Resolució del torn',
 				items: [
@@ -485,6 +488,8 @@ export class KeyboardController {
 		if (backwards) this.resolution.previous();
 		else if (this.resolution.current?.kind === 'crisis') {
 			this.simulator.payCrisisContributions(this.resolution.current.kingdomId);
+		} else if (this.resolution.current?.kind === 'assets-bid') {
+			this.simulator.resolveAssetBids(this.resolution.current.acquisitionIndex);
 		} else this.resolution.next();
 	}
 
