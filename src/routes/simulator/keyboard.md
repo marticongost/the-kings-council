@@ -142,11 +142,33 @@ existing cards, but not to acquire new ones.
 | <kbd>n</kbd> [amount] <kbd>k</kbd> | Create new kingdoms                              |
 | <kbd>n</kbd> [amount] <kbd>p</kbd> | Create new players                               |
 | <kbd>l</kbd>                       | Open the plan of a single selected player        |
+| <kbd>u</kbd>                       | Undo the last change to the game state           |
+| <kbd>Ctrl</kbd>+<kbd>r</kbd>       | Redo the last change that was undone             |
 | <kbd>Space</kbd>                   | Start resolving the turn, or show the next one   |
 
 The independents panel behaves like a kingdom for navigation, but it cannot be deleted.
 Discarding or returning cards clears their selection, since the pills no longer appear
 where they were.
+
+### Undoing and redoing changes
+
+Every change to the game state is a step in a history: card moves, kingdom stats, player
+resources, plans, created and deleted kingdoms and players, refilling the laws and the
+market, and dealing fate cards. Each step has a description, which the undo and redo
+buttons of the **Partida** panel show as a tooltip.
+
+Resetting the game with the **Neteja** button also wipes the history, since it is a fresh
+start rather than a change to the current game.
+
+Press <kbd>u</kbd> to revert the last step, or <kbd>Ctrl</kbd>+<kbd>r</kbd> to redo it.
+Making a new change after undoing discards the steps that could be redone.
+
+Changes made while a plan modal is open are recorded as a single step, described with the
+player's name, so closing the modal is enough to make the whole planning session
+undoable. Steps taken with a multiple selection, such as creating several kingdoms at
+once, are also recorded as a single step.
+
+The history is not saved: reloading the page starts a new one.
 
 ### Acquiring cards
 

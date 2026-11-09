@@ -1,3 +1,5 @@
+import { getKingdomStat } from '#lib/models/kingdomstats';
+import { getResource } from '#lib/models/resources';
 import { SvelteSet } from 'svelte/reactivity';
 import {
 	focusTargetOf,
@@ -307,6 +309,8 @@ export class KeyboardController {
 			actions.push({ keys: ['r'], label: 'Retorna a la baralla' });
 		}
 		if (this.canOpenPlan) actions.push({ keys: ['l'], label: 'Planifica el torn' });
+		if (this.simulator.canUndo) actions.push({ keys: ['u'], label: 'Desfés' });
+		if (this.simulator.canRedo) actions.push({ keys: ['Ctrl+R'], label: 'Refés' });
 
 		if (!this.resolution.active && this.resolution.steps.length > 0) {
 			actions.push({ keys: ['Espai'], label: 'Resol el torn' });
@@ -381,6 +385,14 @@ export class KeyboardController {
 		}
 
 		if (event.defaultPrevented || event.repeat || event.isComposing) return;
+
+		// Redo is the only shortcut with a modifier, so it is handled before the rest.
+		if ((event.ctrlKey || event.metaKey) && !event.altKey && key.toLowerCase() === 'r') {
+			this.simulator.redo();
+			event.preventDefault();
+			return;
+		}
+
 		if (isModifierKey(event.key)) return;
 		if (event.altKey || event.ctrlKey || event.metaKey) return;
 
@@ -397,6 +409,12 @@ export class KeyboardController {
 
 		if (this.pending) {
 			if (this.handlePending(key)) event.preventDefault();
+			return;
+		}
+
+		// Undo is left for last, so a pending multi-key command consumes the keys it expects.
+		if (key === 'u') {
+			this.simulator.undo();
 			return;
 		}
 
@@ -881,9 +899,12 @@ export class KeyboardController {
 
 		if (kind === 'kingdom') {
 			const kingdomIds: Array<string> = [];
-			for (let index = 0; index < amount; index += 1) {
-				kingdomIds.push(this.simulator.addKingdom());
-			}
+			const description = amount === 1 ? 'Afegeix un regne' : `Afegeix ${amount} regnes`;
+			this.simulator.transaction(description, () => {
+				for (let index = 0; index < amount; index += 1) {
+					kingdomIds.push(this.simulator.addKingdom());
+				}
+			});
 			this.selection.replace('kingdom', kingdomIds);
 			revealElement('kingdom', kingdomIds[0]);
 			return;
@@ -894,11 +915,17 @@ export class KeyboardController {
 		);
 		const playerIds: Array<string> = [];
 		const kingdoms = targetKingdomIds.length > 0 ? targetKingdomIds : [null];
-		for (const kingdomId of kingdoms) {
-			for (let index = 0; index < amount; index += 1) {
-				playerIds.push(this.simulator.addPlayer(kingdomId));
+		const total = kingdoms.length * amount;
+		this.simulator.transaction(
+			total === 1 ? 'Afegeix un jugador' : `Afegeix ${total} jugadors`,
+			() => {
+				for (const kingdomId of kingdoms) {
+					for (let index = 0; index < amount; index += 1) {
+						playerIds.push(this.simulator.addPlayer(kingdomId));
+					}
+				}
 			}
-		}
+		);
 
 		this.selection.replace('player', playerIds);
 		revealElement('player', playerIds[0]);
@@ -920,25 +947,45 @@ export class KeyboardController {
 	): void {
 		const resource = key === 'a' ? null : resourceOfShortcut(key);
 		const stat = key === 'a' ? null : statOfShortcut(key);
+		const playerIds = key === 'a' || resource ? [...this.selection.players] : [];
+		const kingdomIds =
+			key === 'a' || stat
+				? [...this.selection.kingdoms].filter((id) => id !== independentKingdomId)
+				: [];
+		const targets = playerIds.length + kingdomIds.length;
+		if (targets === 0) return;
 
-		for (const playerId of this.selection.players) {
-			if (key !== 'a' && !resource) continue;
-			if (mode === 'set') {
-				this.simulator.setResources(playerId, resource, amount);
-			} else {
-				this.simulator.adjustResources(playerId, resource, mode === 'add' ? amount : -amount);
+		const change = () => {
+			for (const playerId of playerIds) {
+				if (mode === 'set') {
+					this.simulator.setResources(playerId, resource, amount);
+				} else {
+					this.simulator.adjustResources(playerId, resource, mode === 'add' ? amount : -amount);
+				}
 			}
+
+			for (const kingdomId of kingdomIds) {
+				if (mode === 'set') {
+					this.simulator.setStats(kingdomId, stat, amount);
+				} else {
+					this.simulator.adjustStats(kingdomId, stat, mode === 'add' ? amount : -amount);
+				}
+			}
+		};
+
+		// A single target keeps the description of the change itself; several are one step.
+		if (targets === 1) {
+			change();
+			return;
 		}
 
-		for (const kingdomId of [...this.selection.kingdoms]) {
-			if (kingdomId === independentKingdomId) continue;
-			if (key !== 'a' && !stat) continue;
-			if (mode === 'set') {
-				this.simulator.setStats(kingdomId, stat, amount);
-			} else {
-				this.simulator.adjustStats(kingdomId, stat, mode === 'add' ? amount : -amount);
-			}
-		}
+		const verb = mode === 'set' ? 'Estableix' : mode === 'add' ? 'Augmenta' : 'Disminueix';
+		const scope = resource
+			? getResource(resource).title
+			: stat
+				? getKingdomStat(stat).title
+				: 'recursos i estats';
+		this.simulator.transaction(`${verb} ${scope} de ${targets} seleccionats`, change);
 	}
 
 	private discardSelected(): void {
@@ -960,9 +1007,16 @@ export class KeyboardController {
 
 		const playerIds = [...this.selection.players];
 		const kingdomIds = [...this.selection.kingdoms].filter((id) => id !== independentKingdomId);
+		const total = playerIds.length + kingdomIds.length;
 
-		for (const playerId of playerIds) this.simulator.removePlayer(playerId);
-		for (const kingdomId of kingdomIds) this.simulator.removeKingdom(kingdomId);
+		const remove = () => {
+			for (const playerId of playerIds) this.simulator.removePlayer(playerId);
+			for (const kingdomId of kingdomIds) this.simulator.removeKingdom(kingdomId);
+		};
+
+		// A single target keeps the description of the removal itself; several are one step.
+		if (total > 1) this.simulator.transaction(`Elimina ${total} elements`, remove);
+		else remove();
 
 		this.selection.players.clear();
 		this.selection.kingdoms.clear();

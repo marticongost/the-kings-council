@@ -142,6 +142,8 @@
 	/** Player being dragged within the list, so entries can reorder around it. */
 	let draggingId = $state<string | null>(null);
 	let dragging = false;
+	/** Whether the drag is being recorded, so the whole reorder is a single undoable step. */
+	let recordingDrag = false;
 
 	function hasTurnOrderPayload(event: DragEvent): boolean {
 		return event.dataTransfer?.types.includes(turnOrderDragMime) ?? false;
@@ -175,6 +177,10 @@
 		event.dataTransfer.effectAllowed = 'move';
 		dragging = true;
 
+		// Entries reorder as the player passes over them, so the whole drag is one step.
+		simulator.beginTransaction('Reordena el torn');
+		recordingDrag = true;
+
 		// The row is hidden once its drag image, which follows the pointer as the ghost, has
 		// been captured. Delaying the change keeps the image from being an empty row.
 		setTimeout(() => {
@@ -186,6 +192,11 @@
 		dragging = false;
 		draggingId = null;
 		isOver = false;
+
+		if (recordingDrag) {
+			recordingDrag = false;
+			simulator.endTransaction();
+		}
 	}
 
 	/** Moves the dragged player to a position, unless they already are there. */

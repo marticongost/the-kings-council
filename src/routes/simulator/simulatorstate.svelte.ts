@@ -2,11 +2,18 @@ import { cardsCatalog } from '#lib/data/catalog';
 import type { CapabilityType } from '#lib/models/capabilities';
 import { CardCapability } from '#lib/models/cardcapabilities';
 import { type Card, type Crisis, type CardType } from '#lib/models/cards';
-import { kingdomStatTypes, type KingdomStatType } from '#lib/models/kingdomstats';
+import { getKingdomStat, kingdomStatTypes, type KingdomStatType } from '#lib/models/kingdomstats';
 import { officeTypes } from '#lib/models/offices';
+import { getResource } from '#lib/models/resources';
 import { SvelteSet } from 'svelte/reactivity';
 import { crisisContributionResources } from './crisiscontributions';
-import { deckIdForType, isOfficeTypeKey, officeCardId, type ConcreteTypeKey } from './keyboardnav';
+import {
+	deckIdForType,
+	isOfficeTypeKey,
+	officeCardId,
+	typeLabel,
+	type ConcreteTypeKey
+} from './keyboardnav';
 import {
 	dangerForTurn,
 	deckCardType,
@@ -45,6 +52,89 @@ const snapshotVersion = 7;
 
 /** Oldest snapshot version that can still be migrated to the current schema. */
 const oldestSnapshotVersion = 1;
+
+/** How many steps the undo history keeps. */
+const maxHistoryEntries = 50;
+
+/** A copy of every mutable part of the game state, as kept by the undo history. */
+interface GameStateCopy {
+	players: Array<PlayerState>;
+	kingdoms: Array<KingdomState>;
+	laws: Array<CardRef>;
+	market: Array<CardRef>;
+	decks: Record<DeckId, Array<CardRef>>;
+	discards: Record<DeckId, Array<CardRef>>;
+	turn: number;
+	turnOrder: Array<string>;
+	resolution: ResolutionState;
+}
+
+/** One undoable step: the state as it was before the change, and what the change was. */
+interface HistoryEntry {
+	description: string;
+	state: GameStateCopy;
+}
+
+/**
+ * Copies the whole game state, including the uids of the card instances, so that a change
+ * can be reverted without disturbing the selection or the cards the history itself holds.
+ */
+function copyGameState(state: GameStateCopy): GameStateCopy {
+	const copyRefs = (refs: ReadonlyArray<CardRef>) =>
+		refs.map((ref) => ({ uid: ref.uid, cardId: ref.cardId }));
+	const copyDecks = (decks: Readonly<Record<DeckId, Array<CardRef>>>) => {
+		const copy = {} as Record<DeckId, Array<CardRef>>;
+		for (const deckId of deckIds) copy[deckId] = copyRefs(decks[deckId]);
+		return copy;
+	};
+
+	return {
+		players: state.players.map((player) => ({
+			id: player.id,
+			name: player.name,
+			kingdomId: player.kingdomId,
+			resources: { ...player.resources },
+			hand: copyRefs(player.hand),
+			offices: copyRefs(player.offices),
+			plan: {
+				actions: [...player.plan.actions],
+				secrets: [...player.plan.secrets],
+				confirmed: player.plan.confirmed,
+				inputs: { ...player.plan.inputs }
+			},
+			vigilance: player.vigilance,
+			acquisitions: player.acquisitions.map((acquisition) => ({ ...acquisition })),
+			contribution: { ...player.contribution },
+			crisisPayments: Object.fromEntries(
+				Object.entries(player.crisisPayments).map(([kingdomId, payment]) => [
+					kingdomId,
+					{ ...payment }
+				])
+			)
+		})),
+		kingdoms: state.kingdoms.map((kingdom) => ({
+			id: kingdom.id,
+			name: kingdom.name,
+			stats: { ...kingdom.stats },
+			crisisDefense: kingdom.crisisDefense,
+			crisisPaid: kingdom.crisisPaid,
+			cards: copyRefs(kingdom.cards),
+			fateDeck: copyRefs(kingdom.fateDeck)
+		})),
+		laws: copyRefs(state.laws),
+		market: copyRefs(state.market),
+		decks: copyDecks(state.decks),
+		discards: copyDecks(state.discards),
+		turn: state.turn,
+		turnOrder: [...state.turnOrder],
+		resolution: { ...state.resolution }
+	};
+}
+
+/** Whether two copies of the game state hold the same values. */
+function sameGameState(a: GameStateCopy, b: GameStateCopy): boolean {
+	return JSON.stringify(a) === JSON.stringify(b);
+}
 
 let uidCounter = 0;
 
@@ -198,6 +288,11 @@ function shuffle<T>(items: Array<T>): void {
 		const swapIndex = Math.floor(Math.random() * (index + 1));
 		[items[index], items[swapIndex]] = [items[swapIndex], items[index]];
 	}
+}
+
+/** Names an amount of things, e.g. "1 carta" or "3 cartes". */
+function countOf(count: number, singular: string, plural: string): string {
+	return `${count} ${count === 1 ? singular : plural}`;
 }
 
 function normalizeRefs(
@@ -395,13 +490,137 @@ export class SimulatorState {
 	/** The turn resolution, which presents the planned capabilities while the turn is being played. */
 	resolution = $state<ResolutionState>({ active: false, index: 0 });
 
+	/** Undo history, oldest first. Every entry keeps the state as it was before its change. */
+	private history = $state.raw<Array<HistoryEntry>>([]);
+	/** Steps taken back from the history, which redo can replay. */
+	private redoHistory = $state.raw<Array<HistoryEntry>>([]);
+	/** Step being recorded, which folds the changes made while it is open into one entry. */
+	private pendingChange: { description: string; before: GameStateCopy; depth: number } | null =
+		null;
+
 	/** The current danger value, used by crisis difficulty calculations. */
 	get danger(): number {
 		return dangerForTurn(this.turn);
 	}
 
+	get canUndo(): boolean {
+		return this.history.length > 0;
+	}
+
+	get canRedo(): boolean {
+		return this.redoHistory.length > 0;
+	}
+
+	/** Description of the change the next undo reverts, shown in the undo button. */
+	get undoDescription(): string | null {
+		return this.history.at(-1)?.description ?? null;
+	}
+
+	/** Description of the change the next redo reapplies, shown in the redo button. */
+	get redoDescription(): string | null {
+		return this.redoHistory.at(-1)?.description ?? null;
+	}
+
+	/**
+	 * Runs a change as one undoable step with a human readable description. Changes made
+	 * inside it, including nested transactions, are folded into the same step.
+	 */
+	transaction(description: string, change: () => void): void {
+		this.beginTransaction(description);
+		try {
+			change();
+		} finally {
+			this.endTransaction();
+		}
+	}
+
+	/**
+	 * Opens a step that stays open until `endTransaction`, for changes made one at a time,
+	 * such as editing a plan or dragging a player through the turn order.
+	 */
+	beginTransaction(description: string): void {
+		if (this.pendingChange) {
+			this.pendingChange.depth += 1;
+			return;
+		}
+
+		this.pendingChange = { description, before: copyGameState(this), depth: 1 };
+	}
+
+	/** Closes the open step, recording it only when it changed the game state. */
+	endTransaction(): void {
+		const pending = this.pendingChange;
+		if (!pending) return;
+
+		pending.depth -= 1;
+		if (pending.depth > 0) return;
+		this.pendingChange = null;
+
+		if (sameGameState(pending.before, copyGameState(this))) return;
+		this.history = [
+			...this.history.slice(1 - maxHistoryEntries),
+			{ description: pending.description, state: pending.before }
+		];
+		this.redoHistory = [];
+	}
+
+	/** Drops the open step, e.g. when what it was recording no longer exists. */
+	cancelTransaction(): void {
+		this.pendingChange = null;
+	}
+
+	/** Reverts the last change of the game state. */
+	undo(): void {
+		// The step being recorded is not part of the history yet, so it cannot be reverted.
+		if (this.pendingChange) return;
+		const entry = this.history.at(-1);
+		if (!entry) return;
+
+		this.history = this.history.slice(0, -1);
+		this.redoHistory = [
+			...this.redoHistory,
+			{ description: entry.description, state: copyGameState(this) }
+		];
+		this.applyState(entry.state);
+	}
+
+	/** Reapplies the last change that was undone. */
+	redo(): void {
+		if (this.pendingChange) return;
+		const entry = this.redoHistory.at(-1);
+		if (!entry) return;
+
+		this.redoHistory = this.redoHistory.slice(0, -1);
+		this.history = [
+			...this.history,
+			{ description: entry.description, state: copyGameState(this) }
+		];
+		this.applyState(entry.state);
+	}
+
+	private clearHistory(): void {
+		this.pendingChange = null;
+		this.history = [];
+		this.redoHistory = [];
+	}
+
+	private applyState(state: GameStateCopy): void {
+		// A fresh copy keeps the state of the history entry untouched by later changes.
+		const copy = copyGameState(state);
+		this.players = copy.players;
+		this.kingdoms = copy.kingdoms;
+		this.laws = copy.laws;
+		this.market = copy.market;
+		this.decks = copy.decks;
+		this.discards = copy.discards;
+		this.turn = copy.turn;
+		this.turnOrder = copy.turnOrder;
+		this.resolution = copy.resolution;
+	}
+
 	load(): void {
-		this.reset();
+		this.clearState();
+		this.clearHistory();
 
 		const raw =
 			typeof localStorage === 'undefined' ? null : localStorage.getItem(simulatorStorageKey);
@@ -409,7 +628,7 @@ export class SimulatorState {
 			try {
 				this.restore(JSON.parse(raw) as unknown);
 			} catch {
-				this.reset();
+				this.clearState();
 			}
 		}
 
@@ -421,12 +640,15 @@ export class SimulatorState {
 		localStorage.setItem(simulatorStorageKey, JSON.stringify(this.toSnapshot()));
 	}
 
+	/** Resets the game to its initial state, wiping the undo history along with it. */
 	clear(): void {
-		this.reset();
+		this.clearState();
+		this.clearHistory();
 		this.persist();
 	}
 
-	reset(): void {
+	/** Empties the game state without recording it in the history. */
+	private clearState(): void {
 		this.players = [];
 		this.kingdoms = [];
 		this.laws = [];
@@ -440,12 +662,20 @@ export class SimulatorState {
 
 	setTurn(value: number): void {
 		if (!Number.isFinite(value)) return;
-		this.turn = clamp(value, minTurn, maxTurn);
+		const turn = clamp(value, minTurn, maxTurn);
+		if (turn === this.turn) return;
+		this.transaction(`Torn ${turn}`, () => {
+			this.turn = turn;
+		});
 	}
 
 	/** Advances to the next turn, capped at the last turn of the game. */
 	advanceTurn(): void {
-		this.turn = clamp(this.turn + 1, minTurn, maxTurn);
+		const turn = clamp(this.turn + 1, minTurn, maxTurn);
+		if (turn === this.turn) return;
+		this.transaction(`Avança al torn ${turn}`, () => {
+			this.turn = turn;
+		});
 	}
 
 	// Players
@@ -458,26 +688,29 @@ export class SimulatorState {
 		const resolvedKingdomId =
 			kingdomId && this.kingdoms.some((kingdom) => kingdom.id === kingdomId) ? kingdomId : null;
 		const id = makeUid();
-		this.players.push({
-			id,
-			name: nextPlayerName(this.players),
-			kingdomId: resolvedKingdomId,
-			resources: startingResources(),
-			hand: [
-				...this.drawFromDeck('house', 1),
-				...this.drawFromDeck('tactic', startingTacticCount),
-				...this.drawFromDeck('collective-goal', 1),
-				...this.drawFromDeck('personal-goal', 1)
-			],
-			offices: [],
-			plan: emptyPlan(),
-			vigilance: 0,
-			acquisitions: emptyAcquisitions(),
-			contribution: {},
-			crisisPayments: {}
+		const name = nextPlayerName(this.players);
+		this.transaction(`Afegeix el jugador ${name}`, () => {
+			this.players.push({
+				id,
+				name,
+				kingdomId: resolvedKingdomId,
+				resources: startingResources(),
+				hand: [
+					...this.drawFromDeck('house', 1),
+					...this.drawFromDeck('tactic', startingTacticCount),
+					...this.drawFromDeck('collective-goal', 1),
+					...this.drawFromDeck('personal-goal', 1)
+				],
+				offices: [],
+				plan: emptyPlan(),
+				vigilance: 0,
+				acquisitions: emptyAcquisitions(),
+				contribution: {},
+				crisisPayments: {}
+			});
+			// Every player takes part in the turn order, dimmed until they confirm their plan.
+			this.turnOrder.push(id);
 		});
-		// Every player takes part in the turn order, dimmed until they confirm their plan.
-		this.turnOrder.push(id);
 		return id;
 	}
 
@@ -505,18 +738,21 @@ export class SimulatorState {
 		const index = this.players.findIndex((player) => player.id === playerId);
 		if (index < 0) return;
 
-		const [player] = this.players.splice(index, 1);
-		const fateDeck = player.kingdomId
-			? this.kingdoms.find((kingdom) => kingdom.id === player.kingdomId)?.fateDeck
-			: undefined;
-		for (const ref of player.hand) {
-			const card = this.cardOf(ref);
-			if (!card) continue;
-			if (isFateCard(card) && fateDeck) fateDeck.unshift(ref);
-			else this.discards[deckIdOf(card)].push(ref);
-		}
-		this.returnOffices(player);
-		this.turnOrder = this.turnOrder.filter((id) => id !== playerId);
+		const player = this.players[index];
+		this.transaction(`Elimina el jugador ${player.name}`, () => {
+			this.players.splice(index, 1);
+			const fateDeck = player.kingdomId
+				? this.kingdoms.find((kingdom) => kingdom.id === player.kingdomId)?.fateDeck
+				: undefined;
+			for (const ref of player.hand) {
+				const card = this.cardOf(ref);
+				if (!card) continue;
+				if (isFateCard(card) && fateDeck) fateDeck.unshift(ref);
+				else this.discards[deckIdOf(card)].push(ref);
+			}
+			this.returnOffices(player);
+			this.turnOrder = this.turnOrder.filter((id) => id !== playerId);
+		});
 	}
 
 	assignKingdom(playerId: string, kingdomId: string | null): void {
@@ -527,31 +763,51 @@ export class SimulatorState {
 			kingdomId && this.kingdoms.some((kingdom) => kingdom.id === kingdomId) ? kingdomId : null;
 		if (player.kingdomId === nextKingdomId) return;
 
-		// Offices are kingdom-bound, so they stay behind when a player changes kingdom.
-		this.returnOffices(player);
-		player.kingdomId = nextKingdomId;
+		const kingdomName = this.kingdoms.find((kingdom) => kingdom.id === nextKingdomId)?.name;
+		const description = kingdomName
+			? `Assigna ${player.name} a ${kingdomName}`
+			: `Deixa ${player.name} sense regne`;
+		this.transaction(description, () => {
+			// Offices are kingdom-bound, so they stay behind when a player changes kingdom.
+			this.returnOffices(player);
+			player.kingdomId = nextKingdomId;
+		});
 	}
 
 	setResource(playerId: string, resource: PlayerResourceType, value: number): void {
 		const player = this.players.find((candidate) => candidate.id === playerId);
 		if (!player || !Number.isFinite(value)) return;
-		player.resources[resource] = Math.max(0, Math.round(value));
+
+		const amount = Math.max(0, Math.round(value));
+		if (player.resources[resource] === amount) return;
+		this.transaction(`${getResource(resource).title} de ${player.name}: ${amount}`, () => {
+			player.resources[resource] = amount;
+		});
 	}
 
 	/** Changes one resource, or every resource when `resource` is null. */
 	adjustResources(playerId: string, resource: PlayerResourceType | null, delta: number): void {
 		const player = this.players.find((candidate) => candidate.id === playerId);
 		if (!player) return;
+
 		const types = resource ? [resource] : playerResourceTypes;
-		for (const type of types) this.setResource(playerId, type, player.resources[type] + delta);
+		const scope = resource ? getResource(resource).title : 'Recursos';
+		const amount = `${delta >= 0 ? '+' : ''}${delta}`;
+		this.transaction(`${scope} de ${player.name}: ${amount}`, () => {
+			for (const type of types) this.setResource(playerId, type, player.resources[type] + delta);
+		});
 	}
 
 	/** Sets one resource, or every resource when `resource` is null. */
 	setResources(playerId: string, resource: PlayerResourceType | null, value: number): void {
 		const player = this.players.find((candidate) => candidate.id === playerId);
 		if (!player) return;
+
 		const types = resource ? [resource] : playerResourceTypes;
-		for (const type of types) this.setResource(playerId, type, value);
+		const scope = resource ? getResource(resource).title : 'Recursos';
+		this.transaction(`${scope} de ${player.name}: ${value}`, () => {
+			for (const type of types) this.setResource(playerId, type, value);
+		});
 	}
 
 	membersOf(kingdomId: string): Array<PlayerState> {
@@ -577,14 +833,17 @@ export class SimulatorState {
 
 	addKingdom(): string {
 		const id = makeUid();
-		this.kingdoms.push({
-			id,
-			name: nextKingdomName(this.kingdoms),
-			stats: emptyKingdomStats(),
-			crisisDefense: 0,
-			crisisPaid: false,
-			cards: createOfficeRefs(),
-			fateDeck: this.drawFateDeck()
+		const name = nextKingdomName(this.kingdoms);
+		this.transaction(`Afegeix el regne ${name}`, () => {
+			this.kingdoms.push({
+				id,
+				name,
+				stats: emptyKingdomStats(),
+				crisisDefense: 0,
+				crisisPaid: false,
+				cards: createOfficeRefs(),
+				fateDeck: this.drawFateDeck()
+			});
 		});
 		return id;
 	}
@@ -629,55 +888,79 @@ export class SimulatorState {
 	/** Draws the top card of a kingdom's fate deck into its card area. */
 	drawFateCard(kingdomId: string): void {
 		const kingdom = this.kingdoms.find((candidate) => candidate.id === kingdomId);
-		if (!kingdom) return;
+		if (!kingdom || kingdom.fateDeck.length === 0) return;
 
-		const ref = kingdom.fateDeck.pop();
-		if (ref) kingdom.cards.push(ref);
+		this.transaction(`Reparteix una carta de destí a ${kingdom.name}`, () => {
+			const ref = kingdom.fateDeck.pop();
+			if (ref) kingdom.cards.push(ref);
+		});
 	}
 
 	removeKingdom(kingdomId: string): void {
 		const index = this.kingdoms.findIndex((kingdom) => kingdom.id === kingdomId);
 		if (index < 0) return;
 
-		const [kingdom] = this.kingdoms.splice(index, 1);
-		// Its crisis and event cards go back to the shared piles, so other kingdoms can be dealt them.
-		for (const ref of [...kingdom.fateDeck, ...kingdom.cards]) {
-			const card = this.cardOf(ref);
-			if (card && isFateCard(card)) this.decks[deckIdOf(card)].push(ref);
-		}
-		for (const player of this.players) {
-			if (player.kingdomId !== kingdomId) continue;
-			player.kingdomId = null;
-			player.offices = [];
-		}
+		const kingdom = this.kingdoms[index];
+		this.transaction(`Elimina el regne ${kingdom.name}`, () => {
+			this.kingdoms.splice(index, 1);
+			// Its crisis and event cards go back to the shared piles, so other kingdoms can be dealt them.
+			for (const ref of [...kingdom.fateDeck, ...kingdom.cards]) {
+				const card = this.cardOf(ref);
+				if (card && isFateCard(card)) this.decks[deckIdOf(card)].push(ref);
+			}
+			for (const player of this.players) {
+				if (player.kingdomId !== kingdomId) continue;
+				player.kingdomId = null;
+				player.offices = [];
+			}
+		});
 	}
 
 	setStat(kingdomId: string, stat: KingdomStatType, value: number): void {
 		const kingdom = this.kingdoms.find((candidate) => candidate.id === kingdomId);
 		if (!kingdom || !Number.isFinite(value)) return;
-		kingdom.stats[stat] = clamp(value, kingdomStatMin, kingdomStatMax);
+
+		const amount = clamp(value, kingdomStatMin, kingdomStatMax);
+		if (kingdom.stats[stat] === amount) return;
+		this.transaction(`${getKingdomStat(stat).title} de ${kingdom.name}: ${amount}`, () => {
+			kingdom.stats[stat] = amount;
+		});
 	}
 
 	/** Changes one stat, or every stat when `stat` is null. */
 	adjustStats(kingdomId: string, stat: KingdomStatType | null, delta: number): void {
 		const kingdom = this.kingdoms.find((candidate) => candidate.id === kingdomId);
 		if (!kingdom) return;
+
 		const types = stat ? [stat] : kingdomStatTypes;
-		for (const type of types) this.setStat(kingdomId, type, kingdom.stats[type] + delta);
+		const scope = stat ? getKingdomStat(stat).title : 'Estats';
+		const amount = `${delta >= 0 ? '+' : ''}${delta}`;
+		this.transaction(`${scope} de ${kingdom.name}: ${amount}`, () => {
+			for (const type of types) this.setStat(kingdomId, type, kingdom.stats[type] + delta);
+		});
 	}
 
 	/** Sets one stat, or every stat when `stat` is null. */
 	setStats(kingdomId: string, stat: KingdomStatType | null, value: number): void {
 		const kingdom = this.kingdoms.find((candidate) => candidate.id === kingdomId);
 		if (!kingdom) return;
+
 		const types = stat ? [stat] : kingdomStatTypes;
-		for (const type of types) this.setStat(kingdomId, type, value);
+		const scope = stat ? getKingdomStat(stat).title : 'Estats';
+		this.transaction(`${scope} de ${kingdom.name}: ${value}`, () => {
+			for (const type of types) this.setStat(kingdomId, type, value);
+		});
 	}
 
 	setCrisisDefense(kingdomId: string, value: number): void {
 		const kingdom = this.kingdoms.find((candidate) => candidate.id === kingdomId);
 		if (!kingdom || !Number.isFinite(value)) return;
-		kingdom.crisisDefense = Math.max(0, Math.round(value));
+
+		const defense = Math.max(0, Math.round(value));
+		if (kingdom.crisisDefense === defense) return;
+		this.transaction(`Defensa de la crisi de ${kingdom.name}: ${defense}`, () => {
+			kingdom.crisisDefense = defense;
+		});
 	}
 
 	/** The crisis a kingdom is facing: the first crisis card in its card area, if any. */
@@ -712,22 +995,25 @@ export class SimulatorState {
 	 * The paid amounts are remembered, so later navigation shows what was actually paid.
 	 */
 	payCrisisContributions(kingdomId: string): void {
+		const kingdom = this.kingdoms.find((candidate) => candidate.id === kingdomId);
+		if (!kingdom) return;
 		const crisis = this.kingdomCrisis(kingdomId);
 		if (!crisis) return;
 
-		for (const player of this.membersOf(kingdomId)) {
-			const effective = this.effectiveCrisisContribution(player, crisis);
-			for (const resource of playerResourceTypes) {
-				const amount = effective[resource] ?? 0;
-				if (amount > 0) {
-					player.resources[resource] = Math.max(0, player.resources[resource] - amount);
+		this.transaction(`Paga les contribucions de ${kingdom.name}`, () => {
+			for (const player of this.membersOf(kingdomId)) {
+				const effective = this.effectiveCrisisContribution(player, crisis);
+				for (const resource of playerResourceTypes) {
+					const amount = effective[resource] ?? 0;
+					if (amount > 0) {
+						player.resources[resource] = Math.max(0, player.resources[resource] - amount);
+					}
 				}
+				player.crisisPayments[kingdomId] = effective;
 			}
-			player.crisisPayments[kingdomId] = effective;
-		}
 
-		const kingdom = this.kingdoms.find((candidate) => candidate.id === kingdomId);
-		if (kingdom) kingdom.crisisPaid = true;
+			kingdom.crisisPaid = true;
+		});
 	}
 
 	/**
@@ -829,16 +1115,24 @@ export class SimulatorState {
 	setPlanInput(playerId: string, key: string, value: string): void {
 		const player = this.players.find((candidate) => candidate.id === playerId);
 		if (!player) return;
+		if ((player.plan.inputs[key] ?? '') === value) return;
 
-		if (value) player.plan.inputs[key] = value;
-		else delete player.plan.inputs[key];
+		this.transaction(`Pla de ${player.name}`, () => {
+			if (value) player.plan.inputs[key] = value;
+			else delete player.plan.inputs[key];
+		});
 	}
 
 	/** Sets the vigilance a player gives while planning. */
 	setVigilance(playerId: string, value: number): void {
 		const player = this.players.find((candidate) => candidate.id === playerId);
 		if (!player || !Number.isFinite(value)) return;
-		player.vigilance = Math.max(0, Math.round(value));
+
+		const vigilance = Math.max(0, Math.round(value));
+		if (player.vigilance === vigilance) return;
+		this.transaction(`Pla de ${player.name}`, () => {
+			player.vigilance = vigilance;
+		});
 	}
 
 	/** Updates one acquisition of a player's plan, e.g. its card or the gold paid. */
@@ -846,11 +1140,13 @@ export class SimulatorState {
 		const player = this.players.find((candidate) => candidate.id === playerId);
 		if (!player || index < 0 || index >= player.acquisitions.length) return;
 
-		const acquisition = player.acquisitions[index];
-		if (patch.cardId !== undefined) acquisition.cardId = patch.cardId;
-		if (patch.gold !== undefined && Number.isFinite(patch.gold)) {
-			acquisition.gold = Math.max(0, Math.round(patch.gold));
-		}
+		this.transaction(`Pla de ${player.name}`, () => {
+			const acquisition = player.acquisitions[index];
+			if (patch.cardId !== undefined) acquisition.cardId = patch.cardId;
+			if (patch.gold !== undefined && Number.isFinite(patch.gold)) {
+				acquisition.gold = Math.max(0, Math.round(patch.gold));
+			}
+		});
 	}
 
 	/**
@@ -911,11 +1207,13 @@ export class SimulatorState {
 		}
 		if (wins.length === 0) return;
 
-		this.market = this.market.filter((ref) => !wins.some((win) => win.ref.uid === ref.uid));
-		for (const { ref, winner, gold } of wins) {
-			this.payBidCost(winner, gold);
-			winner.hand.push(ref);
-		}
+		this.transaction(`Reparteix ${countOf(wins.length, 'actiu', 'actius')}`, () => {
+			this.market = this.market.filter((ref) => !wins.some((win) => win.ref.uid === ref.uid));
+			for (const { ref, winner, gold } of wins) {
+				this.payBidCost(winner, gold);
+				winner.hand.push(ref);
+			}
+		});
 	}
 
 	/** Pays a bid from a player's gold first, then their favour, as the rules allow. */
@@ -931,8 +1229,11 @@ export class SimulatorState {
 		if (!player || !Number.isFinite(value)) return;
 
 		const amount = Math.max(0, Math.round(value));
-		if (amount) player.contribution[resource] = amount;
-		else delete player.contribution[resource];
+		if ((player.contribution[resource] ?? 0) === amount) return;
+		this.transaction(`Pla de ${player.name}`, () => {
+			if (amount) player.contribution[resource] = amount;
+			else delete player.contribution[resource];
+		});
 	}
 
 	/** Clears the indications a player gave while planning: vigilance, acquisitions and contribution. */
@@ -940,15 +1241,19 @@ export class SimulatorState {
 		const player = this.players.find((candidate) => candidate.id === playerId);
 		if (!player) return;
 
-		player.vigilance = 0;
-		player.acquisitions = emptyAcquisitions();
-		player.contribution = {};
-		player.crisisPayments = {};
+		this.transaction(`Neteja les indicacions de ${player.name}`, () => {
+			player.vigilance = 0;
+			player.acquisitions = emptyAcquisitions();
+			player.contribution = {};
+			player.crisisPayments = {};
+		});
 	}
 
 	/** Resets every player's vigilance, acquisitions and contribution to their defaults. */
 	clearAllIndications(): void {
-		for (const player of this.players) this.resetIndications(player.id);
+		this.transaction('Neteja les indicacions de tots els jugadors', () => {
+			for (const player of this.players) this.resetIndications(player.id);
+		});
 	}
 
 	/** Appends a capability to the plan list of its type, ignoring the ones that cannot be planned. */
@@ -963,7 +1268,9 @@ export class SimulatorState {
 		const list = capability && planListOf(capability.cardCapability.capability.type);
 		if (!list || player.plan[list].includes(key)) return;
 
-		player.plan[list].push(key);
+		this.transaction(`Pla de ${player.name}`, () => {
+			player.plan[list].push(key);
+		});
 	}
 
 	/** Removes a capability from the plan. */
@@ -973,8 +1280,10 @@ export class SimulatorState {
 
 		this.normalizePlan(player);
 		const without = (keys: Array<string>) => keys.filter((candidate) => candidate !== key);
-		player.plan.actions = without(player.plan.actions);
-		player.plan.secrets = without(player.plan.secrets);
+		this.transaction(`Pla de ${player.name}`, () => {
+			player.plan.actions = without(player.plan.actions);
+			player.plan.secrets = without(player.plan.secrets);
+		});
 	}
 
 	/** Moves a planned capability to another position within its list. */
@@ -991,10 +1300,12 @@ export class SimulatorState {
 		const from = list?.indexOf(key) ?? -1;
 		if (!list || from < 0) return;
 
-		list.splice(from, 1);
-		// Within the same list, the index is taken before the capability was removed.
-		const insertAt = from < index ? index - 1 : index;
-		list.splice(Math.min(Math.max(insertAt, 0), list.length), 0, key);
+		this.transaction(`Pla de ${player.name}`, () => {
+			list.splice(from, 1);
+			// Within the same list, the index is taken before the capability was removed.
+			const insertAt = from < index ? index - 1 : index;
+			list.splice(Math.min(Math.max(insertAt, 0), list.length), 0, key);
+		});
 	}
 
 	/** Empties the planned capabilities of one type, including the values typed into them. */
@@ -1002,14 +1313,16 @@ export class SimulatorState {
 		const player = this.players.find((candidate) => candidate.id === playerId);
 		if (!player) return;
 
-		const removed = player.plan[list];
-		for (const key of removed) {
-			const prefix = `${key}:`;
-			for (const inputKey of Object.keys(player.plan.inputs)) {
-				if (inputKey.startsWith(prefix)) delete player.plan.inputs[inputKey];
+		this.transaction(`Pla de ${player.name}`, () => {
+			const removed = player.plan[list];
+			for (const key of removed) {
+				const prefix = `${key}:`;
+				for (const inputKey of Object.keys(player.plan.inputs)) {
+					if (inputKey.startsWith(prefix)) delete player.plan.inputs[inputKey];
+				}
 			}
-		}
-		player.plan[list] = [];
+			player.plan[list] = [];
+		});
 	}
 
 	/** Empties the plan of a player and unconfirms it. */
@@ -1017,10 +1330,12 @@ export class SimulatorState {
 		const player = this.players.find((candidate) => candidate.id === playerId);
 		if (!player) return;
 
-		player.plan.actions = [];
-		player.plan.secrets = [];
-		player.plan.confirmed = false;
-		player.plan.inputs = {};
+		this.transaction(`Pla de ${player.name}`, () => {
+			player.plan.actions = [];
+			player.plan.secrets = [];
+			player.plan.confirmed = false;
+			player.plan.inputs = {};
+		});
 	}
 
 	/** Confirms a plan, moving the player up with the ones that already confirmed. */
@@ -1042,14 +1357,16 @@ export class SimulatorState {
 
 	/** Returns every capability of every player to their available list and unconfirms them. */
 	resetTurnOrder(): void {
-		for (const player of this.players) {
-			this.resetPlan(player.id);
-			this.resetIndications(player.id);
-		}
-		for (const kingdom of this.kingdoms) {
-			kingdom.crisisDefense = 0;
-			kingdom.crisisPaid = false;
-		}
+		this.transaction('Reinicia la planificació del torn', () => {
+			for (const player of this.players) {
+				this.resetPlan(player.id);
+				this.resetIndications(player.id);
+			}
+			for (const kingdom of this.kingdoms) {
+				kingdom.crisisDefense = 0;
+				kingdom.crisisPaid = false;
+			}
+		});
 	}
 
 	/** Moves a player to another position in the turn order. */
@@ -1057,10 +1374,40 @@ export class SimulatorState {
 		const from = this.turnOrder.indexOf(playerId);
 		if (from < 0) return;
 
-		// The index is taken in the list before the player is removed.
-		const [id] = this.turnOrder.splice(from, 1);
-		const insertAt = from < index ? index - 1 : index;
-		this.turnOrder.splice(Math.min(Math.max(insertAt, 0), this.turnOrder.length), 0, id);
+		this.transaction('Reordena el torn', () => {
+			// The index is taken in the list before the player is removed.
+			const [id] = this.turnOrder.splice(from, 1);
+			const insertAt = from < index ? index - 1 : index;
+			this.turnOrder.splice(Math.min(Math.max(insertAt, 0), this.turnOrder.length), 0, id);
+		});
+	}
+
+	/** Describes a card move for the undo history, naming where the card goes to. */
+	private describeMove(card: Card, target: Zone): string {
+		const title = card.title;
+		switch (target.kind) {
+			case 'hand': {
+				const player = this.players.find((candidate) => candidate.id === target.playerId);
+				return player ? `Mou ${title} a la mà de ${player.name}` : `Mou ${title}`;
+			}
+			case 'laws':
+				return `Mou ${title} a les lleis`;
+			case 'market':
+				return `Mou ${title} al mercat`;
+			case 'deck':
+				return `Retorna ${title} a la baralla`;
+			case 'discard':
+				return `Descarta ${title}`;
+			case 'kingdom-cards':
+			case 'kingdom-offices': {
+				const kingdom = this.kingdoms.find((candidate) => candidate.id === target.kingdomId);
+				return kingdom ? `Mou ${title} a ${kingdom.name}` : `Mou ${title}`;
+			}
+			case 'player-offices': {
+				const player = this.players.find((candidate) => candidate.id === target.playerId);
+				return player ? `Assigna ${title} a ${player.name}` : `Mou ${title}`;
+			}
+		}
 	}
 
 	/**
@@ -1088,18 +1435,20 @@ export class SimulatorState {
 		const card = this.cardOf(ref);
 		if (!card || !this.canPlace(card, target)) return;
 
-		// Discarded or returned fate cards go back to the deck of their kingdom.
-		if ((target.kind === 'deck' || target.kind === 'discard') && isFateCard(card)) {
-			const fateDeck = this.fateDeckOf(source);
-			if (fateDeck) {
-				sourceCards.splice(index, 1);
-				fateDeck.unshift(ref);
-				return;
+		this.transaction(this.describeMove(card, target), () => {
+			// Discarded or returned fate cards go back to the deck of their kingdom.
+			if ((target.kind === 'deck' || target.kind === 'discard') && isFateCard(card)) {
+				const fateDeck = this.fateDeckOf(source);
+				if (fateDeck) {
+					sourceCards.splice(index, 1);
+					fateDeck.unshift(ref);
+					return;
+				}
 			}
-		}
 
-		sourceCards.splice(index, 1);
-		targetCards.push(ref);
+			sourceCards.splice(index, 1);
+			targetCards.push(ref);
+		});
 	}
 
 	/** The fate deck a crisis or event card belongs to, judged by where it currently is. */
@@ -1159,26 +1508,50 @@ export class SimulatorState {
 		return null;
 	}
 
+	/** Describes a change to several cards, naming the single card when there is only one. */
+	private describeCards(verb: string, uids: ReadonlyArray<string>, suffix = ''): string {
+		const titles = uids.flatMap((uid) => {
+			const found = this.findCard(uid);
+			const card = found && this.cardOf(found.ref);
+			return card ? [card.title] : [];
+		});
+
+		const ending = suffix ? ` ${suffix}` : '';
+		return titles.length === 1
+			? `${verb} ${titles[0]}${ending}`
+			: `${verb} ${countOf(titles.length, 'carta', 'cartes')}${ending}`;
+	}
+
 	/** Moves cards to their deck's discard pile. */
 	discardCards(uids: Iterable<string>): void {
-		for (const uid of uids) {
-			const found = this.findCard(uid);
-			if (!found) continue;
-			const card = this.cardOf(found.ref);
-			if (!card) continue;
-			this.moveCard(found.zone, { kind: 'discard', deckId: deckIdOf(card) }, uid);
-		}
+		const cards = [...uids];
+		if (cards.length === 0) return;
+
+		this.transaction(this.describeCards('Descarta', cards), () => {
+			for (const uid of cards) {
+				const found = this.findCard(uid);
+				if (!found) continue;
+				const card = this.cardOf(found.ref);
+				if (!card) continue;
+				this.moveCard(found.zone, { kind: 'discard', deckId: deckIdOf(card) }, uid);
+			}
+		});
 	}
 
 	/** Returns cards to the top of their deck. */
 	returnCardsToDecks(uids: Iterable<string>): void {
-		for (const uid of uids) {
-			const found = this.findCard(uid);
-			if (!found) continue;
-			const card = this.cardOf(found.ref);
-			if (!card) continue;
-			this.moveCard(found.zone, { kind: 'deck', deckId: deckIdOf(card) }, uid);
-		}
+		const cards = [...uids];
+		if (cards.length === 0) return;
+
+		this.transaction(this.describeCards('Retorna', cards, 'a la baralla'), () => {
+			for (const uid of cards) {
+				const found = this.findCard(uid);
+				if (!found) continue;
+				const card = this.cardOf(found.ref);
+				if (!card) continue;
+				this.moveCard(found.zone, { kind: 'deck', deckId: deckIdOf(card) }, uid);
+			}
+		});
 	}
 
 	/**
@@ -1193,17 +1566,21 @@ export class SimulatorState {
 		const count = Math.max(0, Math.floor(amount));
 		if (count === 0) return;
 
-		for (const playerId of targets.playerIds) {
-			const player = this.players.find((candidate) => candidate.id === playerId);
-			if (!player) continue;
-			for (let index = 0; index < count; index += 1) this.acquireForPlayer(player, type);
-		}
+		const label = typeLabel(type).toLowerCase();
+		const description = count === 1 ? `Adquireix ${label}` : `Adquireix ${label} ×${count}`;
+		this.transaction(description, () => {
+			for (const playerId of targets.playerIds) {
+				const player = this.players.find((candidate) => candidate.id === playerId);
+				if (!player) continue;
+				for (let index = 0; index < count; index += 1) this.acquireForPlayer(player, type);
+			}
 
-		for (const kingdomId of targets.kingdomIds) {
-			const kingdom = this.kingdoms.find((candidate) => candidate.id === kingdomId);
-			if (!kingdom) continue;
-			for (let index = 0; index < count; index += 1) this.acquireForKingdom(kingdom, type);
-		}
+			for (const kingdomId of targets.kingdomIds) {
+				const kingdom = this.kingdoms.find((candidate) => candidate.id === kingdomId);
+				if (!kingdom) continue;
+				for (let index = 0; index < count; index += 1) this.acquireForKingdom(kingdom, type);
+			}
+		});
 	}
 
 	private acquireForPlayer(player: PlayerState, type: ConcreteTypeKey): void {
@@ -1251,7 +1628,11 @@ export class SimulatorState {
 	refillLaws(): void {
 		const target = 2 + Math.floor(this.players.length / 3);
 		const missing = Math.max(0, target - this.laws.length);
-		this.laws.push(...this.drawFromDeck('law', missing));
+		if (missing === 0) return;
+
+		this.transaction('Reomple les lleis', () => {
+			this.laws.push(...this.drawFromDeck('law', missing));
+		});
 	}
 
 	/**
@@ -1264,14 +1645,16 @@ export class SimulatorState {
 		const rowSize = this.players.length;
 		const visibleCount = Math.ceil(rowSize / 2);
 
-		for (const ref of this.market) {
-			const card = this.cardOf(ref);
-			if (card) this.discards[deckIdOf(card)].push(ref);
-		}
-		this.market = [];
+		this.transaction('Reomple el mercat', () => {
+			for (const ref of this.market) {
+				const card = this.cardOf(ref);
+				if (card) this.discards[deckIdOf(card)].push(ref);
+			}
+			this.market = [];
 
-		this.dealToMarket('visible-asset', visibleCount);
-		this.dealToMarket('hidden-asset', rowSize - visibleCount);
+			this.dealToMarket('visible-asset', visibleCount);
+			this.dealToMarket('hidden-asset', rowSize - visibleCount);
+		});
 	}
 
 	/** Deals up to `count` cards from a deck onto the market. */
@@ -1300,51 +1683,55 @@ export class SimulatorState {
 		if (index < 0) return;
 		const ref = sourceOffices[index];
 
-		if (target.kind === 'kingdom-offices') {
-			if (source.kind !== 'player-offices') return;
+		const card = this.cardOf(ref);
+		this.transaction(card ? this.describeMove(card, target) : 'Mou un càrrec', () => {
+			if (target.kind === 'kingdom-offices') {
+				if (source.kind !== 'player-offices') return;
 
-			// Assigned offices always return to the kingdom of their holder.
-			const kingdomOffices =
-				this.kingdoms.find((kingdom) => kingdom.id === this.officeKingdomId(source))?.cards ?? null;
-			if (!kingdomOffices) return;
+				// Assigned offices always return to the kingdom of their holder.
+				const kingdomOffices =
+					this.kingdoms.find((kingdom) => kingdom.id === this.officeKingdomId(source))?.cards ??
+					null;
+				if (!kingdomOffices) return;
 
-			sourceOffices.splice(index, 1);
-			kingdomOffices.push(ref);
-			return;
-		}
+				sourceOffices.splice(index, 1);
+				kingdomOffices.push(ref);
+				return;
+			}
 
-		const player = this.players.find((candidate) => candidate.id === target.playerId);
-		if (!player) return;
+			const player = this.players.find((candidate) => candidate.id === target.playerId);
+			if (!player) return;
 
-		// Dropping an office on a kingdomless player makes them join its kingdom.
-		if (!player.kingdomId) {
-			const kingdomId = this.officeKingdomId(source);
+			// Dropping an office on a kingdomless player makes them join its kingdom.
+			if (!player.kingdomId) {
+				const kingdomId = this.officeKingdomId(source);
+				if (!kingdomId) return;
+				player.kingdomId = kingdomId;
+			}
+
+			const kingdomId = player.kingdomId;
 			if (!kingdomId) return;
-			player.kingdomId = kingdomId;
-		}
 
-		const kingdomId = player.kingdomId;
-		if (!kingdomId) return;
+			// Reassigning within a kingdom moves the office itself, not another copy.
+			if (source.kind === 'player-offices' && this.officeKingdomId(source) === kingdomId) {
+				sourceOffices.splice(index, 1);
+				player.offices.push(ref);
+				return;
+			}
 
-		// Reassigning within a kingdom moves the office itself, not another copy.
-		if (source.kind === 'player-offices' && this.officeKingdomId(source) === kingdomId) {
+			if (player.offices.some((office) => office.cardId === ref.cardId)) return;
+
+			const match = this.findOffice(kingdomId, ref.cardId);
+			if (match) {
+				match.offices.splice(match.index, 1);
+				player.offices.push(match.ref);
+				return;
+			}
+
+			// Fallback for an office missing from the player's kingdom.
 			sourceOffices.splice(index, 1);
 			player.offices.push(ref);
-			return;
-		}
-
-		if (player.offices.some((office) => office.cardId === ref.cardId)) return;
-
-		const match = this.findOffice(kingdomId, ref.cardId);
-		if (match) {
-			match.offices.splice(match.index, 1);
-			player.offices.push(match.ref);
-			return;
-		}
-
-		// Fallback for an office missing from the player's kingdom.
-		sourceOffices.splice(index, 1);
-		player.offices.push(ref);
+		});
 	}
 
 	/** Finds a kingdom's copy of an office, whether in its reserve or held by a member. */

@@ -9,6 +9,9 @@
 			marginLeft: 'auto',
 			...css.row('xs')
 		},
+		disabledButton: {
+			opacity: 0.35
+		},
 		panels: {
 			display: 'flex',
 			flexDirection: 'row',
@@ -125,7 +128,7 @@
 	/** One skull per point of danger, so danger 3 renders as three skulls. */
 	const dangerSkulls = $derived(Array.from({ length: simulator.danger }));
 	const selection = new SimulatorSelection();
-	const plans = new PlanController();
+	const plans = new PlanController(simulator);
 	const resolution = new TurnResolution(simulator);
 	const keyboard = new KeyboardController(simulator, selection, plans, resolution);
 
@@ -222,6 +225,22 @@
 				<Panel title="Partida">
 					{#snippet header()}
 						<div class={styles.headerActions}>
+							<IconButton
+								src="ui/undo.svg"
+								class={cx(!simulator.canUndo && styles.disabledButton)}
+								disabled={!simulator.canUndo}
+								label={simulator.undoDescription
+									? `Desfés: ${simulator.undoDescription}`
+									: 'Desfés'}
+								onclick={() => simulator.undo()}
+							/>
+							<IconButton
+								src="ui/redo.svg"
+								class={cx(!simulator.canRedo && styles.disabledButton)}
+								disabled={!simulator.canRedo}
+								label={simulator.redoDescription ? `Refés: ${simulator.redoDescription}` : 'Refés'}
+								onclick={() => simulator.redo()}
+							/>
 							<IconButton
 								src="ui/add-kingdom.svg"
 								label="Afegeix regne"

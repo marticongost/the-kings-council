@@ -148,8 +148,10 @@ export class TurnResolution {
 	}
 
 	stop(): void {
-		this.simulator.resolution = { active: false, index: 0 };
-		this.simulator.clearAllIndications();
+		this.simulator.transaction('Atura la resolució del torn', () => {
+			this.simulator.resolution = { active: false, index: 0 };
+			this.simulator.clearAllIndications();
+		});
 	}
 
 	/** Moves to the next step, finishing the turn after the last one. */
@@ -173,12 +175,14 @@ export class TurnResolution {
 
 	/** Ends the resolution, shows the player order again, and advances the turn. */
 	private finish(current: ResolutionStep | null): void {
-		this.simulator.advanceTurn();
-		this.simulator.resetTurnOrder();
-		this.simulator.resolution = { active: false, index: 0 };
-		if (current?.kind === 'assets-bid' && current.last) {
-			this.simulator.refillMarket();
-		}
+		this.simulator.transaction(`Finalitza el torn ${this.simulator.turn}`, () => {
+			this.simulator.advanceTurn();
+			this.simulator.resetTurnOrder();
+			this.simulator.resolution = { active: false, index: 0 };
+			if (current?.kind === 'assets-bid' && current.last) {
+				this.simulator.refillMarket();
+			}
+		});
 	}
 }
 
