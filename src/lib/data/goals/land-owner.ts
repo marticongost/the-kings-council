@@ -2,7 +2,7 @@ import type { GoalData } from '#lib/models/cards';
 
 export default {
 	title: 'Terratinent',
-	goalType: 'collective',
+	goalType: 'personal',
 	capabilities: [
 		{
 			type: 'reaction',
