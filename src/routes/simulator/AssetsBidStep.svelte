@@ -49,7 +49,7 @@
 			fontFamily: css.fonts.heading,
 			fontWeight: 900,
 			fontSize: '0.8em',
-			color: css.palette.crisis
+			color: css.palette.petal
 		},
 		bids: {
 			display: 'grid',

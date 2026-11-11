@@ -92,7 +92,7 @@
 		dangerIcon: {
 			height: '1.1em',
 			width: 'auto',
-			color: css.palette.crisis
+			color: css.palette.petal
 		},
 		decks: {
 			display: 'grid',

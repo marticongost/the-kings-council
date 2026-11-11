@@ -11,11 +11,11 @@
 	// picking the shade that keeps the pill text readable.
 	const pillColors: Record<CardBackgroundName, PillColors> = {
 		common: { background: '#495b62', color: css.palette.white },
-		office: { background: '#9f5757', color: css.palette.white },
+		office: { background: '#556', color: css.palette.white },
 		'collective-goal': { background: '#dfcba7', color: css.palette.cedar },
 		'personal-goal': { background: '#c4ae99', color: css.palette.cedar },
 		event: { background: '#6e846f', color: css.palette.white },
-		crisis: { background: css.palette.crisis, color: css.palette.white },
+		crisis: { background: css.palette.petal, color: css.palette.white },
 		law: { background: '#987f98', color: css.palette.white },
 		tactic: { background: '#616f95', color: css.palette.white },
 		asset: { background: '#bdb8a7', color: css.palette.cedar },
@@ -86,7 +86,7 @@
 			padding: '0.05em 0.45em',
 			borderRadius: '999px',
 			backgroundColor: css.palette.carrara,
-			color: css.palette.crisis,
+			color: css.palette.petal,
 			fontFamily: css.fonts.number,
 			fontWeight: 900,
 			fontSize: '1.2em',

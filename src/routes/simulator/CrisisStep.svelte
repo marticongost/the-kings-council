@@ -19,7 +19,7 @@
 			height: '1.3em',
 			width: 'auto',
 			flexShrink: 0,
-			color: css.palette.crisis
+			color: css.palette.petal
 		},
 		title: {
 			fontFamily: css.fonts.heading,

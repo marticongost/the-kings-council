@@ -3,6 +3,7 @@ import type { HexColor } from './types';
 export const white: HexColor = '#fff';
 export const red: HexColor = '#864949';
 export const rose: HexColor = '#B88787';
+export const petal: HexColor = '#9f5757';
 export const blush: HexColor = '#e9dedd';
 export const buccaneer: HexColor = '#702e2e';
 export const thatch: HexColor = '#bd9898';

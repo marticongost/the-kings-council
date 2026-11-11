@@ -6,7 +6,7 @@
    version="1.1"
    id="svg3"
    sodipodi:docname="office.svg"
-   inkscape:version="1.4.4 (1:1.4.4+202605061436+dcaf3e7d9e)"
+   inkscape:version="1.4.3 (0d15f75042, 2025-12-25)"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -18,11 +18,11 @@
        id="linearGradient2"
        inkscape:collect="always">
       <stop
-         style="stop-color:#bb5353;stop-opacity:1;"
+         style="stop-color:#9295a5;stop-opacity:1;"
          offset="0"
          id="stop3" />
       <stop
-         style="stop-color:#913b3b;stop-opacity:1;"
+         style="stop-color:#3c3f49;stop-opacity:1;"
          offset="1"
          id="stop4" />
     </linearGradient>
@@ -30,11 +30,11 @@
        id="linearGradient1"
        inkscape:collect="always">
       <stop
-         style="stop-color:#923b3b;stop-opacity:1;"
+         style="stop-color:#747688;stop-opacity:1;"
          offset="0"
          id="stop1" />
       <stop
-         style="stop-color:#6a2b2b;stop-opacity:1;"
+         style="stop-color:#101010;stop-opacity:1;"
          offset="1"
          id="stop2" />
     </linearGradient>
@@ -58,7 +58,7 @@
        fx="6.2999244"
        fy="6.1309018"
        r="5.2687016"
-       gradientTransform="matrix(0.90905256,0,0,0.87235025,0,-0.05918097)"
+       gradientTransform="matrix(0.79365077,0,0,0.73228706,0,-0.04968967)"
        gradientUnits="userSpaceOnUse" />
   </defs>
   <sodipodi:namedview
@@ -72,12 +72,12 @@
      inkscape:deskcolor="#d1d1d1"
      showgrid="false"
      inkscape:zoom="14.084171"
-     inkscape:cx="44.269556"
+     inkscape:cx="44.234055"
      inkscape:cy="19.383462"
-     inkscape:window-width="2560"
-     inkscape:window-height="1011"
+     inkscape:window-width="3072"
+     inkscape:window-height="1227"
      inkscape:window-x="0"
-     inkscape:window-y="32"
+     inkscape:window-y="0"
      inkscape:window-maximized="1"
      inkscape:current-layer="svg3"
      inkscape:document-units="mm" />
@@ -88,23 +88,19 @@
      height="8.000001"
      x="-1.7763568e-15"
      y="-6.6639055e-05" />
-  <g
-     id="g1"
-     transform="matrix(0.87305268,0,0,0.83944157,0,-1.0699461e-5)">
-    <path
-       d="m 0,-6.6639056e-5 h 11.454064 l 0,9.530097339056 L 5.7269623,10.721348 0,9.5300795 Z"
-       style="fill:#7c2e2e;fill-opacity:1;stroke-width:0.0350622"
-       id="path1"
-       sodipodi:nodetypes="cccccc" />
-    <path
-       d="M 0.62997004,0.69295939 H 10.824094 V 9.3209194 L 5.7269623,10.328749 0.62997004,9.3209194 Z"
-       style="fill:#a86f6f;fill-opacity:1;stroke-width:0.0313587"
-       id="path2"
-       sodipodi:nodetypes="cccccc" />
-    <path
-       d="M 0.93743555,0.69295939 H 10.516489 l 0,8.34650971 L 5.7271016,10.041919 0.93757481,9.0395943 Z"
-       style="fill:url(#radialGradient4);fill-opacity:1;stroke-width:0.0292244"
-       id="path3"
-       sodipodi:nodetypes="cccccc" />
-  </g>
+  <path
+     d="M 0,-6.6639055e-5 H 10.000001 V 7.9998932 L 4.9999398,8.9999345 0,7.9999342 Z"
+     style="fill:#484b58;fill-opacity:1;stroke-width:0.0300161"
+     id="path1"
+     sodipodi:nodetypes="cccccc" />
+  <path
+     d="M 0.54999703,0.58168822 H 9.4500043 V 7.8243565 L 4.9999398,8.6703706 0.54999703,7.8243565 Z"
+     style="fill:#636779;fill-opacity:1;stroke-width:0.0268456"
+     id="path2"
+     sodipodi:nodetypes="cccccc" />
+  <path
+     d="M 0.81843062,0.58168822 H 9.1814489 V 7.5880954 L 5.0000614,8.4295936 0.8185522,7.5882005 Z"
+     style="fill:url(#radialGradient4);fill-opacity:1;stroke-width:0.0250185"
+     id="path3"
+     sodipodi:nodetypes="cccccc" />
 </svg>

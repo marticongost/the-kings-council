@@ -6,7 +6,7 @@
    version="1.1"
    id="svg3"
    sodipodi:docname="office.svg"
-   inkscape:version="1.4.4 (1:1.4.4+202605061436+dcaf3e7d9e)"
+   inkscape:version="1.4.3 (0d15f75042, 2025-12-25)"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -18,11 +18,11 @@
        id="linearGradient2"
        inkscape:collect="always">
       <stop
-         style="stop-color:#bb5353;stop-opacity:1;"
+         style="stop-color:#9295a5;stop-opacity:1;"
          offset="0"
          id="stop3" />
       <stop
-         style="stop-color:#913b3b;stop-opacity:1;"
+         style="stop-color:#3c3f49;stop-opacity:1;"
          offset="1"
          id="stop4" />
     </linearGradient>
@@ -30,11 +30,11 @@
        id="linearGradient1"
        inkscape:collect="always">
       <stop
-         style="stop-color:#923b3b;stop-opacity:1;"
+         style="stop-color:#747688;stop-opacity:1;"
          offset="0"
          id="stop1" />
       <stop
-         style="stop-color:#6a2b2b;stop-opacity:1;"
+         style="stop-color:#101010;stop-opacity:1;"
          offset="1"
          id="stop2" />
     </linearGradient>
@@ -47,18 +47,18 @@
        fx="37.800007"
        fy="4.7044339"
        r="25.200003"
-       gradientTransform="matrix(1.3929395,0.21172017,-0.06713758,0.44170856,-14.537269,-5.3765787)"
+       gradientTransform="matrix(1.8979667,9.5108906e-8,0,0.81742589,-33.943142,0.85890427)"
        gradientUnits="userSpaceOnUse" />
     <radialGradient
        inkscape:collect="always"
        xlink:href="#linearGradient2"
        id="radialGradient4"
-       cx="6.2999243"
-       cy="6.1309017"
-       fx="6.2999243"
-       fy="6.1309017"
+       cx="6.2999244"
+       cy="6.1309018"
+       fx="6.2999244"
+       fy="6.1309018"
        r="5.2687017"
-       gradientTransform="matrix(1,0,0,1.0321219,0,-0.19693609)"
+       gradientTransform="matrix(2.383437,0,0,1.6311358,-8.7155487,-3.8694317)"
        gradientUnits="userSpaceOnUse" />
   </defs>
   <sodipodi:namedview
@@ -71,31 +71,31 @@
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1"
      showgrid="false"
-     inkscape:zoom="3.5210428"
-     inkscape:cx="81.225938"
-     inkscape:cy="47.713138"
-     inkscape:window-width="2560"
-     inkscape:window-height="1011"
+     inkscape:zoom="1.7605214"
+     inkscape:cx="-63.901524"
+     inkscape:cy="89.178126"
+     inkscape:window-width="3072"
+     inkscape:window-height="1227"
      inkscape:window-x="0"
-     inkscape:window-y="32"
+     inkscape:window-y="0"
      inkscape:window-maximized="1"
      inkscape:current-layer="svg3"
      inkscape:document-units="mm" />
   <path
      d="M 0,-6.6639056e-5 H 12.600002 V 9.4089345 L 6.2999243,12.599935 0,9.4089919 Z"
-     style="fill:#7c2e2e;stroke-width:0.0398661;fill-opacity:1"
+     style="fill:#484b58;stroke-width:0.0398661;fill-opacity:1"
      id="path1"
      sodipodi:nodetypes="cccccc" />
   <path
      d="M 0.69299627,0.69295939 H 11.907006 V 9.0670734 L 6.2999243,11.906761 0.69299627,9.0670734 Z"
-     style="fill:#a86f6f;fill-opacity:1;stroke-width:0.035481"
+     style="fill:#636779;fill-opacity:1;stroke-width:0.035481"
      id="path2" />
   <path
      d="M 1.0312226,0.69295939 H 11.568626 V 8.9000416 L 6.3000775,11.568844 1.0313758,8.9001898 Z"
      style="fill:url(#radialGradient4);stroke-width:0.0333405;fill-opacity:1"
      id="path3" />
   <rect
-     style="fill:url(#radialGradient2);stroke-width:0.636363;fill-opacity:1"
+     style="fill:url(#radialGradient2);fill-opacity:1;stroke-width:0.636363"
      id="rect3"
      width="50.400005"
      height="9.4090014"
