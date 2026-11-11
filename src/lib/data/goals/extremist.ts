@@ -8,7 +8,7 @@ export default {
 			type: 'reaction',
 			trigger: 'gameEnd',
 			effects:
-				'Guanya {prestige 1} per cada indicador amb un valor 1 o 5. Si no hi ha cap indicador amb valor 3, guanya {prestige 1} addicional.'
+				'Guanya {prestige} 3/4/5/6 segons el regne tingui 1/2/3/4 {kingdom-stats} amb valor 1 o 5.'
 		}
 	]
 } satisfies GoalData;

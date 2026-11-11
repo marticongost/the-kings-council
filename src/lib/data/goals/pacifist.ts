@@ -1,13 +1,8 @@
 import type { GoalData } from '#lib/models/cards';
+import { lowKingdomStatGoalReaction } from '../reusable-definitions';
 
 export default {
 	title: 'Pacifista',
 	goalType: 'collective',
-	capabilities: [
-		{
-			type: 'reaction',
-			trigger: 'gameEnd',
-			effects: "Guanya {prestige 3} si l'{might} del teu regne és 2, o {prestige 4} si és 1."
-		}
-	]
+	capabilities: [lowKingdomStatGoalReaction('might')]
 } satisfies GoalData;

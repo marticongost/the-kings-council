@@ -1,13 +1,8 @@
 import type { GoalData } from '#lib/models/cards';
+import { lowKingdomStatGoalReaction } from '../reusable-definitions';
 
 export default {
 	title: 'Autàrtic',
 	goalType: 'collective',
-	capabilities: [
-		{
-			type: 'reaction',
-			trigger: 'gameEnd',
-			effects: 'Guanya {prestige 3} si la {wealth} del teu regne és 2, o {prestige 4} si és 1.'
-		}
-	]
+	capabilities: [lowKingdomStatGoalReaction('wealth')]
 } satisfies GoalData;

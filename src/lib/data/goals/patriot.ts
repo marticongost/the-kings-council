@@ -1,13 +1,8 @@
 import type { GoalData } from '#lib/models/cards';
+import { highKingdomStatGoalReaction } from '../reusable-definitions';
 
 export default {
 	title: 'Patriota',
 	goalType: 'collective',
-	capabilities: [
-		{
-			type: 'reaction',
-			trigger: 'gameEnd',
-			effects: "Guanya {prestige 3} si l'{stability} del teu regne és 4, o {prestige 4} si és 5."
-		}
-	]
+	capabilities: [highKingdomStatGoalReaction('stability')]
 } satisfies GoalData;
