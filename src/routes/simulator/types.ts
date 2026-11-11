@@ -245,6 +245,30 @@ export interface Acquisition {
 	gold: number;
 }
 
+/** The side of a law vote a player takes. */
+export type VoteSide = 'for' | 'against';
+
+/** The resources a player spends on one side of a law vote. */
+export interface LawVote {
+	playerId: string;
+	power: number;
+	favour: number;
+	side: VoteSide;
+}
+
+/** What a player commits to a vote while it is being cast. */
+export type VoteAllocation = Omit<LawVote, 'playerId'>;
+
+/** A player's vote with no resources committed yet, which defaults to favouring the law. */
+export function emptyVoteAllocation(): VoteAllocation {
+	return { power: 0, favour: 0, side: 'for' };
+}
+
+/** The weight a vote adds to its side: the power and favour spent on it. */
+export function lawVoteWeight(vote: Pick<LawVote, 'power' | 'favour'>): number {
+	return Math.max(0, vote.power) + Math.max(0, vote.favour);
+}
+
 export interface PlayerState {
 	id: string;
 	name: string;

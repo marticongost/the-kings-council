@@ -15,6 +15,7 @@ import type { SimulatorSelection, SelectionKind } from './selection.svelte';
 import type { PlanController } from './plans.svelte';
 import type { TurnResolution } from './resolution.svelte';
 import type { SimulatorState } from './simulatorstate.svelte';
+import type { VoteController } from './votes.svelte';
 import {
 	cardScope,
 	cardsOfGroups,
@@ -104,18 +105,21 @@ export class KeyboardController {
 	readonly selection: SimulatorSelection;
 	readonly plans: PlanController;
 	readonly resolution: TurnResolution;
+	readonly votes: VoteController;
 	pending = $state<PendingCommand | null>(null);
 
 	constructor(
 		simulator: SimulatorState,
 		selection: SimulatorSelection,
 		plans: PlanController,
-		resolution: TurnResolution
+		resolution: TurnResolution,
+		votes: VoteController
 	) {
 		this.simulator = simulator;
 		this.selection = selection;
 		this.plans = plans;
 		this.resolution = resolution;
+		this.votes = votes;
 	}
 
 	get view(): SelectionView {
@@ -372,9 +376,13 @@ export class KeyboardController {
 	private handleKey(event: KeyboardEvent): void {
 		const key = event.key;
 
-		// Keys typed into a control belong to it, so its text can be edited even while the
-		// plan modal is open.
+		// Keys typed into a control belong to it, so its text can be edited even while a
+		// modal is open.
 		if (isEditableTarget(event.target)) return;
+
+		// The vote modal captures the keyboard, so no shortcut acts behind it. It closes on
+		// Escape through its own listener.
+		if (this.votes.kingdomId) return;
 
 		// The plan modal captures the keyboard, so no shortcut acts behind it. It closes on
 		// Escape through its own listener, and on `l` through this shortcut.

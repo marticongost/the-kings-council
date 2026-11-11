@@ -67,6 +67,7 @@
 	import { useSelection } from './selection.svelte';
 	import type { SimulatorState } from './simulatorstate.svelte';
 	import { kingdomStatMax, kingdomStatMin, type KingdomState, type Zone } from './types';
+	import { useVotes } from './votes.svelte';
 
 	interface Props {
 		simulator: SimulatorState;
@@ -76,6 +77,7 @@
 	const { simulator, kingdom }: Props = $props();
 
 	const selection = useSelection();
+	const votes = useVotes();
 	const selected = $derived(selection.kingdoms.has(kingdom.id));
 	const members = $derived(simulator.membersOf(kingdom.id));
 
@@ -175,6 +177,11 @@
 
 	{#snippet header()}
 		<div class={styles.headerActions}>
+			<IconButton
+				src="ui/vote.svg"
+				label={`Vota una llei a ${kingdom.name}`}
+				onclick={() => votes.toggle(kingdom.id)}
+			/>
 			<IconButton
 				src="ui/draw-fate.svg"
 				label={`Roba una carta de destí per a ${kingdom.name}`}

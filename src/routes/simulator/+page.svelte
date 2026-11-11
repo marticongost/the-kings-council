@@ -167,6 +167,8 @@
 	import { SimulatorState } from './simulatorstate.svelte';
 	import TurnOrderList from './TurnOrderList.svelte';
 	import { deckIdsInPlay, maxPlayers, maxTurn, minPlayers, minTurn } from './types';
+	import VoteModal from './VoteModal.svelte';
+	import { provideVotes, VoteController } from './votes.svelte';
 
 	/** Distance from the bottom of the viewport, in pixels, that reveals the decks. */
 	const decksRevealDistance = 30;
@@ -182,11 +184,13 @@
 	const dangerSkulls = $derived(Array.from({ length: simulator.danger }));
 	const selection = new SimulatorSelection();
 	const plans = new PlanController(simulator);
+	const votes = new VoteController(simulator);
 	const resolution = new TurnResolution(simulator);
-	const keyboard = new KeyboardController(simulator, selection, plans, resolution);
+	const keyboard = new KeyboardController(simulator, selection, plans, resolution, votes);
 
 	provideSelection(selection);
 	providePlans(plans);
+	provideVotes(votes);
 	provideTurnResolution(resolution);
 
 	let decksElement = $state<HTMLElement>();
@@ -233,6 +237,10 @@
 
 	$effect(() => {
 		plans.prune(simulator);
+	});
+
+	$effect(() => {
+		votes.prune(simulator);
 	});
 
 	// The new game menu closes when the pointer goes elsewhere, and Escape closes it without
@@ -470,4 +478,5 @@
 	</div>
 
 	<PlanModal {simulator} />
+	<VoteModal {simulator} />
 {/if}

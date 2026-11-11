@@ -34,6 +34,7 @@ import {
 	kingdomStatMax,
 	kingdomStatMin,
 	kingdomStatNeutral,
+	lawVoteWeight,
 	maxPlayers,
 	maxTurn,
 	minPlayers,
@@ -46,6 +47,7 @@ import {
 	type CardRef,
 	type DeckId,
 	type KingdomState,
+	type LawVote,
 	type PlanListId,
 	type PlayerPlan,
 	type PlayerPlanView,
@@ -2124,6 +2126,55 @@ export class SimulatorState {
 		this.transaction('Reomple les lleis', () => {
 			this.laws.push(...this.drawFromDeck('law', missing));
 		});
+	}
+
+	/**
+	 * Resolves a vote on a law from the laws row. Every member of the kingdom spends the
+	 * power and favour committed, and the law either joins the kingdom's cards or is
+	 * discarded. Returns whether the law passed.
+	 */
+	resolveLawVote(kingdomId: string, lawUid: string, votes: Array<LawVote>): boolean {
+		const kingdom = this.kingdoms.find((candidate) => candidate.id === kingdomId);
+		const index = this.laws.findIndex((ref) => ref.uid === lawUid);
+		const ref = index >= 0 ? this.laws[index] : null;
+		const card = ref ? this.cardOf(ref) : null;
+		if (!kingdom || !ref || !card) return false;
+
+		const totals = { for: 0, against: 0 };
+		const kingdomVotes = votes.flatMap((vote) => {
+			const player = this.players.find(
+				(candidate) => candidate.id === vote.playerId && candidate.kingdomId === kingdomId
+			);
+			if (!player) return [];
+
+			return [
+				{
+					...vote,
+					power: Math.max(0, Math.min(Math.round(vote.power), player.resources.power)),
+					favour: Math.max(0, Math.min(Math.round(vote.favour), player.resources.favour))
+				}
+			];
+		});
+		for (const vote of kingdomVotes) {
+			totals[vote.side] += lawVoteWeight(vote);
+		}
+		const passed = totals.for > totals.against;
+
+		this.transaction(`${card.title}: ${passed ? "s'aprova" : 'es descarta'}`, () => {
+			this.laws.splice(index, 1);
+			for (const vote of kingdomVotes) {
+				const player = this.players.find((candidate) => candidate.id === vote.playerId);
+				if (!player) continue;
+
+				player.resources.power -= vote.power;
+				player.resources.favour -= vote.favour;
+			}
+
+			if (passed) kingdom.cards.push(ref);
+			else this.discards[deckIdOf(card)].push(ref);
+		});
+
+		return passed;
 	}
 
 	/**
