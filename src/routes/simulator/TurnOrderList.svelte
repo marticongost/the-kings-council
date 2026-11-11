@@ -78,14 +78,18 @@
 	import IconButton from '#lib/components/IconButton.svelte';
 	import AssetsBidStep from './AssetsBidStep.svelte';
 	import CrisisStep from './CrisisStep.svelte';
+	import IndependentProductionStep from './IndependentProductionStep.svelte';
 	import PanelSection from './PanelSection.svelte';
+	import ProductionStep from './ProductionStep.svelte';
 	import { usePlans } from './plans.svelte';
 	import PlayerChip from './PlayerChip.svelte';
 	import {
 		useTurnResolution,
 		type AssetsBidResolutionStep,
 		type CapabilityResolutionStep,
-		type CrisisResolutionStep
+		type CrisisResolutionStep,
+		type IndependentProductionResolutionStep,
+		type ProductionResolutionStep
 	} from './resolution.svelte';
 	import { useSelection } from './selection.svelte';
 	import type { SimulatorState } from './simulatorstate.svelte';
@@ -118,6 +122,12 @@
 	);
 	const assetsBidEntry = $derived<AssetsBidResolutionStep | null>(
 		entry?.kind === 'assets-bid' ? entry : null
+	);
+	const productionEntry = $derived<ProductionResolutionStep | null>(
+		entry?.kind === 'production' ? entry : null
+	);
+	const independentProductionEntry = $derived<IndependentProductionResolutionStep | null>(
+		entry?.kind === 'independent-production' ? entry : null
 	);
 
 	// The capability being presented shows the values it was filled in with while planning.
@@ -286,6 +296,16 @@
 			{#key assetsBidEntry.acquisitionIndex}
 				<AssetsBidStep {simulator} acquisitionIndex={assetsBidEntry.acquisitionIndex} />
 			{/key}
+		{:else if productionEntry}
+			{#key `${productionEntry.kingdomId}:${productionEntry.resource}`}
+				<ProductionStep
+					{simulator}
+					kingdomId={productionEntry.kingdomId}
+					resource={productionEntry.resource}
+				/>
+			{/key}
+		{:else if independentProductionEntry}
+			<IndependentProductionStep {simulator} />
 		{:else}
 			<div class={styles.slideshow} aria-live="polite">
 				{#if capabilityEntry}

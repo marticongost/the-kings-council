@@ -3,10 +3,20 @@ import type { CapabilityType } from '#lib/models/capabilities';
 import { CardCapability } from '#lib/models/cardcapabilities';
 import { type Card, type Crisis, type CardType } from '#lib/models/cards';
 import { getKingdomStat, kingdomStatTypes, type KingdomStatType } from '#lib/models/kingdomstats';
-import { officeTypes } from '#lib/models/offices';
+import { officeTypes, type OfficeType } from '#lib/models/offices';
 import { getResource } from '#lib/models/resources';
 import { SvelteSet } from 'svelte/reactivity';
 import { crisisContributionResources } from './crisiscontributions';
+import {
+	emptyProductionState,
+	independentProductionResourceTypes,
+	kingdomProduction,
+	productionKey,
+	productionOffice,
+	type ProductionDistribution,
+	type ProductionResourceType,
+	type ProductionState
+} from './production';
 import {
 	deckIdForType,
 	isOfficeTypeKey,
@@ -70,6 +80,7 @@ interface GameStateCopy {
 	turn: number;
 	turnOrder: Array<string>;
 	resolution: ResolutionState;
+	production: ProductionState;
 }
 
 /** One undoable step: the state as it was before the change, and what the change was. */
@@ -82,6 +93,29 @@ interface HistoryEntry {
  * Copies the whole game state, including the uids of the card instances, so that a change
  * can be reverted without disturbing the selection or the cards the history itself holds.
  */
+function copyProduction(production: ProductionState): ProductionState {
+	return {
+		distributions: Object.fromEntries(
+			Object.entries(production.distributions).map(([key, distribution]) => [
+				key,
+				{
+					extras: [...distribution.extras],
+					privilege: distribution.privilege,
+					assigned: { ...distribution.assigned },
+					applied: distribution.applied
+				}
+			])
+		),
+		independent: Object.fromEntries(
+			Object.entries(production.independent).map(([playerId, resources]) => [
+				playerId,
+				[...resources]
+			])
+		),
+		independentApplied: production.independentApplied
+	};
+}
+
 function copyGameState(state: GameStateCopy): GameStateCopy {
 	const copyRefs = (refs: ReadonlyArray<CardRef>) =>
 		refs.map((ref) => ({ uid: ref.uid, cardId: ref.cardId }));
@@ -130,7 +164,8 @@ function copyGameState(state: GameStateCopy): GameStateCopy {
 		discards: copyDecks(state.discards),
 		turn: state.turn,
 		turnOrder: [...state.turnOrder],
-		resolution: { ...state.resolution }
+		resolution: { ...state.resolution },
+		production: copyProduction(state.production)
 	};
 }
 
@@ -378,6 +413,45 @@ function normalizeResolution(value: unknown): ResolutionState {
 	};
 }
 
+function normalizeProduction(value: unknown): ProductionState {
+	const record = asObject(value);
+	const state = emptyProductionState();
+
+	const distributions = asObject(record?.distributions);
+	if (distributions) {
+		for (const [key, raw] of Object.entries(distributions)) {
+			const distribution = asObject(raw);
+			if (!distribution) continue;
+			const assigned = asObject(distribution.assigned) ?? {};
+			const normalizedAssigned: Record<string, number> = {};
+			for (const [playerId, amount] of Object.entries(assigned)) {
+				const value = Math.max(0, Math.round(asNumber(amount, 0)));
+				if (value > 0) normalizedAssigned[playerId] = value;
+			}
+			state.distributions[key] = {
+				extras: uniqueStrings(distribution.extras),
+				privilege: distribution.privilege === true,
+				assigned: normalizedAssigned,
+				applied: distribution.applied === true
+			};
+		}
+	}
+
+	const independent = asObject(record?.independent);
+	if (independent) {
+		for (const [playerId, raw] of Object.entries(independent)) {
+			const resources = uniqueStrings(raw)
+				.filter((resource): resource is ProductionResourceType =>
+					(independentProductionResourceTypes as ReadonlyArray<string>).includes(resource)
+				)
+				.slice(0, 3);
+			if (resources.length > 0) state.independent[playerId] = resources;
+		}
+	}
+	state.independentApplied = record?.independentApplied === true;
+	return state;
+}
+
 function normalizeResources(value: unknown): PlayerResources {
 	const record = asObject(value);
 	const resources = emptyResources();
@@ -492,6 +566,8 @@ export class SimulatorState {
 	turnOrder = $state<Array<string>>([]);
 	/** The turn resolution, which presents the planned capabilities while the turn is being played. */
 	resolution = $state<ResolutionState>({ active: false, index: 0 });
+	/** Scratch state of the production phase, kept while its steps are being resolved. */
+	production = $state<ProductionState>(emptyProductionState());
 
 	/** Undo history, oldest first. Every entry keeps the state as it was before its change. */
 	private history = $state.raw<Array<HistoryEntry>>([]);
@@ -619,6 +695,7 @@ export class SimulatorState {
 		this.turn = copy.turn;
 		this.turnOrder = copy.turnOrder;
 		this.resolution = copy.resolution;
+		this.production = copy.production;
 	}
 
 	load(): void {
@@ -712,6 +789,7 @@ export class SimulatorState {
 		this.turn = minTurn;
 		this.turnOrder = [];
 		this.resolution = { active: false, index: 0 };
+		this.production = emptyProductionState();
 	}
 
 	setTurn(value: number): void {
@@ -866,6 +944,17 @@ export class SimulatorState {
 
 	membersOf(kingdomId: string): Array<PlayerState> {
 		return this.players.filter((player) => player.kingdomId === kingdomId);
+	}
+
+	/** The members of a kingdom, ordered by their position in the turn order. */
+	membersInTurnOrder(kingdomId: string): Array<PlayerState> {
+		const order: Record<string, number> = {};
+		this.turnOrder.forEach((id, index) => {
+			order[id] = index;
+		});
+		return this.membersOf(kingdomId).sort(
+			(a, b) => (order[a.id] ?? Number.MAX_SAFE_INTEGER) - (order[b.id] ?? Number.MAX_SAFE_INTEGER)
+		);
 	}
 
 	/** Players that belong to no kingdom, shown as the independents group. */
@@ -1080,6 +1169,346 @@ export class SimulatorState {
 		crisis: Crisis
 	): PlayerContribution {
 		return player.crisisPayments[kingdomId] ?? this.effectiveCrisisContribution(player, crisis);
+	}
+
+	// Production
+
+	/** The player holding an office within a kingdom, or null when the office is unassigned. */
+	private officeHolder(kingdomId: string, office: OfficeType): PlayerState | null {
+		return (
+			this.players.find(
+				(player) =>
+					player.kingdomId === kingdomId && player.offices.some((ref) => ref.cardId === office)
+			) ?? null
+		);
+	}
+
+	/**
+	 * The player responsible for distributing a produced resource: the holder of its office,
+	 * falling back to the king when the office is empty.
+	 */
+	productionResponsible(kingdomId: string, resource: ProductionResourceType): PlayerState | null {
+		const office = productionOffice(resource);
+		return this.officeHolder(kingdomId, office) ?? this.officeHolder(kingdomId, 'king');
+	}
+
+	/** How much of a resource a kingdom produces this turn. */
+	productionAmount(kingdomId: string, resource: ProductionResourceType): number {
+		const kingdom = this.kingdoms.find((candidate) => candidate.id === kingdomId);
+		if (!kingdom) return 0;
+		return kingdomProduction(this.membersOf(kingdomId).length, kingdom.stats)[resource];
+	}
+
+	/** The stored distribution of a production step, or its pristine default. */
+	productionDistribution(
+		kingdomId: string,
+		resource: ProductionResourceType
+	): ProductionDistribution {
+		return (
+			this.production.distributions[productionKey(kingdomId, resource)] ?? {
+				extras: [],
+				privilege: false,
+				assigned: {},
+				applied: false
+			}
+		);
+	}
+
+	/** The amount assigned to a player for one production step. */
+	productionAssignedTo(
+		kingdomId: string,
+		resource: ProductionResourceType,
+		playerId: string
+	): number {
+		return this.productionDistribution(kingdomId, resource).assigned[playerId] ?? 0;
+	}
+
+	private ensureProductionDistribution(
+		kingdomId: string,
+		resource: ProductionResourceType
+	): ProductionDistribution {
+		const key = productionKey(kingdomId, resource);
+		let distribution = this.production.distributions[key];
+		if (!distribution) {
+			distribution = { extras: [], privilege: false, assigned: {}, applied: false };
+			this.production.distributions[key] = distribution;
+		}
+		return distribution;
+	}
+
+	/** Assigns an amount of favour to a member of the kingdom. */
+	setProductionAssigned(
+		kingdomId: string,
+		resource: ProductionResourceType,
+		playerId: string,
+		value: number
+	): void {
+		const player = this.players.find((candidate) => candidate.id === playerId);
+		if (!player || !Number.isFinite(value)) return;
+
+		// The king can distribute favour, but never receives any.
+		if (resource === 'favour' && player.id === this.officeHolder(kingdomId, 'king')?.id) return;
+
+		const amount = Math.max(0, Math.round(value));
+		if (this.productionAssignedTo(kingdomId, resource, playerId) === amount) return;
+
+		this.transaction(`Producció de ${player.name}: ${amount}`, () => {
+			const distribution = this.ensureProductionDistribution(kingdomId, resource);
+			if (amount) distribution.assigned[playerId] = amount;
+			else delete distribution.assigned[playerId];
+		});
+	}
+
+	/**
+	 * Toggles the responsible player's privilege unit. The remainder recipients are trimmed
+	 * to the new remainder size, so the split always matches what the kingdom produced.
+	 */
+	setProductionPrivilege(
+		kingdomId: string,
+		resource: ProductionResourceType,
+		value: boolean
+	): void {
+		const key = productionKey(kingdomId, resource);
+		const distribution = this.production.distributions[key];
+		if ((distribution?.privilege ?? false) === value) return;
+
+		this.transaction(`Privilegi de producció: ${value ? 'sí' : 'no'}`, () => {
+			const current = this.ensureProductionDistribution(kingdomId, resource);
+			current.privilege = value;
+
+			const members = this.membersInTurnOrder(kingdomId);
+			if (members.length === 0) return;
+			const total = this.productionAmount(kingdomId, resource);
+			const remaining = Math.max(0, total - (value ? 1 : 0));
+			current.extras = current.extras.slice(0, remaining % members.length);
+		});
+	}
+
+	/**
+	 * Seeds a production step with its default split the first time it is presented: the
+	 * responsible player keeps the privilege unit and receives the first remainder unit, while
+	 * the rest of the remainder is left for the user to assign. Favour is distributed freely,
+	 * so it has no default.
+	 */
+	initializeProductionStep(kingdomId: string, resource: ProductionResourceType): void {
+		const kingdom = this.kingdoms.find((candidate) => candidate.id === kingdomId);
+		if (!kingdom || resource === 'favour') return;
+
+		const key = productionKey(kingdomId, resource);
+		if (this.production.distributions[key]) return;
+
+		const members = this.membersInTurnOrder(kingdomId);
+		if (members.length === 0) return;
+
+		const total = this.productionAmount(kingdomId, resource);
+		const responsible = this.productionResponsible(kingdomId, resource);
+		const privilege = responsible ? 1 : 0;
+		const remaining = Math.max(0, total - privilege);
+		const extra = remaining % members.length;
+
+		this.transaction(
+			`Repartiment equitatiu de ${getResource(resource).title} a ${kingdom.name}`,
+			() => {
+				const distribution = this.ensureProductionDistribution(kingdomId, resource);
+				distribution.privilege = responsible !== null;
+				distribution.extras = responsible && extra > 0 ? [responsible.id] : [];
+			}
+		);
+	}
+
+	/** Clears every assignment of a production step, including the privilege and remainder. */
+	resetProductionStep(kingdomId: string, resource: ProductionResourceType): void {
+		const distribution = this.production.distributions[productionKey(kingdomId, resource)];
+		if (!distribution) return;
+		if (
+			distribution.extras.length === 0 &&
+			!distribution.privilege &&
+			Object.keys(distribution.assigned).length === 0
+		) {
+			return;
+		}
+
+		this.transaction(`Reinicia el repartiment de ${getResource(resource).title}`, () => {
+			distribution.extras = [];
+			distribution.privilege = false;
+			distribution.assigned = {};
+		});
+	}
+
+	/** The base amount every member of a non-favour split receives. */
+	productionBase(kingdomId: string, resource: ProductionResourceType): number {
+		const kingdom = this.kingdoms.find((candidate) => candidate.id === kingdomId);
+		if (!kingdom || resource === 'favour') return 0;
+
+		const members = this.membersInTurnOrder(kingdomId);
+		if (members.length === 0) return 0;
+
+		const total = this.productionAmount(kingdomId, resource);
+		const privilege = this.productionDistribution(kingdomId, resource).privilege ? 1 : 0;
+		return Math.floor(Math.max(0, total - privilege) / members.length);
+	}
+
+	/** How many members receive the remainder unit of a non-favour split. */
+	productionExtraCount(kingdomId: string, resource: ProductionResourceType): number {
+		const kingdom = this.kingdoms.find((candidate) => candidate.id === kingdomId);
+		if (!kingdom || resource === 'favour') return 0;
+
+		const members = this.membersInTurnOrder(kingdomId);
+		if (members.length === 0) return 0;
+
+		const total = this.productionAmount(kingdomId, resource);
+		const privilege = this.productionDistribution(kingdomId, resource).privilege ? 1 : 0;
+		return Math.max(0, total - privilege) % members.length;
+	}
+
+	/** Moves a member into or out of the remainder recipients of a non-favour split. */
+	setProductionExtra(
+		kingdomId: string,
+		resource: ProductionResourceType,
+		playerId: string,
+		inExtras: boolean
+	): void {
+		const player = this.players.find((candidate) => candidate.id === playerId);
+		if (!player) return;
+
+		const distribution = this.productionDistribution(kingdomId, resource);
+		const extras = [...distribution.extras];
+		const alreadyIn = extras.includes(playerId);
+		if (alreadyIn === inExtras) return;
+
+		if (inExtras) {
+			if (extras.length >= this.productionExtraCount(kingdomId, resource)) return;
+			extras.push(playerId);
+		} else {
+			const index = extras.indexOf(playerId);
+			if (index >= 0) extras.splice(index, 1);
+		}
+
+		this.transaction(`Resta de la producció de ${player.name}`, () => {
+			const current = this.ensureProductionDistribution(kingdomId, resource);
+			current.extras = extras;
+		});
+	}
+
+	/** The amount each member receives for a production step, by player id. */
+	productionAssignedAmounts(
+		kingdomId: string,
+		resource: ProductionResourceType
+	): Record<string, number> {
+		const amounts: Record<string, number> = {};
+		const kingdom = this.kingdoms.find((candidate) => candidate.id === kingdomId);
+		if (!kingdom) return amounts;
+
+		const members = this.membersInTurnOrder(kingdomId);
+		if (members.length === 0) return amounts;
+
+		const distribution = this.productionDistribution(kingdomId, resource);
+
+		if (resource === 'favour') {
+			const king = this.officeHolder(kingdomId, 'king');
+			for (const member of members) {
+				// The king can distribute favour, but never receives any.
+				if (member.id === king?.id) continue;
+				amounts[member.id] = distribution.assigned[member.id] ?? 0;
+			}
+			return amounts;
+		}
+
+		const total = this.productionAmount(kingdomId, resource);
+		const privilege = distribution.privilege ? 1 : 0;
+		const remaining = Math.max(0, total - privilege);
+		const base = Math.floor(remaining / members.length);
+		const extra = remaining % members.length;
+		const extras = distribution.extras
+			.filter((id) => members.some((member) => member.id === id))
+			.slice(0, extra);
+		const responsible = this.productionResponsible(kingdomId, resource);
+
+		for (const member of members) {
+			let amount = base;
+			if (member.id === responsible?.id) amount += privilege;
+			if (extras.includes(member.id)) amount += 1;
+			amounts[member.id] = amount;
+		}
+		return amounts;
+	}
+
+	/** The total amount assigned for a production step. */
+	productionAssignedTotal(kingdomId: string, resource: ProductionResourceType): number {
+		return Object.values(this.productionAssignedAmounts(kingdomId, resource)).reduce(
+			(sum, amount) => sum + amount,
+			0
+		);
+	}
+
+	/**
+	 * Pays a kingdom production step out to its members. The whole amount must be assigned
+	 * first, and the step can only be paid once. Returns whether the step was paid.
+	 */
+	applyProduction(kingdomId: string, resource: ProductionResourceType): boolean {
+		const kingdom = this.kingdoms.find((candidate) => candidate.id === kingdomId);
+		if (!kingdom) return false;
+
+		const key = productionKey(kingdomId, resource);
+		const distribution = this.production.distributions[key];
+		if (!distribution || distribution.applied) return false;
+
+		const members = this.membersInTurnOrder(kingdomId);
+		const total = this.productionAmount(kingdomId, resource);
+		const amounts = this.productionAssignedAmounts(kingdomId, resource);
+		const assigned = members.reduce((sum, member) => sum + (amounts[member.id] ?? 0), 0);
+		if (assigned !== total) return false;
+
+		this.transaction(`Reparteix la producció de ${kingdom.name}`, () => {
+			for (const member of members) {
+				const amount = amounts[member.id] ?? 0;
+				if (amount > 0) member.resources[resource] += amount;
+			}
+			distribution.applied = true;
+		});
+		return true;
+	}
+
+	/** Selects or clears a resource among the three a kingdomless player receives. */
+	setIndependentProduction(
+		playerId: string,
+		resource: ProductionResourceType,
+		selected: boolean
+	): void {
+		const player = this.players.find((candidate) => candidate.id === playerId);
+		if (!player) return;
+
+		const current = this.production.independent[playerId] ?? [];
+		if (selected && current.includes(resource)) return;
+		const next = selected
+			? [...current, resource]
+			: current.filter((candidate) => candidate !== resource);
+		if (next.length > 3 || next.length === current.length) return;
+
+		this.transaction(`Producció independent de ${player.name}`, () => {
+			this.production.independent[playerId] = next;
+		});
+	}
+
+	/** Pays out the chosen resources to every player without a kingdom, once. */
+	applyIndependentProduction(): boolean {
+		const independents = this.independentPlayers();
+		if (independents.length === 0 || this.production.independentApplied) return false;
+
+		for (const player of independents) {
+			const chosen = this.production.independent[player.id] ?? [];
+			if (chosen.length !== 3) return false;
+		}
+
+		this.transaction('Reparteix la producció dels jugadors sense regne', () => {
+			for (const player of independents) {
+				for (const resource of this.production.independent[player.id] ?? []) {
+					player.resources[resource] += 1;
+				}
+			}
+			this.production.independentApplied = true;
+		});
+		return true;
 	}
 
 	// Cards
@@ -1310,6 +1739,13 @@ export class SimulatorState {
 		});
 	}
 
+	/** Drops the scratch state of the production phase, e.g. when the resolution is stopped. */
+	clearProduction(): void {
+		this.transaction('Neteja la producció', () => {
+			this.production = emptyProductionState();
+		});
+	}
+
 	/** Appends a capability to the plan list of its type, ignoring the ones that cannot be planned. */
 	addToPlan(playerId: string, key: string): void {
 		const player = this.players.find((candidate) => candidate.id === playerId);
@@ -1420,6 +1856,7 @@ export class SimulatorState {
 				kingdom.crisisDefense = 0;
 				kingdom.crisisPaid = false;
 			}
+			this.production = emptyProductionState();
 		});
 	}
 
@@ -1936,7 +2373,27 @@ export class SimulatorState {
 			decks: emptyDeckRecord((deckId) => cardIds(this.decks[deckId])),
 			discards: emptyDeckRecord((deckId) => cardIds(this.discards[deckId])),
 			turnOrder: [...this.turnOrder],
-			resolution: { ...this.resolution }
+			resolution: { ...this.resolution },
+			production: {
+				distributions: Object.fromEntries(
+					Object.entries(this.production.distributions).map(([key, distribution]) => [
+						key,
+						{
+							extras: [...distribution.extras],
+							privilege: distribution.privilege,
+							assigned: { ...distribution.assigned },
+							applied: distribution.applied
+						}
+					])
+				),
+				independent: Object.fromEntries(
+					Object.entries(this.production.independent).map(([playerId, resources]) => [
+						playerId,
+						[...resources]
+					])
+				),
+				independentApplied: this.production.independentApplied
+			}
 		};
 	}
 
@@ -2024,6 +2481,7 @@ export class SimulatorState {
 		this.discards = normalizeDeckRefs(snapshot.discards);
 
 		this.resolution = normalizeResolution(snapshot.resolution);
+		this.production = normalizeProduction(snapshot.production);
 
 		for (const kingdom of kingdomsWithoutFate) kingdom.fateDeck = this.drawFateDeck();
 	}

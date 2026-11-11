@@ -1,4 +1,5 @@
 import { getContext, setContext } from 'svelte';
+import { productionResourceTypes, type ProductionResourceType } from './production';
 import type { SimulatorState } from './simulatorstate.svelte';
 import type { PlannableCapability, PlayerState } from './types';
 
@@ -26,15 +27,31 @@ export interface AssetsBidResolutionStep {
 	last: boolean;
 }
 
-/** One step of the turn resolution: a planned capability, an asset bid, or a kingdom's crisis. */
+/** One produced resource of a kingdom, distributed after every crisis has been resolved. */
+export interface ProductionResolutionStep {
+	kind: 'production';
+	kingdomId: string;
+	resource: ProductionResourceType;
+}
+
+/** The production of the players that belong to no kingdom, resolved last. */
+export interface IndependentProductionResolutionStep {
+	kind: 'independent-production';
+}
+
+/** One step of the turn resolution: a planned capability, an asset bid, a crisis, or production. */
 export type ResolutionStep =
-	CapabilityResolutionStep | AssetsBidResolutionStep | CrisisResolutionStep;
+	| CapabilityResolutionStep
+	| AssetsBidResolutionStep
+	| CrisisResolutionStep
+	| ProductionResolutionStep
+	| IndependentProductionResolutionStep;
 
 /**
  * Walks through the planned capabilities of every player, in turn order, to resolve a turn.
  * Actions go first, in rounds: each player's first action, then their second, and so on.
- * Secrets follow once every action has been presented, asset bids come next, and crisis
- * steps come last.
+ * Secrets follow once every action has been presented, asset bids come next, crisis steps
+ * follow, and production steps come last.
  *
  * The state of the resolution lives in the simulator, so that it is persisted with the rest
  * of the game and a reload comes back to the step that was being presented.
@@ -119,9 +136,37 @@ export class TurnResolution {
 		}));
 	}
 
+	/**
+	 * Production steps, one per resource of each kingdom with members. Each step lets the
+	 * responsible player distribute what the kingdom produced of that resource.
+	 */
+	private get productionSteps(): Array<ProductionResolutionStep> {
+		const steps: Array<ProductionResolutionStep> = [];
+		for (const kingdom of this.simulator.kingdoms) {
+			if (this.simulator.membersOf(kingdom.id).length === 0) continue;
+			for (const resource of productionResourceTypes) {
+				steps.push({ kind: 'production', kingdomId: kingdom.id, resource });
+			}
+		}
+		return steps;
+	}
+
+	/** The production of kingdomless players, a single step presented after the kingdoms. */
+	private get independentProductionSteps(): Array<IndependentProductionResolutionStep> {
+		return this.simulator.independentPlayers().length > 0
+			? [{ kind: 'independent-production' }]
+			: [];
+	}
+
 	/** Every step of the turn, in the order in which it is presented. */
 	get steps(): Array<ResolutionStep> {
-		return [...this.capabilitySteps, ...this.assetsBidSteps, ...this.crisisSteps];
+		return [
+			...this.capabilitySteps,
+			...this.assetsBidSteps,
+			...this.crisisSteps,
+			...this.productionSteps,
+			...this.independentProductionSteps
+		];
 	}
 
 	/** Position of the presented step, clamped to the steps that still exist. */
@@ -151,6 +196,7 @@ export class TurnResolution {
 		this.simulator.transaction('Atura la resolució del torn', () => {
 			this.simulator.resolution = { active: false, index: 0 };
 			this.simulator.clearAllIndications();
+			this.simulator.clearProduction();
 		});
 	}
 

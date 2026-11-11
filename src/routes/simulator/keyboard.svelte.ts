@@ -220,9 +220,11 @@ export class KeyboardController {
 					? 'Pagar contribucions'
 					: current?.kind === 'assets-bid'
 						? 'Repartir actius'
-						: this.resolution.atEnd
-							? 'Finalitza el torn'
-							: 'Capacitat següent';
+						: current?.kind === 'production' || current?.kind === 'independent-production'
+							? 'Repartir producció'
+							: this.resolution.atEnd
+								? 'Finalitza el torn'
+								: 'Capacitat següent';
 			sections.push({
 				title: 'Resolució del torn',
 				items: [
@@ -508,6 +510,15 @@ export class KeyboardController {
 			this.simulator.payCrisisContributions(this.resolution.current.kingdomId);
 		} else if (this.resolution.current?.kind === 'assets-bid') {
 			this.simulator.resolveAssetBids(this.resolution.current.acquisitionIndex);
+		} else if (this.resolution.current?.kind === 'production') {
+			const current = this.resolution.current;
+			if (this.simulator.applyProduction(current.kingdomId, current.resource)) {
+				this.resolution.next();
+			}
+		} else if (this.resolution.current?.kind === 'independent-production') {
+			if (this.simulator.applyIndependentProduction()) {
+				this.resolution.next();
+			}
 		} else this.resolution.next();
 	}
 

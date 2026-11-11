@@ -5,6 +5,7 @@ import type { Card, CardType } from '#lib/models/cards';
 import { kingdomStatTypes, type KingdomStatType } from '#lib/models/kingdomstats';
 import { officeTypes } from '#lib/models/offices';
 import type { ResourceType } from '#lib/models/resources';
+import type { ProductionState } from './production';
 
 /** Resources owned by a player (the generic `any` resource has no tokens). */
 export const playerResourceTypes = [
@@ -315,6 +316,8 @@ export interface SimulatorSnapshot {
 	turnOrder?: Array<string>;
 	/** Turn resolution in progress, so that the turn is presented where it was left. */
 	resolution?: Partial<ResolutionState>;
+	/** Production phase scratch state, kept while the production steps are resolved. */
+	production?: Partial<ProductionState>;
 }
 
 export function zoneKey(zone: Zone): string {
