@@ -39,6 +39,7 @@ export const inputFormats = [
 	'list',
 	'number',
 	'check',
+	'tally',
 	'player',
 	'players',
 	'kingdom',
@@ -47,6 +48,9 @@ export const inputFormats = [
 	...resourceTypes
 ] as const;
 
+/** Default number of squares of a `tally` input. */
+export const defaultTallyCount = 5;
+
 export function isInputFormat(value: string): value is (typeof inputFormats)[number] {
 	return inputFormats.includes(value as (typeof inputFormats)[number]);
 }
@@ -54,6 +58,8 @@ export function isInputFormat(value: string): value is (typeof inputFormats)[num
 export interface InputChunk {
 	type: 'input';
 	format: (typeof inputFormats)[number];
+	/** Sizes of the groups of squares of a `tally` input. */
+	counts?: Array<number>;
 }
 
 export interface InvalidChunk {
@@ -132,6 +138,19 @@ function buildInput({ params, args }: BuilderInput): Chunk {
 			message: `Invalid input format; expected ${inputFormats.map((f) => `'${f}'`).join(', ')}, got '${format}' instead`
 		};
 	}
+
+	if (format === 'tally') {
+		const raw = params.count ?? args[1] ?? String(defaultTallyCount);
+		const counts = raw.split(',').map((part) => Number(part.trim()));
+		if (counts.some((count) => !Number.isInteger(count) || count < 1)) {
+			return {
+				type: 'invalid',
+				message: `Tally counts must be positive integers, got '${raw}' instead`
+			};
+		}
+		return { type: 'input', format, counts };
+	}
+
 	return { type: 'input', format };
 }
 

@@ -64,6 +64,7 @@
 	{:else if chunk.type === 'input'}
 		<CapabilityInput
 			format={chunk.format}
+			counts={chunk.counts}
 			{editable}
 			inputKey={inputKey === undefined ? undefined : `${inputKey}:${index}`}
 		/>

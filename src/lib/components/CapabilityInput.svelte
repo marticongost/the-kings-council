@@ -24,6 +24,49 @@
 			borderRadius: '0.8em',
 			height: '1em'
 		},
+		tallyInput: {
+			display: 'inline-flex',
+			alignItems: 'center',
+			height: 'auto',
+			padding: 0,
+			border: 'none'
+		},
+		tally: {
+			display: 'inline-flex',
+			alignItems: 'center',
+			gap: css.spacing.sm
+		},
+		tallyGroup: {
+			display: 'inline-flex',
+			alignItems: 'center'
+		},
+		tallySquare: {
+			boxSizing: 'border-box',
+			width: '1em',
+			height: '1em',
+			margin: 0,
+			padding: 0,
+			border: `1px dashed ${css.palette.dawn}`,
+			backgroundColor: 'transparent'
+		},
+		tallySquareStart: {
+			borderTopLeftRadius: '0.25em',
+			borderBottomLeftRadius: '0.25em'
+		},
+		tallySquareEnd: {
+			borderTopRightRadius: '0.25em',
+			borderBottomRightRadius: '0.25em'
+		},
+		// Adjacent squares overlap by a border so their dashed edges coincide.
+		tallySquareJoined: {
+			marginLeft: '-1px'
+		},
+		tallySquareTicked: {
+			backgroundColor: css.palette.dawn
+		},
+		editableTallySquare: {
+			cursor: 'pointer'
+		},
 		textInput: {
 			width: '5em'
 		},
@@ -188,7 +231,7 @@
 <script lang="ts">
 	import { cx } from '@emotion/css';
 	import { tick } from 'svelte';
-	import type { InputChunk } from '#lib/models/effects';
+	import { defaultTallyCount, type InputChunk } from '#lib/models/effects';
 	import { isResourceType } from '#lib/models/resources';
 	import InlineSvg from './InlineSvg.svelte';
 	import ResourceDisplay from './ResourceDisplay.svelte';
@@ -196,13 +239,15 @@
 
 	interface Props {
 		format: InputChunk['format'];
+		/** Sizes of the groups of squares of a `tally` input. */
+		counts?: Array<number>;
 		/** Renders a form control instead of an empty mark. */
 		editable?: boolean;
 		/** Identifies this input in the state provided by `provideCapabilityInputs`. */
 		inputKey?: string;
 	}
 
-	const { format, editable = false, inputKey }: Props = $props();
+	const { format, counts = [defaultTallyCount], editable = false, inputKey }: Props = $props();
 
 	const inputs = useCapabilityInputs();
 	const givenValues = useCapabilityInputValues();
@@ -236,9 +281,27 @@
 	);
 	/** The value presented in the mark: names instead of ids, and nothing for check marks. */
 	const presentedValue = $derived(
-		format === 'check' ? '' : isPlayer || isKingdom ? selectedLabels : value
+		format === 'check' || format === 'tally' ? '' : isPlayer || isKingdom ? selectedLabels : value
 	);
 	const presentedChecked = $derived(format === 'check' && value !== '');
+
+	/** Number of ticked squares of each tally group, stored as comma-separated counts. */
+	const tickedCounts = $derived(
+		counts.map((count, group) => {
+			if (format !== 'tally') return 0;
+			const stored = Math.trunc(Number(value.split(',')[group]) || 0);
+			return Math.min(count, Math.max(0, stored));
+		})
+	);
+
+	function setTally(group: number, index: number) {
+		// Clicking the last ticked square unticks it, any other ticked square keeps it and
+		// clears the ones after it, and clicking an empty square ticks every square up to it.
+		const ticked = tickedCounts[group] ?? 0;
+		const next = index + 1 === ticked ? index : index + 1;
+		const values = counts.map((_, other) => (other === group ? next : (tickedCounts[other] ?? 0)));
+		setValue(values.some((count) => count > 0) ? values.join(',') : '');
+	}
 
 	const formatWrapperClass = $derived(
 		cx(styles.formatWrapper, editable && styles.editableFormatWrapper)
@@ -291,6 +354,7 @@
 		[styles.textInput]: format === 'text',
 		[styles.listInput]: format === 'list',
 		[styles.checkInput]: format === 'check',
+		[styles.tallyInput]: format === 'tally',
 		[styles.kingdomInput]: format === 'kingdom',
 		[styles.playerInput]: format === 'player' || format === 'kingdom-member',
 		[styles.playerListInput]: format === 'players' || format === 'kingdom-members',
@@ -298,7 +362,7 @@
 		[styles.editableKingdomInput]: editable && format === 'kingdom',
 		[styles.editablePlayerInput]: editable && (format === 'player' || format === 'kingdom-member'),
 		[styles.editableResourceInput]: editable && isResourceType(format),
-		[styles.presentedInput]: presented && format !== 'check',
+		[styles.presentedInput]: presented && format !== 'check' && format !== 'tally',
 		[styles.presentedCheck]: presented && presentedChecked
 	})}
 	bind:this={mark}
@@ -328,7 +392,46 @@
 			<ResourceDisplay resource={format} />
 		</span>
 	{/if}
-	{#if editable}
+	{#if format === 'tally'}
+		<span
+			class={styles.tally}
+			role={editable ? 'group' : undefined}
+			aria-label={editable ? format : undefined}
+		>
+			{#each counts as count, group (group)}
+				<span class={styles.tallyGroup}>
+					{#each Array.from({ length: count }, (_, index) => index) as index (index)}
+						{#if editable}
+							<button
+								type="button"
+								class={cx(
+									styles.tallySquare,
+									index === 0 && styles.tallySquareStart,
+									index === count - 1 && styles.tallySquareEnd,
+									index > 0 && styles.tallySquareJoined,
+									styles.editableTallySquare,
+									index < (tickedCounts[group] ?? 0) && styles.tallySquareTicked
+								)}
+								aria-label={`${format} ${group + 1} ${index + 1}`}
+								aria-pressed={index < (tickedCounts[group] ?? 0)}
+								onclick={() => setTally(group, index)}
+							></button>
+						{:else}
+							<span
+								class={cx(
+									styles.tallySquare,
+									index === 0 && styles.tallySquareStart,
+									index === count - 1 && styles.tallySquareEnd,
+									index > 0 && styles.tallySquareJoined,
+									index < (tickedCounts[group] ?? 0) && styles.tallySquareTicked
+								)}
+							></span>
+						{/if}
+					{/each}
+				</span>
+			{/each}
+		</span>
+	{:else if editable}
 		{#if isMultiPlayer}
 			<button
 				type="button"
