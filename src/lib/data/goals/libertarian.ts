@@ -7,7 +7,8 @@ export default {
 		{
 			type: 'reaction',
 			trigger: 'gameEnd',
-			effects: 'Si pertanys a un regne que tingui 2 o menys lleis en vigor, guanya {prestige 3}.'
+			effects:
+				'Si el teu regne té 2 lleis en vigor, guanya {prestige 1}. Si en té 1, guanya {prestige 2}. Si no en té cap, guanya {prestige 3}.'
 		}
 	]
 } satisfies GoalData;

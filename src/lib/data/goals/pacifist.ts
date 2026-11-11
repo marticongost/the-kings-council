@@ -1,15 +1,13 @@
 import type { GoalData } from '#lib/models/cards';
 
-// TODO: Review
-
 export default {
-	title: 'Altruïsta',
+	title: 'Pacifista',
 	goalType: 'collective',
 	capabilities: [
 		{
 			type: 'reaction',
 			trigger: 'gameEnd',
-			effects: "Si l'{stability} del teu regne és 4 o més, guanya {prestige 3}."
+			effects: "Guanya {prestige 3} si l'{might} del teu regne és 2, o {prestige 4} si és 1."
 		}
 	]
 } satisfies GoalData;

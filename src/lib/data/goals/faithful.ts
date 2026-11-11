@@ -7,7 +7,7 @@ export default {
 		{
 			type: 'reaction',
 			trigger: 'gameEnd',
-			effects: 'Si la {grace} del teu regne és 4 o més, guanya {prestige 3}.'
+			effects: 'Guanya {prestige 3} si la {grace} del teu regne és 4, o {prestige 4} si és 5.'
 		}
 	]
 } satisfies GoalData;

@@ -7,7 +7,7 @@ export default {
 		{
 			type: 'reaction',
 			trigger: 'gameEnd',
-			effects: 'Si el teu regne té 5+ lleis en vigor, guanya {prestige 3}.'
+			effects: 'Guanya {prestige 1} per cada llei en vigor que el teu regne tingui (màxim 4).'
 		}
 	]
 } satisfies GoalData;

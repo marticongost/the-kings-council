@@ -8,7 +8,7 @@ export default {
 			type: 'reaction',
 			trigger: 'gameEnd',
 			effects:
-				"Si el regne té la majoria d'indicadors a nivell 1 o 5, i cap a nivell 3, guanya {prestige 4}."
+				'Guanya {prestige 1} per cada indicador amb un valor 1 o 5. Si no hi ha cap indicador amb valor 3, guanya {prestige 1} addicional.'
 		}
 	]
 } satisfies GoalData;

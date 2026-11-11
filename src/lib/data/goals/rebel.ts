@@ -6,8 +6,13 @@ export default {
 	capabilities: [
 		{
 			type: 'reaction',
+			trigger: 'uprisingInOwnKingdom',
+			effects: 'Afegeix una marca {input tally 3}.'
+		},
+		{
+			type: 'reaction',
 			trigger: 'gameEnd',
-			effects: 'Si el {king} del teu regne inicial ha estat deposat, guanya {prestige 3}.'
+			effects: 'Guanya 3/4/5 {prestige} segons el número de marques que hagis col·locat.'
 		}
 	]
 } satisfies GoalData;
