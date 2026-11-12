@@ -41,6 +41,16 @@
 		row: {
 			...css.column('xs')
 		},
+		playerLine: {
+			...css.row('sm'),
+			alignItems: 'center',
+			flexWrap: 'wrap'
+		},
+		progress: {
+			fontFamily: css.fonts.number,
+			fontWeight: 900,
+			color: css.text.subtleColor
+		},
 		choices: {
 			...css.row('xs'),
 			flexWrap: 'wrap'
@@ -48,19 +58,13 @@
 		choice: {
 			...css.row('xs'),
 			alignItems: 'center',
-			height: css.forms.controlHeight,
 			padding: css.spacing.sm,
 			border: css.forms.controlBorder,
 			borderRadius: css.spacing.sm,
 			backgroundColor: css.palette.carrara,
 			color: css.palette.wood,
 			fontFamily: css.fonts.text,
-			fontSize: '0.85em',
-			cursor: 'pointer',
-			...css.focus.mixin,
-			'&:hover': {
-				backgroundColor: css.palette.ivory
-			}
+			fontSize: '0.85em'
 		},
 		choiceSelected: {
 			backgroundColor: css.palette.willow,
@@ -71,6 +75,10 @@
 			height: '1em',
 			width: 'auto',
 			flexShrink: 0
+		},
+		choiceTitle: {
+			flex: 1,
+			minWidth: 0
 		},
 		actions: {
 			...css.row('sm'),
@@ -84,7 +92,12 @@
 	import Button from '#lib/components/Button.svelte';
 	import InlineSvg from '#lib/components/InlineSvg.svelte';
 	import { getResource } from '#lib/models/resources';
-	import { independentProductionResourceTypes, type ProductionResourceType } from './production';
+	import Counter from './Counter.svelte';
+	import {
+		independentProductionResourceCount,
+		independentProductionResourceTypes,
+		type ProductionResourceType
+	} from './production';
 	import PlayerChip from './PlayerChip.svelte';
 	import { useTurnResolution } from './resolution.svelte';
 	import type { SimulatorState } from './simulatorstate.svelte';
@@ -123,12 +136,22 @@
 	const canApply = $derived(
 		!independentApplied &&
 			players.length > 0 &&
-			players.every((player) => (chosen[player.id]?.length ?? 0) === 3)
+			players.every(
+				(player) => (chosen[player.id]?.length ?? 0) === independentProductionResourceCount
+			)
 	);
 
-	function toggle(player: PlayerState, resource: ProductionResourceType) {
-		const selected = chosen[player.id]?.includes(resource) ?? false;
-		simulator.setIndependentProduction(player.id, resource, !selected);
+	function countFor(player: PlayerState, resource: ProductionResourceType): number {
+		return chosen[player.id]?.filter((candidate) => candidate === resource).length ?? 0;
+	}
+
+	function maxFor(player: PlayerState, resource: ProductionResourceType): number {
+		const total = chosen[player.id]?.length ?? 0;
+		return independentProductionResourceCount - (total - countFor(player, resource));
+	}
+
+	function setCount(player: PlayerState, resource: ProductionResourceType, count: number) {
+		simulator.setIndependentProduction(player.id, resource, count);
 	}
 
 	function distributeAndNext() {
@@ -148,30 +171,37 @@
 		<span class={styles.title}>Producció dels jugadors sense regne</span>
 	</div>
 
-	<p class={styles.hint}>Cada jugador rep tres recursos, tots de tipus diferents.</p>
+	<p class={styles.hint}>
+		Cada jugador rep tres recursos, que pot combinar lliurement entre els tipus disponibles.
+	</p>
 
 	<ol class={styles.rows}>
 		{#each players as player (player.id)}
 			<li class={styles.row}>
-				<PlayerChip {simulator} {player} draggable={false} large />
+				<div class={styles.playerLine}>
+					<PlayerChip {simulator} {player} draggable={false} large />
+					<span class={styles.progress}>
+						({chosen[player.id]?.length ?? 0} / {independentProductionResourceCount})
+					</span>
+				</div>
 				<div class={styles.choices}>
 					{#each independentProductionResourceTypes as resource (resource)}
-						<button
-							type="button"
-							class={cx(
-								styles.choice,
-								(chosen[player.id]?.includes(resource) ?? false) && styles.choiceSelected
-							)}
-							aria-pressed={chosen[player.id]?.includes(resource) ?? false}
-							onclick={() => toggle(player, resource)}
-						>
+						<div class={cx(styles.choice, countFor(player, resource) > 0 && styles.choiceSelected)}>
 							<InlineSvg
 								class={styles.choiceIcon}
 								src="resources/{resource}.svg"
 								aria-hidden="true"
 							/>
-							<span>{getResourceTitle(resource)}</span>
-						</button>
+							<span class={styles.choiceTitle}>{getResourceTitle(resource)}</span>
+							<Counter
+								compact
+								value={countFor(player, resource)}
+								min={0}
+								max={maxFor(player, resource)}
+								label={`${getResourceTitle(resource)} de ${player.name}`}
+								onchange={(value) => setCount(player, resource, value)}
+							/>
+						</div>
 					{/each}
 				</div>
 			</li>

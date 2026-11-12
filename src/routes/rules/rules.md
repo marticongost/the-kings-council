@@ -1336,7 +1336,13 @@ decideix quins jugadors rebran un recurs menys que els demés.
 
 Durant aquesta fase, els jugadors que no pertanyin a cap regne reben tres recursos de la
 seva elecció (entre {gold-label}, {power-label}, {strength-label}, {faith-label} i
-{intrigue-label}). Tots els recursos guanyats pel jugador han de ser de tipus diferents.
+{intrigue-label}). Els jugadors poden escollir i combinar els tipus de recursos que
+prefereixin.
+
+```example
+La Marta i el Jordi no pertanyen a cap regne. La Marta decideix guanyar {gold 3}; el
+Jordi, per la seva banda, escull guanyar {power 2} i {faith 1}.
+```
 
 ## Final del torn
 

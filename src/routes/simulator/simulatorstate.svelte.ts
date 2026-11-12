@@ -10,6 +10,7 @@ import { SvelteSet } from 'svelte/reactivity';
 import { crisisContributionResources } from './crisiscontributions';
 import {
 	emptyProductionState,
+	independentProductionResourceCount,
 	independentProductionResourceTypes,
 	kingdomProduction,
 	productionKey,
@@ -469,11 +470,13 @@ function normalizeProduction(value: unknown): ProductionState {
 	const independent = asObject(record?.independent);
 	if (independent) {
 		for (const [playerId, raw] of Object.entries(independent)) {
-			const resources = uniqueStrings(raw)
-				.filter((resource): resource is ProductionResourceType =>
-					(independentProductionResourceTypes as ReadonlyArray<string>).includes(resource)
+			const resources = (Array.isArray(raw) ? raw : [])
+				.filter(
+					(resource): resource is ProductionResourceType =>
+						typeof resource === 'string' &&
+						(independentProductionResourceTypes as ReadonlyArray<string>).includes(resource)
 				)
-				.slice(0, 3);
+				.slice(0, independentProductionResourceCount);
 			if (resources.length > 0) state.independent[playerId] = resources;
 		}
 	}
@@ -1499,24 +1502,29 @@ export class SimulatorState {
 		return true;
 	}
 
-	/** Selects or clears a resource among the three a kingdomless player receives. */
+	/** Sets how many units of a resource a kingdomless player takes, within their three picks. */
 	setIndependentProduction(
 		playerId: string,
 		resource: ProductionResourceType,
-		selected: boolean
+		count: number
 	): void {
 		const player = this.players.find((candidate) => candidate.id === playerId);
 		if (!player) return;
 
 		const current = this.production.independent[playerId] ?? [];
-		if (selected && current.includes(resource)) return;
-		const next = selected
-			? [...current, resource]
-			: current.filter((candidate) => candidate !== resource);
-		if (next.length > 3 || next.length === current.length) return;
+		const otherCount = current.filter((candidate) => candidate !== resource).length;
+		const currentCount = current.length - otherCount;
+		const nextCount = clamp(count, 0, independentProductionResourceCount - otherCount);
+		if (nextCount === currentCount) return;
+
+		const next = [
+			...current.filter((candidate) => candidate !== resource),
+			...Array<ProductionResourceType>(nextCount).fill(resource)
+		];
 
 		this.transaction(`Producció independent de ${player.name}`, () => {
-			this.production.independent[playerId] = next;
+			if (next.length > 0) this.production.independent[playerId] = next;
+			else delete this.production.independent[playerId];
 		});
 	}
 
@@ -1527,7 +1535,7 @@ export class SimulatorState {
 
 		for (const player of independents) {
 			const chosen = this.production.independent[player.id] ?? [];
-			if (chosen.length !== 3) return false;
+			if (chosen.length !== independentProductionResourceCount) return false;
 		}
 
 		this.transaction('Reparteix la producció dels jugadors sense regne', () => {

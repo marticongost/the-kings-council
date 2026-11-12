@@ -23,6 +23,9 @@ export const independentProductionResourceTypes = [
 	'intrigue'
 ] as const satisfies ReadonlyArray<ProductionResourceType>;
 
+/** Units a kingdomless player receives during production, freely combined across resource types. */
+export const independentProductionResourceCount = 3;
+
 /** Production factors by kingdom stat value, following the production table in the rules. */
 const productionFactors = [
 	{ value: 1, factor: 0.5 },
