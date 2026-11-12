@@ -1,13 +1,7 @@
 import type { HouseData } from '#lib/models/cards';
+import { doubleFavourHouseTrait } from '../reusable-definitions';
 
 export default {
 	title: 'Casa Berien',
-	capabilities: [
-		{
-			type: 'action',
-			title: 'A qualsevol cost',
-			cost: { strength: 1 },
-			effects: 'Guanya {intrigue 1}.'
-		}
-	]
+	capabilities: [doubleFavourHouseTrait('Sempre alerta', 'en augmentar la teva {vigilance}')]
 } satisfies HouseData;

@@ -1,13 +1,7 @@
 import type { HouseData } from '#lib/models/cards';
+import { biggestHoarderHouseReward } from '../reusable-definitions';
 
 export default {
 	title: 'Casa Marwyn',
-	capabilities: [
-		{
-			title: 'Senyors de les ones',
-			type: 'action',
-			effects:
-				'Guanyar {gold 1} o {strength 1} si tens 1+ {assets} {visible} amb la propietat {maritime}.'
-		}
-	]
+	capabilities: [biggestHoarderHouseReward('Senyors de les ones', 'maritime', ['gold', 'strength'])]
 } satisfies HouseData;

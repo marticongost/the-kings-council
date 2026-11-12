@@ -1,12 +1,7 @@
 import type { HouseData } from '#lib/models/cards';
+import { doubleFavourHouseTrait } from '../reusable-definitions';
 
 export default {
 	title: 'Casa Valker',
-	capabilities: [
-		{
-			type: 'reaction',
-			trigger: 'gameStart',
-			effects: 'Guanyar {power 2}.'
-		}
-	]
+	capabilities: [doubleFavourHouseTrait('Diplomàcia astuta', 'en contribuir a una {vote}')]
 } satisfies HouseData;

@@ -1,12 +1,7 @@
 import type { HouseData } from '#lib/models/cards';
+import { biggestHoarderHouseReward } from '../reusable-definitions';
 
 export default {
 	title: 'Casa Helstrym',
-	capabilities: [
-		{
-			type: 'reaction',
-			trigger: 'gameStart',
-			effects: 'Guanyar {strength 2}.'
-		}
-	]
+	capabilities: [biggestHoarderHouseReward('Déu, Rei i família', 'retinue', ['strength', 'faith'])]
 } satisfies HouseData;
