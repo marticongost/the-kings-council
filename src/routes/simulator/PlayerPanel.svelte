@@ -196,6 +196,8 @@
 				<Counter
 					compact
 					value={player.resources[resource]}
+					superscript={player.plannedSpend[resource] ?? 0}
+					superscriptLabel="Despesa prevista"
 					label={getResource(resource).title}
 					min={0}
 					onchange={(value) => simulator.setResource(player.id, resource, value)}

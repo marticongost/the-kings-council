@@ -283,6 +283,8 @@ export interface PlayerState {
 	acquisitions: Array<Acquisition>;
 	/** Resources the player contributes to the current crisis while planning. */
 	contribution: PlayerContribution;
+	/** Resources the player expects to spend on this turn's plan, shown as a superindex. */
+	plannedSpend: PlayerContribution;
 	/** What the player actually paid for each kingdom's crisis, keyed by kingdom id. */
 	crisisPayments: Record<string, PlayerContribution>;
 }
@@ -312,6 +314,7 @@ export interface SerializedPlayer {
 	vigilance?: number;
 	acquisitions?: Array<{ cardId?: string | null; gold?: number }>;
 	contribution?: PlayerContribution;
+	plannedSpend?: PlayerContribution;
 	crisisPayments?: Record<string, PlayerContribution>;
 }
 

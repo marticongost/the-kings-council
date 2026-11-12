@@ -29,6 +29,14 @@
 			// Grenze's figures sit below the line-box centre; nudge them up optically.
 			transform: 'translateY(-0.1em)'
 		},
+		superscript: {
+			fontSize: '0.5em',
+			fontWeight: 900,
+			lineHeight: 0,
+			verticalAlign: 'super',
+			marginLeft: '0.05em',
+			color: css.palette.red
+		},
 		compactCounter: {
 			gap: '0.1em'
 		},
@@ -49,6 +57,14 @@
 		value: number;
 		label: string;
 		onchange: (value: number) => void;
+		/** Number rendered in place of `value`, e.g. while the counter edits a related amount. */
+		displayValue?: number;
+		/** Small figure shown next to the displayed number, e.g. the amount a player expects to spend. */
+		superscript?: number;
+		/** Describes the superscript in its tooltip. */
+		superscriptLabel?: string;
+		/** Name used in the increment and decrement labels, defaulting to `label`. */
+		editLabel?: string;
 		min?: number;
 		max?: number;
 		icon?: Snippet;
@@ -60,11 +76,20 @@
 		value,
 		label,
 		onchange,
+		displayValue,
+		superscript = 0,
+		superscriptLabel,
+		editLabel = label,
 		min = 0,
 		max = Number.POSITIVE_INFINITY,
 		icon,
 		compact = false
 	}: Props = $props();
+
+	const shownValue = $derived(displayValue ?? value);
+	const superscriptTitle = $derived(
+		superscriptLabel ? `${superscriptLabel}: ${superscript}` : undefined
+	);
 
 	const canDecrease = $derived(value > min);
 	const canIncrease = $derived(value < max);
@@ -111,7 +136,7 @@
 		src="ui/decrease.svg"
 		class={cx(styles.button, compact && styles.compactButton)}
 		disabled={!canDecrease}
-		label={`Disminueix ${label}`}
+		label={`Disminueix ${editLabel}`}
 		onclick={() => onchange(value - 1)}
 	/>
 {/snippet}
@@ -121,7 +146,7 @@
 		src="ui/increase.svg"
 		class={cx(styles.button, compact && styles.compactButton)}
 		disabled={!canIncrease}
-		label={`Augmenta ${label}`}
+		label={`Augmenta ${editLabel}`}
 		onclick={() => onchange(value + 1)}
 	/>
 {/snippet}
@@ -130,7 +155,11 @@
 	<span class={styles.label} title={label}>
 		{@render icon?.()}
 	</span>
-	<span class={cx(styles.value, compact && styles.compactValue)} aria-live="polite">{value}</span>
+	<span class={cx(styles.value, compact && styles.compactValue)} aria-live="polite"
+		>{shownValue}{#if superscript}<sup class={styles.superscript} title={superscriptTitle}
+				>{superscript}</sup
+			>{/if}</span
+	>
 	<div class={styles.buttons}>
 		{@render incrementButton()}
 		{@render decrementButton()}

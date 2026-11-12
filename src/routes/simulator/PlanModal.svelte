@@ -25,6 +25,10 @@
 		lists: {
 			...css.column('lg')
 		},
+		resources: {
+			...css.row('lg'),
+			flexWrap: 'wrap'
+		},
 		indications: {
 			...css.row(),
 			flexWrap: 'wrap',
@@ -76,6 +80,7 @@
 	import PanelSection from './PanelSection.svelte';
 	import { usePlans } from './plans.svelte';
 	import type { SimulatorState } from './simulatorstate.svelte';
+	import { playerResourceTypes } from './types';
 
 	interface Props {
 		simulator: SimulatorState;
@@ -185,6 +190,27 @@
 				{/snippet}
 
 				<div class={styles.lists}>
+					<PanelSection title="Recursos" ariaLabel="Recursos">
+						<div class={styles.resources}>
+							{#each playerResourceTypes as resource (resource)}
+								<Counter
+									compact
+									value={player.plannedSpend[resource] ?? 0}
+									displayValue={player.resources[resource]}
+									superscript={player.plannedSpend[resource] ?? 0}
+									superscriptLabel="Despesa prevista"
+									label={getResource(resource).title}
+									editLabel={`la despesa prevista de ${getResource(resource).title.toLowerCase()}`}
+									min={0}
+									onchange={(value) => simulator.setPlannedSpend(player.id, resource, value)}
+								>
+									{#snippet icon()}
+										<InlineSvg class={styles.indicationIcon} src={`resources/${resource}.svg`} />
+									{/snippet}
+								</Counter>
+							{/each}
+						</div>
+					</PanelSection>
 					<PanelSection title="Indicacions" ariaLabel="Indicacions">
 						<div class={styles.indications}>
 							<div class={styles.indication}>

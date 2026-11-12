@@ -1,10 +1,11 @@
 import { cardsCatalog } from '#lib/data/catalog';
-import type { CapabilityType } from '#lib/models/capabilities';
+import { ConcreteCapability, type CapabilityType } from '#lib/models/capabilities';
 import { CardCapability } from '#lib/models/cardcapabilities';
 import { type Card, type Crisis, type CardType } from '#lib/models/cards';
 import { getKingdomStat, kingdomStatTypes, type KingdomStatType } from '#lib/models/kingdomstats';
 import { officeTypes, type OfficeType } from '#lib/models/offices';
 import { getResource } from '#lib/models/resources';
+import type { ResourceSpec } from '#lib/models/resourcesets';
 import { SvelteSet } from 'svelte/reactivity';
 import { crisisContributionResources } from './crisiscontributions';
 import {
@@ -144,6 +145,7 @@ function copyGameState(state: GameStateCopy): GameStateCopy {
 			vigilance: player.vigilance,
 			acquisitions: player.acquisitions.map((acquisition) => ({ ...acquisition })),
 			contribution: { ...player.contribution },
+			plannedSpend: { ...player.plannedSpend },
 			crisisPayments: Object.fromEntries(
 				Object.entries(player.crisisPayments).map(([kingdomId, payment]) => [
 					kingdomId,
@@ -226,6 +228,31 @@ function isFateCard(card: Card): boolean {
 
 /** Capabilities that players can plan: the ones that are played or kept in hand. */
 const plannableCapabilityTypes = new Set(['action', 'secret', 'indication']);
+
+/**
+ * The fixed amount of a resource cost. Placeholders, such as the kingdom stat friction,
+ * are ignored, as their value depends on the kingdom when the cost is paid.
+ */
+function fixedCost(amount: ResourceSpec): number {
+	if (typeof amount === 'number') return Math.max(0, amount);
+
+	const terms = amount.replace(/\{[^}]*\}/g, '0').match(/[+-]?\s*\d+(?:\.\d+)?/g) ?? [];
+	const total = terms.reduce((sum, term) => sum + Number(term.replace(/\s+/g, '')), 0);
+	return Number.isFinite(total) ? Math.max(0, total) : 0;
+}
+
+/** The resources a planned capability reserves from its player, ignoring kingdom stat friction. */
+function capabilityCost(capability: PlannableCapability): PlayerContribution {
+	const cost: PlayerContribution = {};
+	const concrete = capability.cardCapability.capability;
+	if (!(concrete instanceof ConcreteCapability)) return cost;
+
+	for (const resource of playerResourceTypes) {
+		const amount = fixedCost(concrete.cost[resource]);
+		if (amount) cost[resource] = amount;
+	}
+	return cost;
+}
 
 function emptyPlan(): PlayerPlan {
 	return { actions: [], secrets: [], confirmed: false, inputs: {} };
@@ -840,6 +867,7 @@ export class SimulatorState {
 				vigilance: 0,
 				acquisitions: emptyAcquisitions(),
 				contribution: {},
+				plannedSpend: {},
 				crisisPayments: {}
 			});
 			// Every player takes part in the turn order, dimmed until they confirm their plan.
@@ -1721,7 +1749,32 @@ export class SimulatorState {
 		});
 	}
 
-	/** Clears the indications a player gave while planning: vigilance, acquisitions and contribution. */
+	/** Adds or removes a capability's cost from the resources a player expects to spend. */
+	private adjustPlannedSpend(player: PlayerState, cost: PlayerContribution, sign: 1 | -1): void {
+		for (const resource of playerResourceTypes) {
+			const amount = (cost[resource] ?? 0) * sign;
+			if (!amount) continue;
+
+			const next = Math.max(0, Math.round((player.plannedSpend[resource] ?? 0) + amount));
+			if (next) player.plannedSpend[resource] = next;
+			else delete player.plannedSpend[resource];
+		}
+	}
+
+	/** Sets how much of a resource a player expects to spend on this turn's plan. */
+	setPlannedSpend(playerId: string, resource: PlayerResourceType, value: number): void {
+		const player = this.players.find((candidate) => candidate.id === playerId);
+		if (!player || !Number.isFinite(value)) return;
+
+		const amount = Math.max(0, Math.round(value));
+		if ((player.plannedSpend[resource] ?? 0) === amount) return;
+		this.transaction(`Pla de ${player.name}`, () => {
+			if (amount) player.plannedSpend[resource] = amount;
+			else delete player.plannedSpend[resource];
+		});
+	}
+
+	/** Clears the indications a player gave while planning: vigilance, acquisitions, contribution and planned spend. */
 	resetIndications(playerId: string): void {
 		const player = this.players.find((candidate) => candidate.id === playerId);
 		if (!player) return;
@@ -1730,11 +1783,12 @@ export class SimulatorState {
 			player.vigilance = 0;
 			player.acquisitions = emptyAcquisitions();
 			player.contribution = {};
+			player.plannedSpend = {};
 			player.crisisPayments = {};
 		});
 	}
 
-	/** Resets every player's vigilance, acquisitions and contribution to their defaults. */
+	/** Resets every player's vigilance, acquisitions, contribution and planned spend to their defaults. */
 	clearAllIndications(): void {
 		this.transaction('Neteja les indicacions de tots els jugadors', () => {
 			for (const player of this.players) this.resetIndications(player.id);
@@ -1757,11 +1811,14 @@ export class SimulatorState {
 		const capability = this.plannableCapabilities(player).find(
 			(candidate) => candidate.key === key
 		);
-		const list = capability && planListOf(capability.cardCapability.capability.type);
+		if (!capability) return;
+
+		const list = planListOf(capability.cardCapability.capability.type);
 		if (!list || player.plan[list].includes(key)) return;
 
 		this.transaction(`Pla de ${player.name}`, () => {
 			player.plan[list].push(key);
+			this.adjustPlannedSpend(player, capabilityCost(capability), 1);
 		});
 	}
 
@@ -1771,10 +1828,16 @@ export class SimulatorState {
 		if (!player) return;
 
 		this.normalizePlan(player);
+		if (!player.plan.actions.includes(key) && !player.plan.secrets.includes(key)) return;
+
+		const capability = this.plannableCapabilities(player).find(
+			(candidate) => candidate.key === key
+		);
 		const without = (keys: Array<string>) => keys.filter((candidate) => candidate !== key);
 		this.transaction(`Pla de ${player.name}`, () => {
 			player.plan.actions = without(player.plan.actions);
 			player.plan.secrets = without(player.plan.secrets);
+			if (capability) this.adjustPlannedSpend(player, capabilityCost(capability), -1);
 		});
 	}
 
@@ -1805,6 +1868,7 @@ export class SimulatorState {
 		const player = this.players.find((candidate) => candidate.id === playerId);
 		if (!player) return;
 
+		const capabilities = this.plannableCapabilities(player);
 		this.transaction(`Pla de ${player.name}`, () => {
 			const removed = player.plan[list];
 			for (const key of removed) {
@@ -1812,6 +1876,9 @@ export class SimulatorState {
 				for (const inputKey of Object.keys(player.plan.inputs)) {
 					if (inputKey.startsWith(prefix)) delete player.plan.inputs[inputKey];
 				}
+
+				const capability = capabilities.find((candidate) => candidate.key === key);
+				if (capability) this.adjustPlannedSpend(player, capabilityCost(capability), -1);
 			}
 			player.plan[list] = [];
 		});
@@ -1827,6 +1894,7 @@ export class SimulatorState {
 			player.plan.secrets = [];
 			player.plan.confirmed = false;
 			player.plan.inputs = {};
+			player.plannedSpend = {};
 		});
 	}
 
@@ -2407,6 +2475,7 @@ export class SimulatorState {
 					vigilance: player.vigilance,
 					acquisitions: player.acquisitions.map((acquisition) => ({ ...acquisition })),
 					contribution: { ...player.contribution },
+					plannedSpend: { ...player.plannedSpend },
 					crisisPayments: { ...player.crisisPayments }
 				};
 			}),
@@ -2511,6 +2580,7 @@ export class SimulatorState {
 					vigilance: Math.max(0, Math.round(asNumber(record.vigilance, 0))),
 					acquisitions: normalizeAcquisitions(record.acquisitions),
 					contribution: normalizeContribution(record.contribution),
+					plannedSpend: normalizeContribution(record.plannedSpend),
 					crisisPayments: normalizeCrisisPayments(record.crisisPayments)
 				});
 			}
