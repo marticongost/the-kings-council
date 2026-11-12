@@ -1,13 +1,8 @@
 import type { GoalData } from '#lib/models/cards';
+import { biggestHoarderGoalReaction } from '../reusable-definitions';
 
 export default {
 	title: 'Calculador',
 	goalType: 'personal',
-	capabilities: [
-		{
-			type: 'reaction',
-			trigger: 'gameEnd',
-			effects: 'Si acabes la partida amb 5 o més {intrigue} a la bossa, guanya {prestige 3}.'
-		}
-	]
+	capabilities: [biggestHoarderGoalReaction('{intrigue}')]
 } satisfies GoalData;

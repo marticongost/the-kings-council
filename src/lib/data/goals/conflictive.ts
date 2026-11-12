@@ -6,8 +6,13 @@ export default {
 	capabilities: [
 		{
 			type: 'reaction',
+			trigger: 'whenInstigatingDuel',
+			effects: 'Afegeix una marca {input tally 5}.'
+		},
+		{
+			type: 'reaction',
 			trigger: 'gameEnd',
-			effects: 'Si has iniciat 5+ duels durant la partida, guanya {prestige 3}.'
+			effects: 'Guanya {prestige 1} per cada marca que hagis col·locat.'
 		}
 	]
 } satisfies GoalData;

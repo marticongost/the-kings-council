@@ -1,14 +1,8 @@
 import type { GoalData } from '#lib/models/cards';
+import { biggestHoarderGoalReaction } from '../reusable-definitions';
 
 export default {
 	title: 'Reservat',
 	goalType: 'personal',
-	capabilities: [
-		{
-			type: 'reaction',
-			trigger: 'gameEnd',
-			effects:
-				'Si acabes la partida controlant 3 o més cartes {asset} {hidden}, guanya {prestige 3}.'
-		}
-	]
+	capabilities: [biggestHoarderGoalReaction('{assets} {hidden}')]
 } satisfies GoalData;

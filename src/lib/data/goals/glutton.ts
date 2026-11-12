@@ -1,13 +1,8 @@
 import type { GoalData } from '#lib/models/cards';
+import { biggestHoarderGoalReaction } from '../reusable-definitions';
 
 export default {
 	title: 'Golut',
 	goalType: 'personal',
-	capabilities: [
-		{
-			type: 'reaction',
-			trigger: 'gameEnd',
-			effects: 'Si tens 3+ més cartes amb la propietat {food}, guanya {prestige 4}.'
-		}
-	]
+	capabilities: [biggestHoarderGoalReaction('cartes amb el tret {food}')]
 } satisfies GoalData;

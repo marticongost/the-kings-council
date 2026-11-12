@@ -4,6 +4,9 @@ interface TriggerData {
 
 const triggerData: Record<string, TriggerData> = {
 	afterDuelDeclared: { title: 'En declarar-se un duel' },
+	afterResolvingAggression: { title: 'Després de resoldre una agressió' },
+	afterResolvingCrisis: { title: 'Després de resoldre una crisi' },
+	whenInstigatingDuel: { title: 'Quan declaris un duel' },
 	whenRevealed: { title: 'En ser revelada' },
 	eventRevealed: { title: 'Quan es reveli un esdeveniment' },
 	turnStart: { title: 'Inici del torn' },
@@ -14,6 +17,7 @@ const triggerData: Record<string, TriggerData> = {
 	afterWinningDuel: { title: 'Després de guanyar un duel' },
 	lawSuggested: { title: 'Quan entri a votació' },
 	voting: { title: 'Quan votis una llei' },
+	afterVoting: { title: 'Quan conclogui una votació' },
 	ownerIsExecuted: { title: 'Quan siguis executat' },
 	playerDiscards: { title: 'Quan descartis una carta' },
 	spendingFavour: { title: 'Quan es gasti favor' },

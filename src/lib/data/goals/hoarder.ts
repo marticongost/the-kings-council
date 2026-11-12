@@ -7,7 +7,7 @@ export default {
 		{
 			type: 'reaction',
 			trigger: 'gameEnd',
-			effects: 'Si acabes la partida amb 8 o més cartes a la mà, guanya {prestige 3}.'
+			effects: 'Guanya 2/3/4 {prestige} si acabes la partida amb 6-8/9-11/12+ {any}.'
 		}
 	]
 } satisfies GoalData;

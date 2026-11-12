@@ -6,9 +6,13 @@ export default {
 	capabilities: [
 		{
 			type: 'reaction',
+			trigger: 'afterResolvingCrisis',
+			effects: 'Si no has contribuit a la crisi, afegeix una marca {input tally 4}.'
+		},
+		{
+			type: 'reaction',
 			trigger: 'gameEnd',
-			effects:
-				'Si tens menys emblemes que tots els altres membres del teu regne, guanya {prestige 2}.'
+			effects: 'Guanya {prestige 1} per cada marca que hagis col·locat.'
 		}
 	]
 } satisfies GoalData;

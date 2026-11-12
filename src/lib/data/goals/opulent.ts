@@ -1,14 +1,8 @@
 import type { GoalData } from '#lib/models/cards';
+import { biggestHoarderGoalReaction } from '../reusable-definitions';
 
 export default {
 	title: 'Opulent',
 	goalType: 'personal',
-	capabilities: [
-		{
-			type: 'reaction',
-			trigger: 'gameEnd',
-			effects:
-				'Si acabes la partida controlant 3 o més cartes amb el tret {luxury}, guanya {prestige 3}.'
-		}
-	]
+	capabilities: [biggestHoarderGoalReaction('cartes amb el tret {luxury}')]
 } satisfies GoalData;

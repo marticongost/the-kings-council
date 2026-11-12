@@ -6,9 +6,13 @@ export default {
 	capabilities: [
 		{
 			type: 'reaction',
+			trigger: 'afterVoting',
+			effects: 'Si la teva opció ha estat la guanyadora, afegeix una marca {input tally 5}.'
+		},
+		{
+			type: 'reaction',
 			trigger: 'gameEnd',
-			effects:
-				"Si durant la partida s'han aprovat 3 o més lleis que tu has proposat, guanya {prestige 3}."
+			effects: 'Guanya {prestige 1} per cada marca que hagis col·locat.'
 		}
 	]
 } satisfies GoalData;

@@ -28,3 +28,11 @@ export function resourceHigherThanKingdomStatGoalReaction(
 		effects: `Si {${resource}} > {${kingdomStat}}, guanya tant {prestige} com la diferència (màxim 5).`
 	};
 }
+
+export function biggestHoarderGoalReaction(kind: string): ReactionSpec {
+	return {
+		type: 'reaction',
+		trigger: 'gameEnd',
+		effects: `Si ets el jugador amb més ${kind} del teu regne, guanya {prestige} igual a {kingdom-members} (màxim 5).`
+	};
+}

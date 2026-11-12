@@ -6,9 +6,13 @@ export default {
 	capabilities: [
 		{
 			type: 'reaction',
+			trigger: 'afterResolvingAggression',
+			effects: `Si has estat l'instigador de l'agressió i has guanyat un duel de {strength}, afegeix una marca {input tally 3}.`
+		},
+		{
+			type: 'reaction',
 			trigger: 'gameEnd',
-			effects:
-				'Si ets el jugador amb més victòries totals, guanya {prestige 1} per cada 3 jugadors presents a la partida (arrodonint avall).'
+			effects: 'Guanya 1/3/5 {prestige} segons les marques que hagis col·locat.'
 		}
 	]
 } satisfies GoalData;

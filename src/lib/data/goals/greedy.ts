@@ -1,13 +1,8 @@
 import type { GoalData } from '#lib/models/cards';
+import { biggestHoarderGoalReaction } from '../reusable-definitions';
 
 export default {
 	title: 'Avariciós',
 	goalType: 'personal',
-	capabilities: [
-		{
-			type: 'reaction',
-			trigger: 'gameEnd',
-			effects: 'Si acabes la partida amb 5 o més {gold} a la bossa, guanya {prestige 3}.'
-		}
-	]
+	capabilities: [biggestHoarderGoalReaction('{gold}')]
 } satisfies GoalData;
