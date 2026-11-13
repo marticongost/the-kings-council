@@ -1,1 +1,36 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1200"><path d="m706.55 1144.306-213.32.187 31.875-307.69-315.28 30.844v-210.79l318.32 30.844-37.734-631.45h218.95l-37.688 631.45 320.02-31.03v211.18l-317.02-31.031Z"/></svg>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   viewBox="0 0 1200 1200"
+   version="1.1"
+   id="svg1"
+   sodipodi:docname="heretic.svg"
+   inkscape:version="1.4.3 (0d15f75042, 2025-12-25)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs1" />
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="0.84666667"
+     inkscape:cx="599.40945"
+     inkscape:cy="600"
+     inkscape:window-width="3072"
+     inkscape:window-height="1227"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg1" />
+  <path
+     d="m 711.73349,1170.9574 -223.77213,0.1961 33.43679,-322.76599 -330.7279,32.35527 V 659.62462 L 524.58711,691.9799 485.00423,29.590485 H 714.68222 L 675.1476,691.9799 1010.8478,659.42951 V 880.95678 L 678.2946,848.40533 Z"
+     id="path1"
+     style="stroke-width:1.049" />
+</svg>
