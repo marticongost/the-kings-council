@@ -241,13 +241,9 @@ fluctui amunt i avall. Si la direcció del canvi allunya l'indicador del seu val
 caldrà pagar una penalització per fricció per fer-ho (a més del cost normal de l'efecte),
 tal i com s'indica a la taula següent:
 
-| Nou valor | Fricció |
-| --------- | ------- |
-| 5         | 2       |
-| 4         | 1       |
-| 3         | 0       |
-| 2         | 1       |
-| 1         | 2       |
+```kingdomStatFrictionTable
+
+```
 
 Aquests costs addicionals s'indiquen a les capacitats de les cartes amb la icona
 {kingdom-stat-friction}.
@@ -1043,11 +1039,9 @@ Diferents efectes del joc poden veure's incrementats en funció d'aquest valor.
 
 El {danger} es calcula en funció del torn vigent:
 
-| Torn | Perill |
-| ---- | ------ |
-| 1-4  | 1      |
-| 5-7  | 2      |
-| 8-10 | 3      |
+```dangerTable
+
+```
 
 # Seqüència del torn #turn-sequence
 
@@ -1255,14 +1249,9 @@ Cada regne produeix recursos segons el nombre de membres i el valor del seu
 Es produeixen recursos de tots els tipus, exceptuant el {prestige-label}, utilitzant
 per cada tipus de recurs el seu {kingdom-stat} associat:
 
-| Recurs           | Indicador             |
-| ---------------- | --------------------- |
-| {gold-label}     | {wealth-label}        |
-| {power-label}    | {stability-label}     |
-| {strength-label} | {might-label}         |
-| {faith-label}    | {grace-label}         |
-| {intrigue-label} | 6 - {stability-label} |
-| {favour-label}   | El més baix           |
+```resourceKingdomStatTable
+
+```
 
 Cal fer notar que tots els recursos estan vinculats 1:1 amb un {kingdom-stat}, excepte
 per la {intrigue-label} i el {favour-label}:
@@ -1297,14 +1286,9 @@ entre els membres del regne.
 En primer lloc, cal determinar quin dels membres del regne serà el responsable de
 repartir el recurs:
 
-| Recurs           | Responsable  |
-| ---------------- | ------------ |
-| {gold-label}     | {treasurer}  |
-| {power-label}    | {chancellor} |
-| {strength-label} | {marshal}    |
-| {faith-label}    | {bishop}     |
-| {intrigue-label} | {spy-master} |
-| {favour-label}   | {king}       |
+```resourceResponsibleTable
+
+```
 
 Si el càrrec indicat està buit, el repartiment d'aquell recurs passarà a ser
 responsabilitat del {king}.
@@ -1372,31 +1356,6 @@ victòria.
 Al llarg d'aquest manual i a les cartes i materials de joc s'utilitzen un seguit
 d'icones, per raons d'economia d'espai. Es llisten a continuació, a mode de referència:
 
-| Icona                   | Significat                                                |
-| ----------------------- | --------------------------------------------------------- |
-| {visible}               | Carta visible als altres jugadors                         |
-| {hidden}                | Carta només visible al seu propietari                     |
-| {player}                | Un jugador                                                |
-| {players}               | Múltiples jugadors                                        |
-| {kingdom}               | Regne                                                     |
-| {kingdom-member}        | Un membre del regne                                       |
-| {kingdom-members}       | Múltiples membres del regne                               |
-| {kingdom-stat-friction} | Fricció (cost addicional) per modificar un {kingdom-stat} |
-| {danger}                | Perill - risc i càstig creixent a mida que avança el joc  |
-| {gold}                  | Recurs (Or)                                               |
-| {power}                 | Recurs (Poder)                                            |
-| {strength}              | Recurs (Força)                                            |
-| {faith}                 | Recurs (Fè)                                               |
-| {intrigue}              | Recurs (Intriga)                                          |
-| {favour}                | Recurs (Favor)                                            |
-| {any}                   | Recurs (Qualsevol)                                        |
-| {prestige}              | Prestigi                                                  |
-| {stability}             | Indicador del regne (Estabilitat)                         |
-| {wealth}                | Indicador del regne (Riquesa)                             |
-| {might}                 | Indicador del regne (Exèrcit)                             |
-| {grace}                 | Indicador del regne (Gràcia)                              |
-| {action}                | Capacitat (Acció)                                         |
-| {secret}                | Capacitat (Secret)                                        |
-| {reaction}              | Capacitat (Reacció)                                       |
-| {indication}            | Capacitat (Indicació)                                     |
-| {constant}              | Capacitat (Constant)                                      |
+```iconLegendTable
+
+```

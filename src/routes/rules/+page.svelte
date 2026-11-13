@@ -20,6 +20,11 @@
 	import Comment from '#lib/components/Comment.svelte';
 	import KingdomProductionTable from '#lib/components/KingdomProductionTable.svelte';
 	import InsurrectionTable from '#lib/components/InsurrectionTable.svelte';
+	import KingdomStatFrictionTable from '#lib/components/KingdomStatFrictionTable.svelte';
+	import DangerTable from '#lib/components/DangerTable.svelte';
+	import ResourceKingdomStatTable from '#lib/components/ResourceKingdomStatTable.svelte';
+	import ResourceResponsibleTable from '#lib/components/ResourceResponsibleTable.svelte';
+	import IconLegendTable from '#lib/components/IconLegendTable.svelte';
 	import Notice from '#lib/components/Notice.svelte';
 </script>
 
@@ -39,6 +44,21 @@
 		{/snippet}
 		{#snippet insurrectionTable()}
 			<InsurrectionTable />
+		{/snippet}
+		{#snippet kingdomStatFrictionTable()}
+			<KingdomStatFrictionTable />
+		{/snippet}
+		{#snippet dangerTable()}
+			<DangerTable />
+		{/snippet}
+		{#snippet resourceKingdomStatTable()}
+			<ResourceKingdomStatTable />
+		{/snippet}
+		{#snippet resourceResponsibleTable()}
+			<ResourceResponsibleTable />
+		{/snippet}
+		{#snippet iconLegendTable()}
+			<IconLegendTable />
 		{/snippet}
 	</Markdown>
 </div>
