@@ -19,6 +19,7 @@
 	import rules from './rules.md?raw';
 	import Comment from '#lib/components/Comment.svelte';
 	import KingdomProductionTable from '#lib/components/KingdomProductionTable.svelte';
+	import InsurrectionTable from '#lib/components/InsurrectionTable.svelte';
 	import Notice from '#lib/components/Notice.svelte';
 </script>
 
@@ -35,6 +36,9 @@
 		{/snippet}
 		{#snippet kingdomProductionTable()}
 			<KingdomProductionTable />
+		{/snippet}
+		{#snippet insurrectionTable()}
+			<InsurrectionTable />
 		{/snippet}
 	</Markdown>
 </div>

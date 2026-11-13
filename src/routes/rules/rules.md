@@ -989,15 +989,13 @@ es disol i deixa d'existir.
 Cada vegada que un {kingdom-stat} anés a reduir-se per sota el seu valor mínim (1), en comptes
 d'alterar el seu valor es produirà una {insurrection} al regne.
 
-Per resoldre-la, llançar 3 daus de 6 cares; considerar cada resultat per sobre del valor objectiu
+Per resoldre-la, llançar 2 daus de 6 cares; considerar cada resultat per sobre del valor objectiu
 com un èxit. El valor objectiu és igual al número d'{kingdom-stats} amb valor 1. Determinar els
 efectes de la insurrecció a la taula següent:
 
-| Èxits | Resultat                                   |
-| ----- | ------------------------------------------ |
-| 2+    | La insurrecció fracassa, sense més efectes |
-| 1     | El {king} és {exiled}                      |
-| 0     | El {king} és {executed}                    |
+```insurrectionTable
+
+```
 
 #### Esclafar la rebel·lió
 
