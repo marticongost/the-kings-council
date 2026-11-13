@@ -58,3 +58,11 @@ export function doubleFavourHouseTrait(title: string, context: string): Constant
 		effects: `Cada torn, el primer {favour} que gastis ${context} compta per 2.`
 	};
 }
+
+export function productionPerProperty(property: PropertyId, resource: ResourceType): ReactionSpec {
+	return {
+		type: 'reaction',
+		trigger: 'afterProductionPhase',
+		effects: `Guanya {${resource}} per cada un dels teus {assets} amb la propietat {${property}}.`
+	};
+}

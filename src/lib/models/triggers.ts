@@ -21,6 +21,7 @@ const triggerData: Record<string, TriggerData> = {
 	ownerIsExecuted: { title: 'Quan siguis executat' },
 	playerDiscards: { title: 'Quan descartis una carta' },
 	spendingFavour: { title: 'Quan es gasti favor' },
+	afterProductionPhase: { title: 'En concloure la fase de producció' },
 	uprisingInOwnKingdom: { title: 'Quan el regne pateixi una insurrecció' }
 };
 

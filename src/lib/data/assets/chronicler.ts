@@ -2,7 +2,7 @@ import type { AssetData } from '#lib/models/cards';
 
 export default {
 	title: 'Cronista',
-	properties: ['retinue'],
+	properties: ['retinue', 'knowledge'],
 	capabilities: [
 		{
 			type: 'reaction',

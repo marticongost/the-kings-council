@@ -2,7 +2,7 @@ import type { AssetData } from '#lib/models/cards';
 
 export default {
 	title: 'Castell',
-	properties: ['land'],
+	properties: ['land', 'military'],
 	capabilities: [
 		{
 			type: 'reaction',

@@ -2,7 +2,7 @@ import type { AssetData } from '#lib/models/cards';
 
 export default {
 	title: 'Terrenys de cultiu',
-	properties: ['land'],
+	properties: ['land', 'food'],
 	capabilities: [
 		{
 			type: 'reaction',

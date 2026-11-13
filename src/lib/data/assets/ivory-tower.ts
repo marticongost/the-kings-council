@@ -1,15 +1,12 @@
 import type { AssetData } from '#lib/models/cards';
+import { productionPerProperty } from '../reusable-definitions';
 
 export default {
 	title: "Torre d'ivori",
-	properties: ['land', 'magic', 'luxury'],
+	properties: ['land', 'magic'],
 	hidden: true,
 	capabilities: [
-		{
-			type: 'reaction',
-			trigger: 'gameEnd',
-			effects: 'Si tens 4+ cartes amb el tret {magic}, guanya {prestige 1}.'
-		},
+		productionPerProperty('magic', 'favour'),
 		{
 			type: 'reaction',
 			trigger: 'turnStart',

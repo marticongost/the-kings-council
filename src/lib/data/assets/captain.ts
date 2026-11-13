@@ -2,7 +2,7 @@ import type { AssetData } from '#lib/models/cards';
 
 export default {
 	title: 'Capità de la guàrdia',
-	properties: ['retinue'],
+	properties: ['retinue', 'military'],
 	capabilities: [
 		{
 			title: 'Puny de ferro',

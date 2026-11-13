@@ -19,6 +19,8 @@ const propertyData = {
 	retinue: 'Sèquit',
 	illicit: 'Il·lícit',
 	luxury: 'Luxe',
+	military: 'Militar',
+	knowledge: 'Coneixement',
 	maritime: 'Marítim',
 	selfishness: 'Egoïsme',
 	boost: 'Millora',

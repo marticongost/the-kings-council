@@ -7,7 +7,7 @@ export default {
 		{
 			type: 'reaction',
 			trigger: 'turnStart',
-			effects: 'Guanyar 1 carta.'
+			effects: 'Guanyar 1 {tactic}.'
 		}
 	]
 } satisfies AssetData;

@@ -2,7 +2,7 @@ import type { AssetData } from '#lib/models/cards';
 
 export default {
 	title: 'Cornucòpia',
-	properties: ['magic', 'object'],
+	properties: ['magic', 'object', 'food'],
 	hidden: true,
 	capabilities: [
 		{

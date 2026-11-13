@@ -2,7 +2,7 @@ import type { AssetData } from '#lib/models/cards';
 
 export default {
 	title: 'Espècies',
-	properties: ['object', 'food'],
+	properties: ['object', 'food', 'luxury', 'maritime'],
 	hidden: false,
 	capabilities: [
 		{

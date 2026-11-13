@@ -2,7 +2,7 @@ import type { AssetData } from '#lib/models/cards';
 
 export default {
 	title: 'Grimori demoníac',
-	properties: ['magic', 'object', 'illicit'],
+	properties: ['magic', 'object', 'illicit', 'knowledge'],
 	hidden: true,
 	capabilities: [
 		{
