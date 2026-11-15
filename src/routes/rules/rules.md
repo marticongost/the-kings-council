@@ -770,11 +770,22 @@ fins a la [](#crisis-resolution-phase), després que els jugadors hagin actuat.
 
 Cada crisi especifica un requeriment que cal assolir per tal de superar la crisi. Això
 prendrà la forma d'un o més recursos, i un valor llindar - sovint expressat en funció
-del nombre de {players} membres del regne.
+del nombre de {players} membres del regne i del _perill_ del torn en curs. El resultat
+d'aquesta expressió s'arrodoneix sempre cap a baix.
 
 ```example
-Si el requeriment és "{power} ≥ {players} x 2" i el regne té 5 membres, els membres
-hauran d'intentar reunir 10 {power} entre tots.
+Si el requeriment és "{power} ≥ {players} x {danger}", el regne té 5 membres i el
+*perill* és 1.5, els membres hauran d'intentar reunir {power 7} entre tots.
+```
+
+El valor del requeriment es calcula al moment en que es revela la crisi. El director de
+joc l'anota a la casella superior de la carta de crisi, i a partir d'aquell moment el
+valor es manté constant i immutable - independentment de si els factors de l'expressió
+canvien durant el torn.
+
+```example
+Seguint amb l'exemple anterior, un dels jugadors és expulsat del regne durant el torn.
+La crisi es seguirà resolent contra el valor calculat inicialment (7).
 ```
 
 ### Contribuint a la crisi
@@ -933,12 +944,12 @@ immediatament.
 
 Els {kingdom-stats} del nou regne s'estableixen al valor neutre (3). Es segueixen les
 indicacions de [](#prepare-fate-deck) per preparar la pila de destí del regne, però en
-comptes de 10 cartes se'n roben tantes com torns quedin, arrodonint amunt cap al següent
+comptes de 8 cartes se'n roben tantes com torns quedin, arrodonint amunt cap al següent
 nombre parell.
 
 ```example
-El nou regne del Marc s'ha creat quan queden 7 torns de joc. Robarà 4 cartes de crisi i
-4 cartes d'esdeveniment per conformar la baralla de destí del seu regne.
+El nou regne del Marc s'ha creat quan queden 5 torns de joc. Robarà 3 cartes de crisi i
+3 cartes d'esdeveniment per conformar la baralla de destí del seu regne.
 ```
 
 ### Unir-se a un regne
@@ -1025,7 +1036,7 @@ vegada en una sèrie de fases, com s'explica posteriorment a la secció [](#turn
 
 ## Durada de la partida
 
-Una partida estàndard dura 10 torns. Un cop conclòs l'últim torn es resol el
+Una partida estàndard dura 8 torns. Un cop conclòs l'últim torn es resol el
 [](#game-end).
 
 ## Perill creixent

@@ -111,7 +111,6 @@
 	import InlineSvg from '#lib/components/InlineSvg.svelte';
 	import type { CardCapability } from '#lib/models/cardcapabilities';
 	import type { Card } from '#lib/models/cards';
-	import { evaluateCrisisDifficulty } from './crisisdifficulty';
 	import { useSelection } from './selection.svelte';
 	import type { SimulatorState } from './simulatorstate.svelte';
 	import { officeDragMime, simulatorDragMime, type DragPayload, type Zone } from './types';
@@ -145,11 +144,7 @@
 
 	const difficulty = $derived(
 		subject?.type === 'crisis' && attachedKingdom && simulator
-			? evaluateCrisisDifficulty(subject, {
-					members: simulator.membersOf(attachedKingdom.id).length,
-					danger: simulator.danger,
-					stats: attachedKingdom.stats
-				})
+			? simulator.crisisDifficulty(attachedKingdom.id)
 			: null
 	);
 

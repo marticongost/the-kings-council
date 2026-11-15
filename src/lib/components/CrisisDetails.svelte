@@ -46,6 +46,7 @@
 
 <script lang="ts">
 	import { standardAttributes, type StandardAttributeProps } from './utils';
+	import CapabilityInput from './CapabilityInput.svelte';
 	import EffectsText from './EffectsText.svelte';
 	import InlineSvg from './InlineSvg.svelte';
 	import { cx } from '@emotion/css';
@@ -63,6 +64,7 @@
 		<EffectsText effects={capability.test} />
 		≥
 		<EffectsText effects={capability.difficulty} />
+		<CapabilityInput format="number" />
 	</div>
 	<div class={cx(styles.crisisOutcome, styles.reward)}>
 		<InlineSvg class={styles.crisisOutcomeIcon} src="capabilities/reward.svg" />

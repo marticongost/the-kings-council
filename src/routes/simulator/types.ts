@@ -31,23 +31,12 @@ export const kingdomStatMin = 1;
 export const kingdomStatMax = 5;
 export const kingdomStatNeutral = 3;
 
-/** The game lasts ten turns; danger grows with the current turn. */
-export const minTurn = 1;
-export const maxTurn = 10;
-
 /** The player counts a new game can be started with. */
 export const minPlayers = 4;
 export const maxPlayers = 16;
 
 /** Players per kingdom, which also sets how many kingdoms a game has. */
 export const playersPerKingdom = 4;
-
-/** The danger value of a turn, following the turn table in the rules. */
-export function dangerForTurn(turn: number): number {
-	if (turn <= 4) return 1;
-	if (turn <= 7) return 2;
-	return 3;
-}
 
 export function emptyKingdomStats(): KingdomStats {
 	const stats = {} as KingdomStats;
@@ -289,6 +278,14 @@ export interface PlayerState {
 	crisisPayments: Record<string, PlayerContribution>;
 }
 
+/** The difficulty fixed for a crisis when it is revealed, so later changes do not alter it. */
+export interface CrisisDifficulty {
+	/** Card instance of the crisis the difficulty was computed for. */
+	cardUid: string;
+	/** Evaluated difficulty, or null when the expression could not be evaluated. */
+	value: number | null;
+}
+
 export interface KingdomState {
 	id: string;
 	name: string;
@@ -297,6 +294,8 @@ export interface KingdomState {
 	crisisDefense: number;
 	/** Whether the kingdom's crisis contributions have been paid this turn. */
 	crisisPaid: boolean;
+	/** Difficulty of the kingdom's crisis, fixed when it was revealed. */
+	crisisDifficulty: CrisisDifficulty | null;
 	/** Any card attached to the kingdom, including its unassigned offices. */
 	cards: Array<CardRef>;
 	/** The kingdom's face-down fate deck, holding its crisis and event cards. */
@@ -324,6 +323,8 @@ export interface SerializedKingdom {
 	stats: KingdomStats;
 	crisisDefense?: number;
 	crisisPaid?: boolean;
+	/** Difficulty fixed for the kingdom's crisis, identified by card id. */
+	crisisDifficulty?: { cardId: string; value: number | null };
 	cards?: Array<string>;
 	/** Card ids in the kingdom's fate deck. */
 	fate?: Array<string>;

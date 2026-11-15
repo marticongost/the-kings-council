@@ -107,7 +107,6 @@
 	import InlineSvg from '#lib/components/InlineSvg.svelte';
 	import ResourceDisplay from '#lib/components/ResourceDisplay.svelte';
 	import { crisisContributionResources } from './crisiscontributions';
-	import { evaluateCrisisDifficulty } from './crisisdifficulty';
 	import PlayerChip from './PlayerChip.svelte';
 	import type { SimulatorState } from './simulatorstate.svelte';
 	import type { PlayerResourceType } from './types';
@@ -154,15 +153,7 @@
 	});
 
 	const defense = $derived(rows.reduce((sum, row) => sum + row.total, 0));
-	const difficulty = $derived(
-		kingdom && crisis
-			? evaluateCrisisDifficulty(crisis, {
-					members: simulator.membersOf(kingdom.id).length,
-					danger: simulator.danger,
-					stats: kingdom.stats
-				})
-			: null
-	);
+	const difficulty = $derived(kingdom ? simulator.crisisDifficulty(kingdom.id) : null);
 	const succeeded = $derived(difficulty !== null && defense >= difficulty);
 
 	/** Players at the extreme the crisis outcome points at: highest when averted, lowest otherwise. */

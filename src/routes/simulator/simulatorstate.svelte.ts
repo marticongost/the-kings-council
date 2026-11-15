@@ -2,12 +2,14 @@ import { cardsCatalog } from '#lib/data/catalog';
 import { ConcreteCapability, type CapabilityType } from '#lib/models/capabilities';
 import { CardCapability } from '#lib/models/cardcapabilities';
 import { type Card, type Crisis, type CardType } from '#lib/models/cards';
+import { dangerForTurn, maxTurn, minTurn } from '#lib/models/turns';
 import { getKingdomStat, kingdomStatTypes, type KingdomStatType } from '#lib/models/kingdomstats';
 import { officeTypes, type OfficeType } from '#lib/models/offices';
 import { getResource } from '#lib/models/resources';
 import type { ResourceSpec } from '#lib/models/resourcesets';
-import { SvelteSet } from 'svelte/reactivity';
+import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 import { crisisContributionResources } from './crisiscontributions';
+import { evaluateCrisisDifficulty } from './crisisdifficulty';
 import {
 	emptyProductionState,
 	independentProductionResourceCount,
@@ -27,7 +29,6 @@ import {
 	type ConcreteTypeKey
 } from './keyboardnav';
 import {
-	dangerForTurn,
 	deckCardType,
 	deckIdOf,
 	deckIds,
@@ -38,9 +39,7 @@ import {
 	kingdomStatNeutral,
 	lawVoteWeight,
 	maxPlayers,
-	maxTurn,
 	minPlayers,
-	minTurn,
 	playerResourceTypes,
 	playersPerKingdom,
 	planListOf,
@@ -160,6 +159,7 @@ function copyGameState(state: GameStateCopy): GameStateCopy {
 			stats: { ...kingdom.stats },
 			crisisDefense: kingdom.crisisDefense,
 			crisisPaid: kingdom.crisisPaid,
+			crisisDifficulty: kingdom.crisisDifficulty ? { ...kingdom.crisisDifficulty } : null,
 			cards: copyRefs(kingdom.cards),
 			fateDeck: copyRefs(kingdom.fateDeck)
 		})),
@@ -435,6 +435,19 @@ function normalizeCrisisDefense(value: unknown): number {
 	return clamp(asNumber(value, 0), 0, Number.POSITIVE_INFINITY);
 }
 
+function normalizeCrisisDifficulty(
+	value: unknown
+): { cardId: string; value: number | null } | null {
+	const record = asObject(value);
+	if (!record || typeof record.cardId !== 'string') return null;
+
+	const difficulty = record.value;
+	return {
+		cardId: record.cardId,
+		value: typeof difficulty === 'number' && Number.isFinite(difficulty) ? difficulty : null
+	};
+}
+
 function normalizeResolution(value: unknown): ResolutionState {
 	const record = asObject(value);
 	return {
@@ -640,6 +653,7 @@ export class SimulatorState {
 		this.beginTransaction(description);
 		try {
 			change();
+			this.fixCrisisDifficulties();
 		} finally {
 			this.endTransaction();
 		}
@@ -1017,6 +1031,7 @@ export class SimulatorState {
 				stats: emptyKingdomStats(),
 				crisisDefense: 0,
 				crisisPaid: false,
+				crisisDifficulty: null,
 				cards: createOfficeRefs(),
 				fateDeck: this.drawFateDeck()
 			});
@@ -1150,6 +1165,41 @@ export class SimulatorState {
 			if (card?.type === 'crisis') return card;
 		}
 		return null;
+	}
+
+	/** The difficulty fixed for the kingdom's current crisis, or null when it has none. */
+	crisisDifficulty(kingdomId: string | null): number | null {
+		if (!kingdomId) return null;
+		const kingdom = this.kingdoms.find((candidate) => candidate.id === kingdomId);
+		const ref = kingdom?.cards.find((candidate) => this.cardOf(candidate)?.type === 'crisis');
+		const fixed = kingdom?.crisisDifficulty;
+		return ref && fixed?.cardUid === ref.uid ? fixed.value : null;
+	}
+
+	/**
+	 * Fixes the difficulty of each kingdom's crisis the first time it is revealed, so that
+	 * later changes such as a player leaving the kingdom do not alter it. Clears it with the
+	 * crisis, so that the next one is fixed when it is revealed.
+	 */
+	private fixCrisisDifficulties(): void {
+		for (const kingdom of this.kingdoms) {
+			const ref = kingdom.cards.find((candidate) => this.cardOf(candidate)?.type === 'crisis');
+			const crisis = ref ? this.cardOf(ref) : null;
+			if (!ref || crisis?.type !== 'crisis') {
+				kingdom.crisisDifficulty = null;
+				continue;
+			}
+			if (kingdom.crisisDifficulty?.cardUid === ref.uid) continue;
+
+			kingdom.crisisDifficulty = {
+				cardUid: ref.uid,
+				value: evaluateCrisisDifficulty(crisis, {
+					members: this.membersOf(kingdom.id).length,
+					danger: this.danger,
+					stats: kingdom.stats
+				})
+			};
+		}
 	}
 
 	/**
@@ -2487,15 +2537,24 @@ export class SimulatorState {
 					crisisPayments: { ...player.crisisPayments }
 				};
 			}),
-			kingdoms: this.kingdoms.map((kingdom) => ({
-				id: kingdom.id,
-				name: kingdom.name,
-				stats: { ...kingdom.stats },
-				crisisDefense: kingdom.crisisDefense,
-				crisisPaid: kingdom.crisisPaid,
-				cards: cardIds(kingdom.cards),
-				fate: cardIds(kingdom.fateDeck)
-			})),
+			kingdoms: this.kingdoms.map((kingdom) => {
+				const crisisRef = kingdom.crisisDifficulty
+					? kingdom.cards.find((ref) => ref.uid === kingdom.crisisDifficulty?.cardUid)
+					: undefined;
+				return {
+					id: kingdom.id,
+					name: kingdom.name,
+					stats: { ...kingdom.stats },
+					crisisDefense: kingdom.crisisDefense,
+					crisisPaid: kingdom.crisisPaid,
+					crisisDifficulty:
+						crisisRef && kingdom.crisisDifficulty
+							? { cardId: crisisRef.cardId, value: kingdom.crisisDifficulty.value }
+							: undefined,
+					cards: cardIds(kingdom.cards),
+					fate: cardIds(kingdom.fateDeck)
+				};
+			}),
 			laws: cardIds(this.laws),
 			market: cardIds(this.market),
 			decks: emptyDeckRecord((deckId) => cardIds(this.decks[deckId])),
@@ -2536,6 +2595,8 @@ export class SimulatorState {
 		const kingdoms: Array<KingdomState> = [];
 		/** Kingdoms from older snapshots, which are dealt a fate deck once the piles are restored. */
 		const kingdomsWithoutFate: Array<KingdomState> = [];
+		/** Fixed crisis difficulties read from the snapshot, keyed by kingdom id. */
+		const storedDifficulties = new SvelteMap<string, { cardId: string; value: number | null }>();
 		if (Array.isArray(snapshot.kingdoms)) {
 			for (const raw of snapshot.kingdoms) {
 				const record = asObject(raw);
@@ -2549,6 +2610,7 @@ export class SimulatorState {
 					stats: normalizeStats(record.stats),
 					crisisDefense: normalizeCrisisDefense(record.crisisDefense),
 					crisisPaid: record.crisisPaid === true,
+					crisisDifficulty: null,
 					// New snapshots store a general card list; older ones only kept the
 					// kingdom's unassigned offices, and the earliest had no offices at all.
 					cards: Array.isArray(record.cards)
@@ -2560,6 +2622,8 @@ export class SimulatorState {
 						? normalizeRefs(record.fate, undefined, isFateCard)
 						: []
 				};
+				const stored = normalizeCrisisDifficulty(record.crisisDifficulty);
+				if (stored) storedDifficulties.set(kingdom.id, stored);
 				if (!Array.isArray(record.fate)) kingdomsWithoutFate.push(kingdom);
 				kingdoms.push(kingdom);
 			}
@@ -2613,5 +2677,18 @@ export class SimulatorState {
 		this.production = normalizeProduction(snapshot.production);
 
 		for (const kingdom of kingdomsWithoutFate) kingdom.fateDeck = this.drawFateDeck();
+
+		for (const kingdom of this.kingdoms) {
+			const stored = storedDifficulties.get(kingdom.id);
+			const ref = stored
+				? kingdom.cards.find(
+						(candidate) =>
+							candidate.cardId === stored.cardId && this.cardOf(candidate)?.type === 'crisis'
+					)
+				: undefined;
+			kingdom.crisisDifficulty = ref && stored ? { cardUid: ref.uid, value: stored.value } : null;
+		}
+		// Snapshots from older versions keep no difficulty, so their revealed crisis is fixed now.
+		this.fixCrisisDifficulties();
 	}
 }

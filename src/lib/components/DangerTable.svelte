@@ -1,23 +1,19 @@
 <script lang="ts" module>
+	import { dangerLevels, dangerTurnRange } from '#lib/models/turns';
 	import * as css from '#lib/styles';
 
 	const styles = css.styles({
 		dangerTable: {
 			'th, td': {
 				width: '50%',
-				textAlign: 'center'
+				textAlign: 'left'
 			}
 		}
 	});
-
-	const rows = [
-		{ turns: '1-4', danger: 1 },
-		{ turns: '5-7', danger: 2 },
-		{ turns: '8-10', danger: 3 }
-	];
 </script>
 
 <script lang="ts">
+	import DangerDisplay from './DangerDisplay.svelte';
 	import Table, { type Props as TableProps } from './Table.svelte';
 	import { standardAttributes } from './utils';
 
@@ -34,10 +30,10 @@
 		</tr>
 	</thead>
 	<tbody>
-		{#each rows as row (row.turns)}
+		{#each dangerLevels as level (level.firstTurn)}
 			<tr>
-				<td>{row.turns}</td>
-				<td>{row.danger}</td>
+				<td>{dangerTurnRange(level)}</td>
+				<td><DangerDisplay danger={level.danger} /></td>
 			</tr>
 		{/each}
 	</tbody>

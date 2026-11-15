@@ -31,6 +31,15 @@ const arithmeticOperators: Record<string, Operator> = {
 	'÷': '/'
 };
 
+/** Vulgar fraction glyphs used in expressions such as `{danger} + ½`. */
+const fractions: Record<string, number> = {
+	'½': 1 / 2,
+	'⅓': 1 / 3,
+	'⅔': 2 / 3,
+	'¼': 1 / 4,
+	'¾': 3 / 4
+};
+
 const kingdomStatNames = new Set<string>(kingdomStatTypes);
 
 /** Expressions naming the number of players in the kingdom. */
@@ -77,10 +86,24 @@ function tokenize(expression: string): Array<Token> | null {
 			const start = index;
 			while (index < expression.length && /[\d.]/.test(expression[index])) index += 1;
 
-			const value = Number(expression.slice(start, index));
+			let value = Number(expression.slice(start, index));
 			if (!Number.isFinite(value)) return null;
 
+			// Mixed numbers such as `1½` add the following fraction to the integer part.
+			const mixedFraction = fractions[expression[index]];
+			if (mixedFraction !== undefined) {
+				value += mixedFraction;
+				index += 1;
+			}
+
 			tokens.push({ type: 'number', value });
+			continue;
+		}
+
+		const fraction = fractions[character];
+		if (fraction !== undefined) {
+			tokens.push({ type: 'number', value: fraction });
+			index += 1;
 			continue;
 		}
 

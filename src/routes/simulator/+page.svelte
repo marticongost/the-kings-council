@@ -85,15 +85,6 @@
 			fontWeight: 900,
 			color: css.palette.wood
 		},
-		danger: {
-			...css.row('xs'),
-			color: css.palette.wood
-		},
-		dangerIcon: {
-			height: '1.1em',
-			width: 'auto',
-			color: css.palette.petal
-		},
 		decks: {
 			display: 'grid',
 			gridTemplateColumns: 'repeat(auto-fit, minmax(15em, max-content))',
@@ -150,9 +141,11 @@
 <script lang="ts">
 	import { cx } from '@emotion/css';
 	import { onMount, tick } from 'svelte';
+	import DangerDisplay from '#lib/components/DangerDisplay.svelte';
 	import IconButton from '#lib/components/IconButton.svelte';
 	import InlineSvg from '#lib/components/InlineSvg.svelte';
 	import Panel from '#lib/components/Panel.svelte';
+	import { maxTurn, minTurn } from '#lib/models/turns';
 	import CardZone from './CardZone.svelte';
 	import Counter from './Counter.svelte';
 	import DeckZone from './DeckZone.svelte';
@@ -166,7 +159,7 @@
 	import { provideSelection, SimulatorSelection } from './selection.svelte';
 	import { SimulatorState } from './simulatorstate.svelte';
 	import TurnOrderList from './TurnOrderList.svelte';
-	import { deckIdsInPlay, maxPlayers, maxTurn, minPlayers, minTurn } from './types';
+	import { deckIdsInPlay, maxPlayers, minPlayers } from './types';
 	import VoteModal from './VoteModal.svelte';
 	import { provideVotes, VoteController } from './votes.svelte';
 
@@ -180,8 +173,6 @@
 	);
 
 	const simulator = new SimulatorState();
-	/** One skull per point of danger, so danger 3 renders as three skulls. */
-	const dangerSkulls = $derived(Array.from({ length: simulator.danger }));
 	const selection = new SimulatorSelection();
 	const plans = new PlanController(simulator);
 	const votes = new VoteController(simulator);
@@ -393,20 +384,7 @@
 									<span class={styles.turnLabel}>Torn</span>
 								{/snippet}
 							</Counter>
-							<span
-								class={styles.danger}
-								title="Perill"
-								role="img"
-								aria-label={`Perill ${simulator.danger}`}
-							>
-								{#each dangerSkulls as _, index (index)}
-									<InlineSvg
-										class={styles.dangerIcon}
-										src="keywords/danger.svg"
-										aria-hidden="true"
-									/>
-								{/each}
-							</span>
+							<DangerDisplay danger={simulator.danger} />
 						</div>
 						<TurnOrderList {simulator} />
 						<CardZone
