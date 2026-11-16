@@ -21,7 +21,7 @@
 	import KingdomProductionTable from '#lib/components/KingdomProductionTable.svelte';
 	import InsurrectionTable from '#lib/components/InsurrectionTable.svelte';
 	import KingdomStatFrictionTable from '#lib/components/KingdomStatFrictionTable.svelte';
-	import DangerTable from '#lib/components/DangerTable.svelte';
+	import DangerBagCompositionTable from '#lib/components/DangerBagCompositionTable.svelte';
 	import ResourceKingdomStatTable from '#lib/components/ResourceKingdomStatTable.svelte';
 	import ResourceResponsibleTable from '#lib/components/ResourceResponsibleTable.svelte';
 	import IconLegendTable from '#lib/components/IconLegendTable.svelte';
@@ -48,8 +48,8 @@
 		{#snippet kingdomStatFrictionTable()}
 			<KingdomStatFrictionTable />
 		{/snippet}
-		{#snippet dangerTable()}
-			<DangerTable />
+		{#snippet dangerBagComposition()}
+			<DangerBagCompositionTable />
 		{/snippet}
 		{#snippet resourceKingdomStatTable()}
 			<ResourceKingdomStatTable />

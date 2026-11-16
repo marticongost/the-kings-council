@@ -4,8 +4,11 @@ export default {
 	title: 'Pirates',
 	properties: ['adversity'],
 	test: '{strength}',
-	difficulty: '{kingdom-members} × {danger}',
+	fortuneEffects: {
+		text: '{danger 2}',
+		compute: () => 2
+	},
 	highestContributionReward: '{prestige 1}, {power 2}',
 	penalty:
-		'El regne pateix {stability -1} i {wealth -1}. Els {kingdom-members} que menys hagin contribuit perden {gold 3}.'
+		'El regne pateix {stability -1} i {wealth -1}. Els {kingdom-members} que menys hagin contribuit perden la meitat del seu {gold}.'
 } satisfies CrisisData;

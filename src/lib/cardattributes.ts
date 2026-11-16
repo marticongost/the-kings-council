@@ -1,6 +1,7 @@
 import { assertNever } from './components/utils';
 import { type Capability } from './models/capabilities';
 import type { Card } from './models/cards';
+import type { CrisisToken } from './models/crisis-tokens';
 
 export function getCardIcon(card: Card): string {
 	switch (card.type) {
@@ -50,6 +51,11 @@ export function getCardBackgroundName(card: Card): CardBackgroundName {
 		return `${card.goalType}-goal`;
 	}
 	return card.type;
+}
+
+/** The artwork of a crisis token. */
+export function getCrisisTokenIcon(token: CrisisToken): string {
+	return `crisis-tokens/${token.id}.svg`;
 }
 
 export function getCapabilityIcon(capability: Capability): string {

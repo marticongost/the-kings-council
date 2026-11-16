@@ -766,32 +766,11 @@ fracàs. Els membres del regne tindran l'oportunitat de reunir els recursos nece
 durant la resta del torn per superar la crisi. El resultat de la crisi no es determina
 fins a la [](#crisis-resolution-phase), després que els jugadors hagin actuat.
 
-### Requeriment
-
-Cada crisi especifica un requeriment que cal assolir per tal de superar la crisi. Això
-prendrà la forma d'un o més recursos, i un valor llindar - sovint expressat en funció
-del nombre de {players} membres del regne i del _perill_ del torn en curs. El resultat
-d'aquesta expressió s'arrodoneix sempre cap a baix.
-
-```example
-Si el requeriment és "{power} ≥ {players} x {danger}", el regne té 5 membres i el
-*perill* és 1.5, els membres hauran d'intentar reunir {power 7} entre tots.
-```
-
-El valor del requeriment es calcula al moment en que es revela la crisi. El director de
-joc l'anota a la casella superior de la carta de crisi, i a partir d'aquell moment el
-valor es manté constant i immutable - independentment de si els factors de l'expressió
-canvien durant el torn.
-
-```example
-Seguint amb l'exemple anterior, un dels jugadors és expulsat del regne durant el torn.
-La crisi es seguirà resolent contra el valor calculat inicialment (7).
-```
-
 ### Contribuint a la crisi
 
-Durant la ()[#planning-phase], els jugadors poden anotar la seva contribució a la crisi
-/utilitzant l'acció comuna _Contribuir a la crisi_.
+Cada crisi indica els tipus de recursos que els jugadors podran gastar per contribuir a
+superar la crisi. Durant la ()[#planning-phase], els jugadors poden anotar la seva
+contribució a la crisi /utilitzant l'acció comuna _Contribuir a la crisi_.
 
 Cal tenir present:
 
@@ -806,20 +785,64 @@ Cal tenir present:
 - Les contribucions són públiques: el director de joc desvelarà la quantitat aportada
   per cada membre del regne
 
+### La bossa de perill #danger-bag
+
+Cada regne compta amb una {danger-bag} que s'utilitza per establir la dificultat de les
+crisis a les que s'enfronta (com s'explica a continuació). Aquesta bossa conté diferents
+fitxes, representat dificultats i situacions variables.
+
+La composició de la bossa variarà al llarg de la partida, com s'indica a la taula
+següent:
+
+```dangerBagComposition
+
+```
+
+### Dificultat de la crisi
+
+La severitat de cada crisi és variable; això es denota per un valor numèric que anomenem
+el {danger-label} de la crisi.
+
+Per establir aquest valor, cal robar una fitxa de la {danger-bag} per cada membre del
+regne, i aplicar els seu valor:
+
+- {danger-label}: Suma el valor indicat a la fitxa
+- {crisis-retribution-label}: Suma una quantitat de {danger-label} en funció de
+  l'indicador {grace-label} del regne:
+  - 1: {danger 3}
+  - 2: {danger 2}
+  - 3: {danger 1}
+  - 4: {danger 0}
+  - 5: {danger -1}
+- {crisis-fortune-label}: Suma el valor indicat a la carta de crisi per aquest símbol.
+  Tendirà a ser favorable als jugadors.
+
+Un cop robades totes les fitxes, el director de joc suma tots els seus valor per
+calcular el {danger-label} total i l'anota a la casella habilitada a la carta de crisi.
+
+```example
+El regne de Velaria s'enfronta a una crisi. Té 4 membres, així que el director de joc
+roba 4 fitxes de crisi de la bossa del regne. Les dues primeres fitxes mostren
+{danger 1} i {danger 2}. La tercera és una fitxa de {crisis-retribution-label}, així que
+consulta la {grace-label} del regne, creuant el seu valor de 3 a la taula per obtenir un
+altre {danger 1}. Finalment, la última fitxa és una fitxa de {crisis-fortune-label}.
+Consultant la targeta la crisi, veu que cal afegir {danger 3} al total. El
+{danger-label} final serà de 7 ({danger 1} + {danger 2} + {danger 1} + {danger 3}).
+```
+
 ### Resultat de la crisi #crisis-result
 
-A més del seu requeriment, cada crisi també indicarà una _recompensa_ i un _càstig_.
-
 Un cop s'hagin comptabilitzat tots els recursos, el director de joc els compara amb el
-llindar del requeriment:
+{danger-label} de la crisi:
 
-- **Èxit:** si s'ha assolit o superat el llindar, la crisi es supera amb èxit. El
+- **Èxit:** si s'ha igualat o superat el {danger-label}, la crisi es supera amb èxit. El
   jugador o jugadors que hagin aportat la major contribució reben la _recompensa_
-  indicades.
-- **Fracàs:** si no s'ha assolit el llindar, la crisi desemboca en un fracàs. El regne
-  i/o alguns dels seus membres pateixen el _càstig_ indicat per la crisi.
+  indicada a la carta.
+- **Fracàs:** si no s'ha assolit aquest llindar, la crisi desemboca en un fracàs. El
+  regne i/o alguns dels seus membres pateixen el _càstig_ indicat per la crisi.
 
-A continuació, la crisi es descarta.
+A continuació, la crisi es descarta i les fitxes de perill tornen a la bossa de perill
+del seu regne.
 
 ## Subhasta d'actius
 
@@ -1039,21 +1062,6 @@ vegada en una sèrie de fases, com s'explica posteriorment a la secció [](#turn
 Una partida estàndard dura 8 torns. Un cop conclòs l'últim torn es resol el
 [](#game-end).
 
-## Perill creixent
-
-A mida que la partida avança, els reptes i problemes als que els regnes s'hauran
-d'enfrontar seran més perillosos i exigents. Per representar-ho s'utilitza el
-concepte de **perill**, un valor que creix a mida que els torns avancen, i que és
-denotat per la icona {danger}.
-
-Diferents efectes del joc poden veure's incrementats en funció d'aquest valor.
-
-El {danger} es calcula en funció del torn vigent:
-
-```dangerTable
-
-```
-
 # Seqüència del torn #turn-sequence
 
 Els torns es divideixen en una sèrie de fases:
@@ -1071,9 +1079,14 @@ A continuació s'explica cada una d'aquestes fases en detall.
 
 ## Fase de destí #fate-phase
 
-Durant aquesta fase, el director de joc revela una carta de la pila de destí per
-cada un dels regnes del joc. Si un o més jugadors no pertanyen a cap regne, es tracten
-com si formessin part d'un regne format per aquests jugadors.
+En primer lloc, el director de joc modifica la composició de les {danger-bags} de cada
+regne (incloent una bossa conjunta destinada als jugadors sense regne, si s'escau).
+Consultar la secció [](#danger-bag) per determinar quines fitxes cal afegir i retirar
+a les bosses.
+
+A continuació, el director de joc revela una carta de la pila de destí per cada un dels
+regnes del joc. Si un o més jugadors no pertanyen a cap regne, es tracten com si
+formessin part d'un regne format per aquests jugadors.
 
 ```example
 Al principi del torn, hi ha 4 jugadors que formen part d'un regne, 3 que formen part

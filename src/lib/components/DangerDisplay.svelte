@@ -3,29 +3,34 @@
 
 	const styles = css.styles({
 		danger: {
-			...css.row('xs'),
-			justifyContent: 'flex-start'
-		},
-		icon: {
-			height: '1.1em',
-			width: 'auto',
+			position: 'relative',
+			display: 'inline-flex',
+			alignItems: 'center',
+			justifyContent: 'center',
+			verticalAlign: 'middle',
 			color: css.palette.petal
 		},
-		halfIcon: {
-			clipPath: 'inset(0 50% 0 0)'
+		icon: {
+			height: '1.3em',
+			width: 'auto'
+		},
+		value: {
+			position: 'absolute',
+			inset: 0,
+			display: 'flex',
+			alignItems: 'center',
+			justifyContent: 'center',
+			fontFamily: css.fonts.number,
+			fontSize: '1.1em',
+			fontWeight: 900,
+			textShadow: '0 0 0.5em rgba(0,0,0,0.3)',
+			lineHeight: 1,
+			color: css.palette.white
 		}
 	});
-
-	/** One skull per point of danger, the last one halved when danger ends in a half. */
-	function dangerSkulls(danger: number): Array<'full' | 'half'> {
-		return Array.from({ length: Math.ceil(danger) }, (_, index) =>
-			danger - index >= 1 ? 'full' : 'half'
-		);
-	}
 </script>
 
 <script lang="ts">
-	import { cx } from '@emotion/css';
 	import InlineSvg from './InlineSvg.svelte';
 	import { standardAttributes, type StandardAttributeProps } from './utils';
 
@@ -34,7 +39,6 @@
 	}
 
 	const { danger, ...attributes }: Props = $props();
-	const skulls = $derived(dangerSkulls(danger));
 </script>
 
 <span
@@ -43,11 +47,6 @@
 	role="img"
 	aria-label={`Perill ${danger}`}
 >
-	{#each skulls as fill, index (index)}
-		<InlineSvg
-			class={cx(styles.icon, fill === 'half' && styles.halfIcon)}
-			src="keywords/danger.svg"
-			aria-hidden="true"
-		/>
-	{/each}
+	<InlineSvg class={styles.icon} src="keywords/danger.svg" aria-hidden="true" />
+	<span class={styles.value} aria-hidden="true">{danger}</span>
 </span>

@@ -93,6 +93,33 @@
 			lineHeight: 1,
 			textAlign: 'center'
 		},
+		tooltip: {
+			position: 'fixed',
+			zIndex: 60,
+			...css.row('sm'),
+			...css.hpadding('sm'),
+			...css.vpadding('xs'),
+			borderRadius: '0.3em',
+			backgroundColor: css.palette.carrara,
+			color: css.palette.petal,
+			boxShadow: `0 0 0 0.2mm ${css.palette.gurkha}, 0 1mm 2mm rgba(0, 0, 0, 0.25)`,
+			// Purely informative: it must never swallow the hover that keeps it open.
+			pointerEvents: 'none',
+			whiteSpace: 'nowrap'
+		},
+		tooltipToken: {
+			...css.row('xs')
+		},
+		tooltipIcon: {
+			height: '1.4em',
+			width: 'auto',
+			flexShrink: 0
+		},
+		tooltipValue: {
+			fontFamily: css.fonts.number,
+			fontSize: '0.95em',
+			fontWeight: 900
+		},
 		popup: {
 			position: 'fixed',
 			zIndex: 50,
@@ -105,7 +132,12 @@
 
 <script lang="ts">
 	import { cx } from '@emotion/css';
-	import { getCapabilityTitle, getCardBackgroundName, getCardIcon } from '#lib/cardattributes';
+	import {
+		getCapabilityTitle,
+		getCardBackgroundName,
+		getCardIcon,
+		getCrisisTokenIcon
+	} from '#lib/cardattributes';
 	import CardCapabilityFront from '#lib/components/CardCapabilityFront.svelte';
 	import CardFront from '#lib/components/CardFront.svelte';
 	import InlineSvg from '#lib/components/InlineSvg.svelte';
@@ -148,13 +180,18 @@
 			: null
 	);
 
+	/** Tokens drawn from the kingdom's bag for its crisis, which set its difficulty. */
+	const drawnTokens = $derived(
+		attachedKingdom && simulator ? simulator.crisisDrawnTokens(attachedKingdom.id) : []
+	);
+
 	let wrapper = $state<HTMLDivElement>();
 	let pill = $state<HTMLButtonElement>();
 
 	let open = $state(false);
 	let popupPosition = $state<PopupPlacement | null>(null);
 
-	const popupCardSize = $derived(card ? css.cards.standard : css.cards.mini);
+	const popupCardSize = $derived(card ? css.cards.getCardSize(card.type) : css.cards.mini);
 	const popupWidth = $derived(popupCardSize.width * mmToPx);
 	const popupHeight = $derived(popupCardSize.height * mmToPx);
 
@@ -191,6 +228,36 @@
 
 		popupPosition = placements.find(fits) ?? { top: clampTop(below), left: clampLeft(rect.left) };
 	}
+
+	let badge = $state<HTMLSpanElement>();
+	let tooltip = $state<HTMLDivElement>();
+	let tooltipPosition = $state<PopupPlacement | null>(null);
+	let badgeHovered = $state(false);
+
+	function hoverBadge(hovered: boolean) {
+		badgeHovered = hovered;
+		if (!hovered) tooltipPosition = null;
+	}
+
+	// The tooltip is measured once mounted, so it can be centred on the badge and kept
+	// inside the viewport.
+	$effect(() => {
+		if (!badgeHovered || !badge || !tooltip) return;
+
+		const rect = badge.getBoundingClientRect();
+		const { width, height } = tooltip.getBoundingClientRect();
+		const left = Math.min(
+			Math.max(viewportMargin, rect.left + rect.width / 2 - width / 2),
+			Math.max(viewportMargin, window.innerWidth - width - viewportMargin)
+		);
+		const below = rect.bottom + popupOffset;
+		const top =
+			below + height <= window.innerHeight - viewportMargin
+				? below
+				: rect.top - popupOffset - height;
+
+		tooltipPosition = { top, left };
+	});
 
 	function closePopup() {
 		open = false;
@@ -279,7 +346,14 @@
 			<InlineSvg class={styles.icon} src={getCardIcon(subject)} aria-hidden="true" />
 			<span class={styles.title}>{title}</span>
 			{#if difficulty !== null}
-				<span class={styles.badge} title={`Dificultat de la crisi: ${difficulty}`}>
+				<span
+					class={styles.badge}
+					role="img"
+					aria-label={`Dificultat de la crisi: ${difficulty}`}
+					bind:this={badge}
+					onmouseenter={() => hoverBadge(true)}
+					onmouseleave={() => hoverBadge(false)}
+				>
 					{difficulty}
 				</span>
 			{/if}
@@ -300,6 +374,25 @@
 				{:else if cardCapability}
 					<CardCapabilityFront {cardCapability} />
 				{/if}
+			</div>
+		{/if}
+		{#if badgeHovered && drawnTokens.length > 0}
+			<div
+				class={styles.tooltip}
+				bind:this={tooltip}
+				style:top={`${tooltipPosition?.top ?? 0}px`}
+				style:left={`${tooltipPosition?.left ?? 0}px`}
+				style:visibility={tooltipPosition ? 'visible' : 'hidden'}
+				aria-hidden="true"
+			>
+				{#each drawnTokens as { token, danger }, index (index)}
+					<span class={styles.tooltipToken}>
+						<InlineSvg class={styles.tooltipIcon} src={getCrisisTokenIcon(token)} />
+						{#if !token.isDanger()}
+							<span class={styles.tooltipValue}>{danger}</span>
+						{/if}
+					</span>
+				{/each}
 			</div>
 		{/if}
 	</div>

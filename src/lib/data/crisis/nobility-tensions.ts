@@ -4,7 +4,10 @@ export default {
 	title: 'Tensions amb la noblesa',
 	properties: ['adversity'],
 	test: '{power}',
-	difficulty: '{kingdom-members} × {danger}',
+	fortuneEffects: {
+		text: '{danger 2}',
+		compute: () => 2
+	},
 	highestContributionReward: '{prestige 1}',
 	penalty:
 		'El regne pateix {stability -1} i es descarten totes les lleis en vigor. Els jugadors que menys hagin contribuit perden {prestige 1}.'

@@ -4,7 +4,11 @@ export default {
 	title: 'Invasió',
 	properties: ['adversity'],
 	test: '{strength}',
-	difficulty: '{kingdom-members} × {danger} + {wealth}',
-	penalty: 'El regne pateix {stability -1}. Cada membre del regne perd un {asset} aleatòri.',
+	fortuneEffects: {
+		text: '{wealth} - 2 (mínim 1)',
+		compute: (_state, kingdom) => Math.max(1, kingdom.stats.wealth - 2)
+	},
+	penalty:
+		"El regne pateix {stability -1}. Cada {kingdom-member} perd un {asset} aleatori per cada fracció de 3 punts pels que s'hagi fracassat (arrodonint amunt).",
 	highestContributionReward: `{prestige 1}`
 } satisfies CrisisData;

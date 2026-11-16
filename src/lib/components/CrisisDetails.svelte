@@ -8,7 +8,7 @@
 			lineHeight: '1em'
 		},
 		crisisTest: {
-			...css.row('sm'),
+			display: 'block',
 			padding: css.spacing.sm,
 			borderRadius: css.spacing.xs,
 			border: `1px solid ${css.palette.twine}`,
@@ -40,6 +40,9 @@
 		},
 		crisisOutcomeValue: {
 			color: css.text.regularColor
+		},
+		fortuneIcon: {
+			marginLeft: css.spacing.sm
 		}
 	});
 </script>
@@ -51,20 +54,31 @@
 	import InlineSvg from './InlineSvg.svelte';
 	import { cx } from '@emotion/css';
 	import type { Crisis } from '#lib/models/cards';
+	import { getCrisisToken } from '#lib/models/crisis-tokens';
 
 	interface Props extends StandardAttributeProps {
 		crisis: Crisis;
 	}
 
 	const { crisis: capability, ...attributes }: Props = $props();
+	const fortune = getCrisisToken('fortune');
 </script>
 
 <div {...standardAttributes(attributes, styles.crisis)}>
 	<div class={styles.crisisTest}>
 		<EffectsText effects={capability.test} />
 		≥
-		<EffectsText effects={capability.difficulty} />
 		<CapabilityInput format="number" />
+		{#if capability.fortuneEffects.text}
+			<InlineSvg
+				class={styles.fortuneIcon}
+				src="crisis-tokens/fortune.svg"
+				title={fortune.title}
+				role="img"
+				aria-label={fortune.title}
+			/>
+			<EffectsText effects={capability.fortuneEffects.text} />
+		{/if}
 	</div>
 	<div class={cx(styles.crisisOutcome, styles.reward)}>
 		<InlineSvg class={styles.crisisOutcomeIcon} src="capabilities/reward.svg" />

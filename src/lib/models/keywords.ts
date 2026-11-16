@@ -42,6 +42,8 @@ export const keywords = {
 	'kingdom-member': undefined,
 	'kingdom-members': undefined,
 	'kingdom-stat-friction': undefined,
+	'danger-bag': 'Bossa de perill',
+	'danger-bags': 'Bosses de perill',
 	kingdom: undefined,
 	player: undefined,
 	players: undefined,
@@ -53,7 +55,6 @@ export const keywords = {
 	indication: undefined,
 	reaction: undefined,
 	constant: undefined,
-	danger: undefined,
 	vigilance: undefined,
 	...Object.fromEntries(getProperties().map((property) => [property.id, property.title])),
 	...Object.fromEntries(officeTypes.map((type) => [type, getOfficeName(type)]))

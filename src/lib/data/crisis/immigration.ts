@@ -4,8 +4,11 @@ export default {
 	title: 'Immigració',
 	properties: ['adversity'],
 	test: '{power} + {gold}',
-	difficulty: '{kingdom-members} × ({danger} + ½)',
+	fortuneEffects: {
+		text: '{danger 2}',
+		compute: () => 2
+	},
 	penalty:
-		'El regne pateix {stability -1}. Els {kingdom-members} que menys hagin contribuit perden {power}={danger} × 2.',
+		'El regne pateix {stability -1}. Els {kingdom-members} que menys hagin contribuit perden tot el seu {power}.',
 	highestContributionReward: `{prestige 1}, {power 2}`
 } satisfies CrisisData;

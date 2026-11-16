@@ -34,6 +34,27 @@ export interface KeywordChunk {
 	keyword: Keyword;
 }
 
+export interface DangerChunk {
+	type: 'danger';
+	/** Danger value to render inside the icon. */
+	count: number;
+}
+
+export interface DangerLabelChunk {
+	type: 'danger-label';
+}
+
+/** Crisis tokens whose label effect text can refer to, as `{crisis-<token>-label}`. */
+export const crisisTokenLabels = ['retribution', 'fortune'] as const;
+
+export type CrisisTokenLabel = (typeof crisisTokenLabels)[number];
+
+export interface CrisisTokenLabelChunk {
+	type: 'crisis-token-label';
+	/** The token whose icon and label are rendered. */
+	token: CrisisTokenLabel;
+}
+
 export const inputFormats = [
 	'text',
 	'list',
@@ -72,6 +93,9 @@ export type Chunk =
 	| ResourceChunk
 	| ResourceLabelChunk
 	| KeywordChunk
+	| DangerChunk
+	| DangerLabelChunk
+	| CrisisTokenLabelChunk
 	| KingdomStatChunk
 	| KingdomStatLabelChunk
 	| InputChunk
@@ -130,6 +154,21 @@ function keywordBuilder(keyword: Keyword): ChunkBuilder {
 	};
 }
 
+const defaultDangerCount = 1;
+
+function dangerBuilder({ params, args }: BuilderInput): Chunk {
+	const raw = params.amount ?? args[0] ?? String(defaultDangerCount);
+	const count = Number(raw);
+	// Tokens may add nothing or take danger away, so every integer is a valid value.
+	if (raw.trim() === '' || !Number.isInteger(count)) {
+		return {
+			type: 'invalid',
+			message: `Danger must be an integer, got '${raw}' instead`
+		};
+	}
+	return { type: 'danger', count };
+}
+
 function buildInput({ params, args }: BuilderInput): Chunk {
 	const format: string = (params.format || args[0]) ?? 'text';
 	if (!isInputFormat(format)) {
@@ -170,6 +209,14 @@ for (const kingdomStat of kingdomStatTypes) {
 
 for (const keyword of Object.keys(keywords)) {
 	builders[keyword] = keywordBuilder(keyword as Keyword);
+}
+
+// Danger renders its value inside the icon, so it takes an optional count.
+builders.danger = dangerBuilder;
+builders['danger-label'] = (): Chunk => ({ type: 'danger-label' });
+
+for (const token of crisisTokenLabels) {
+	builders[`crisis-${token}-label`] = (): Chunk => ({ type: 'crisis-token-label', token });
 }
 
 function parseDirective(raw: string): Chunk {

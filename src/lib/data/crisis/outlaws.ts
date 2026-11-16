@@ -4,7 +4,10 @@ export default {
 	title: 'Bandolers',
 	properties: ['adversity'],
 	test: '{strength}',
-	difficulty: '{kingdom-members} × {danger}',
+	fortuneEffects: {
+		text: '{danger 1}',
+		compute: () => 1
+	},
 	penalty:
 		'El regne pateix {stability -1} i {wealth -1}. Els {kingdom-members} que menys hagin contribuit perden un {asset} {object} aleatori.',
 	highestContributionReward: `{prestige 1}, {power 2}`

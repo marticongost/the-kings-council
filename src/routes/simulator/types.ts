@@ -2,6 +2,7 @@ import { getCardBackgroundName, type CardBackgroundName } from '#lib/cardattribu
 import type { CapabilityType } from '#lib/models/capabilities';
 import type { CardCapability } from '#lib/models/cardcapabilities';
 import type { Card, CardType } from '#lib/models/cards';
+import type { CrisisBag, CrisisTokenId } from '#lib/models/crisis-tokens';
 import { kingdomStatTypes, type KingdomStatType } from '#lib/models/kingdomstats';
 import { officeTypes } from '#lib/models/offices';
 import type { ResourceType } from '#lib/models/resources';
@@ -278,12 +279,21 @@ export interface PlayerState {
 	crisisPayments: Record<string, PlayerContribution>;
 }
 
+/** A token drawn from a kingdom's bag to set the difficulty of its crisis. */
+export interface DrawnCrisisToken {
+	id: CrisisTokenId;
+	/** Danger this token added to the crisis, as it stood when it was drawn. */
+	danger: number;
+}
+
 /** The difficulty fixed for a crisis when it is revealed, so later changes do not alter it. */
 export interface CrisisDifficulty {
 	/** Card instance of the crisis the difficulty was computed for. */
 	cardUid: string;
-	/** Evaluated difficulty, or null when the expression could not be evaluated. */
-	value: number | null;
+	/** Difficulty summed from the tokens drawn for the crisis. */
+	value: number;
+	/** Tokens drawn from the bag for the crisis, which stay out of it until the turn advances. */
+	tokens: Array<DrawnCrisisToken>;
 }
 
 export interface KingdomState {
@@ -296,6 +306,8 @@ export interface KingdomState {
 	crisisPaid: boolean;
 	/** Difficulty of the kingdom's crisis, fixed when it was revealed. */
 	crisisDifficulty: CrisisDifficulty | null;
+	/** The kingdom's crisis token bag, from which the difficulty of its crises is drawn. */
+	crisisBag: CrisisBag;
 	/** Any card attached to the kingdom, including its unassigned offices. */
 	cards: Array<CardRef>;
 	/** The kingdom's face-down fate deck, holding its crisis and event cards. */
@@ -324,7 +336,13 @@ export interface SerializedKingdom {
 	crisisDefense?: number;
 	crisisPaid?: boolean;
 	/** Difficulty fixed for the kingdom's crisis, identified by card id. */
-	crisisDifficulty?: { cardId: string; value: number | null };
+	crisisDifficulty?: {
+		cardId: string;
+		value: number;
+		tokens?: Array<{ id: string; danger?: number }>;
+	};
+	/** Tokens in the kingdom's crisis bag. */
+	crisisBag?: CrisisBag;
 	cards?: Array<string>;
 	/** Card ids in the kingdom's fate deck. */
 	fate?: Array<string>;

@@ -3,8 +3,23 @@
 	import { getCardBackgroundName } from '#lib/cardattributes';
 
 	const cardSize = css.cards.standard;
+	const fateCardSize = css.cards.tarot;
 
 	const variant = css.styleVariants<CardType>(cardTypes);
+
+	// The header artwork is 30mm tall on the standard card. It scales with the card
+	// width so that the coloured band keeps its original proportions on fate cards.
+	const headerHeight = (size: css.cards.CardSize) => size.cw((30 / cardSize.width) * 100);
+
+	const fateCard = {
+		[variant('crisis')]: fateCardSize.dimensions(),
+		[variant('event')]: fateCardSize.dimensions()
+	};
+
+	const fateHeader = {
+		[variant('crisis')]: { height: headerHeight(fateCardSize) },
+		[variant('event')]: { height: headerHeight(fateCardSize) }
+	};
 
 	const stylesFor = css.multipleStyles({
 		card: {
@@ -13,13 +28,17 @@
 			fontFamily: css.fonts.text,
 			backgroundColor: css.palette.white,
 			color: css.text.regularColor,
-			...cardSize.dimensions()
+			backgroundSize: '100% auto',
+			backgroundRepeat: 'no-repeat',
+			...cardSize.dimensions(),
+			...fateCard
 		},
 		header: {
 			...css.column(),
 			position: 'relative',
 			color: css.palette.white,
-			height: '30mm',
+			height: headerHeight(cardSize),
+			...fateHeader,
 			[variant('office')]: {
 				height: '9.4mm',
 				justifyContent: 'center'

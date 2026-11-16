@@ -1,3 +1,5 @@
+import type { SimulatorState } from '../../routes/simulator/simulatorstate.svelte';
+import type { KingdomState } from '../../routes/simulator/types';
 import { buildCapability, type Capability, type CapabilitySpec } from './capabilities';
 import { getProperty, type Property, type PropertyId } from './properties';
 import { ResourceSet, type ResourceSetProps } from './resourcesets';
@@ -65,9 +67,17 @@ export class Event extends BaseCard {
 	override readonly type = 'event';
 }
 
+export interface CrisisFortuneEffects {
+	/** Description shown on the card, in effect marks. */
+	text: string;
+	/** Danger the fortune token adds to the crisis, for the kingdom facing it. */
+	compute: (state: SimulatorState, kingdom: KingdomState) => number;
+}
+
 export interface CrisisData extends CardData {
 	test: string;
-	difficulty: string;
+	/** What a fortune token adds to the difficulty of the crisis. */
+	fortuneEffects: CrisisFortuneEffects;
 	penalty: string;
 	highestContributionReward: string;
 }
@@ -76,17 +86,17 @@ export class Crisis extends BaseCard {
 	override readonly type = 'crisis';
 
 	readonly test: string;
-	readonly difficulty: string;
+	readonly fortuneEffects: CrisisFortuneEffects;
 	readonly penalty: string;
 	readonly highestContributionReward: string;
 
 	constructor(
 		id: string,
-		{ test, difficulty, penalty, highestContributionReward, ...base }: CrisisData
+		{ test, fortuneEffects, penalty, highestContributionReward, ...base }: CrisisData
 	) {
 		super(id, base);
 		this.test = test;
-		this.difficulty = difficulty;
+		this.fortuneEffects = fortuneEffects;
 		this.penalty = penalty;
 		this.highestContributionReward = highestContributionReward;
 	}
@@ -167,3 +177,18 @@ export class House extends BaseCard {
 }
 
 export type Card = Common | Event | Crisis | Office | Goal | Tactic | Asset | Law | House;
+
+/** The card types dealt from the fate deck, which uses tarot-sized cards. */
+export const fateCardTypes = ['crisis', 'event'] as const;
+
+export type FateCardType = (typeof fateCardTypes)[number];
+
+const fateCardTypeSet: ReadonlySet<CardType> = new Set(fateCardTypes);
+
+export function isFateCardType(type: CardType): type is FateCardType {
+	return fateCardTypeSet.has(type);
+}
+
+export function isFateCard(card: Card): card is Event | Crisis {
+	return isFateCardType(card.type);
+}

@@ -4,8 +4,11 @@ export default {
 	title: 'Cisme religiós',
 	properties: ['adversity'],
 	test: '{faith}',
-	difficulty: '{kingdom-members} × {danger}',
+	fortuneEffects: {
+		text: '{danger 2}',
+		compute: () => 2
+	},
 	highestContributionReward: '{prestige 1}, {power 2}',
 	penalty:
-		'El regne pateix {grace -2}. Els jugadors que menys hagin contribuit perden {any}={danger}.'
+		"El regne pateix {grace -2}. Els jugadors que menys hagin contribuit perden un {any} per cada punt pel que s'hagi fracassat."
 } satisfies CrisisData;

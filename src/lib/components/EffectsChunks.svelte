@@ -17,7 +17,11 @@
 
 <script lang="ts">
 	import type { Chunk } from '#lib/models/effects';
+	import { getCrisisToken } from '#lib/models/crisis-tokens';
 	import CapabilityInput from './CapabilityInput.svelte';
+	import CrisisTokenLabel from './CrisisTokenLabel.svelte';
+	import DangerDisplay from './DangerDisplay.svelte';
+	import DangerLabel from './DangerLabel.svelte';
 	import InlineSvg from './InlineSvg.svelte';
 	import KingdomStatDisplay from './KingdomStatDisplay.svelte';
 	import ResourceDisplay from './ResourceDisplay.svelte';
@@ -53,6 +57,12 @@
 		{:else}
 			<strong class={styles.keyword}>{keywords[chunk.keyword]}</strong>
 		{/if}
+	{:else if chunk.type === 'danger'}
+		<DangerDisplay danger={chunk.count} />
+	{:else if chunk.type === 'danger-label'}
+		<DangerLabel />
+	{:else if chunk.type === 'crisis-token-label'}
+		<CrisisTokenLabel token={getCrisisToken(chunk.token)} />
 	{:else if chunk.type === 'resource'}
 		<ResourceDisplay resource={chunk.resource} amount={chunk.amount} />
 	{:else if chunk.type === 'resource-label'}

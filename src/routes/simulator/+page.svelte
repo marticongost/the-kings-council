@@ -141,7 +141,6 @@
 <script lang="ts">
 	import { cx } from '@emotion/css';
 	import { onMount, tick } from 'svelte';
-	import DangerDisplay from '#lib/components/DangerDisplay.svelte';
 	import IconButton from '#lib/components/IconButton.svelte';
 	import InlineSvg from '#lib/components/InlineSvg.svelte';
 	import Panel from '#lib/components/Panel.svelte';
@@ -384,7 +383,6 @@
 									<span class={styles.turnLabel}>Torn</span>
 								{/snippet}
 							</Counter>
-							<DangerDisplay danger={simulator.danger} />
 						</div>
 						<TurnOrderList {simulator} />
 						<CardZone

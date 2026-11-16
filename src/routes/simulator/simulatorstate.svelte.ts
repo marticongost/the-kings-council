@@ -2,14 +2,24 @@ import { cardsCatalog } from '#lib/data/catalog';
 import { ConcreteCapability, type CapabilityType } from '#lib/models/capabilities';
 import { CardCapability } from '#lib/models/cardcapabilities';
 import { type Card, type Crisis, type CardType } from '#lib/models/cards';
-import { dangerForTurn, maxTurn, minTurn } from '#lib/models/turns';
+import { maxTurn, minTurn } from '#lib/models/turns';
 import { getKingdomStat, kingdomStatTypes, type KingdomStatType } from '#lib/models/kingdomstats';
 import { officeTypes, type OfficeType } from '#lib/models/offices';
 import { getResource } from '#lib/models/resources';
 import type { ResourceSpec } from '#lib/models/resourcesets';
 import { SvelteMap, SvelteSet } from 'svelte/reactivity';
+import {
+	changeCrisisBagTurn,
+	crisisBagForTurn,
+	drawFromCrisisBag,
+	getCrisisToken,
+	isCrisisTokenId,
+	returnToCrisisBag,
+	type CrisisBag,
+	type CrisisToken
+} from '#lib/models/crisis-tokens';
 import { crisisContributionResources } from './crisiscontributions';
-import { evaluateCrisisDifficulty } from './crisisdifficulty';
+import { crisisDifficultyFromDangers, crisisTokenDanger } from './crisisdifficulty';
 import {
 	emptyProductionState,
 	independentProductionResourceCount,
@@ -46,6 +56,8 @@ import {
 	zoneKey,
 	type Acquisition,
 	type CardRef,
+	type CrisisDifficulty,
+	type DrawnCrisisToken,
 	type DeckId,
 	type KingdomState,
 	type LawVote,
@@ -64,7 +76,7 @@ import {
 
 export const simulatorStorageKey = 'the-kings-council:simulator:v1';
 
-const snapshotVersion = 7;
+const snapshotVersion = 9;
 
 /** Oldest snapshot version that can still be migrated to the current schema. */
 const oldestSnapshotVersion = 1;
@@ -159,7 +171,13 @@ function copyGameState(state: GameStateCopy): GameStateCopy {
 			stats: { ...kingdom.stats },
 			crisisDefense: kingdom.crisisDefense,
 			crisisPaid: kingdom.crisisPaid,
-			crisisDifficulty: kingdom.crisisDifficulty ? { ...kingdom.crisisDifficulty } : null,
+			crisisDifficulty: kingdom.crisisDifficulty
+				? {
+						...kingdom.crisisDifficulty,
+						tokens: kingdom.crisisDifficulty.tokens.map((token) => ({ ...token }))
+					}
+				: null,
+			crisisBag: { ...kingdom.crisisBag },
 			cards: copyRefs(kingdom.cards),
 			fateDeck: copyRefs(kingdom.fateDeck)
 		})),
@@ -437,15 +455,52 @@ function normalizeCrisisDefense(value: unknown): number {
 
 function normalizeCrisisDifficulty(
 	value: unknown
-): { cardId: string; value: number | null } | null {
+): { cardId: string; value: number; tokens: Array<DrawnCrisisToken> } | null {
 	const record = asObject(value);
 	if (!record || typeof record.cardId !== 'string') return null;
 
 	const difficulty = record.value;
+	if (typeof difficulty !== 'number' || !Number.isFinite(difficulty)) return null;
+
 	return {
 		cardId: record.cardId,
-		value: typeof difficulty === 'number' && Number.isFinite(difficulty) ? difficulty : null
+		value: difficulty,
+		tokens: normalizeDrawnTokens(record.tokens)
 	};
+}
+
+/** Reads the tokens drawn for a crisis, skipping the ones that are no longer known. */
+function normalizeDrawnTokens(value: unknown): Array<DrawnCrisisToken> {
+	const tokens: Array<DrawnCrisisToken> = [];
+	for (const raw of Array.isArray(value) ? value : []) {
+		const record = asObject(raw);
+		const id = record?.id;
+		if (typeof id !== 'string' || !isCrisisTokenId(id)) continue;
+		tokens.push({ id, danger: Math.round(asNumber(record?.danger, 0)) });
+	}
+	return tokens;
+}
+
+/** Tokens of older snapshots, and the token each of them became, if any, in the current set. */
+const legacyCrisisTokenIds: Record<string, string | undefined> = {
+	luck: 'fortune',
+	doom: 'danger3',
+	challenge: undefined
+};
+
+/** Reads a kingdom's crisis bag, or null when the snapshot has none (older versions). */
+function normalizeCrisisBag(value: unknown, legacy = false): CrisisBag | null {
+	const record = asObject(value);
+	if (!record) return null;
+
+	const bag: CrisisBag = {};
+	for (const [storedId, count] of Object.entries(record)) {
+		const id = legacy ? (legacyCrisisTokenIds[storedId] ?? storedId) : storedId;
+		if (!isCrisisTokenId(id)) continue;
+		const tokens = Math.round(asNumber(count, 0));
+		if (tokens > 0) bag[id] = tokens;
+	}
+	return bag;
 }
 
 function normalizeResolution(value: unknown): ResolutionState {
@@ -605,7 +660,7 @@ export class SimulatorState {
 	market = $state<Array<CardRef>>([]);
 	decks = $state<Record<DeckId, Array<CardRef>>>(emptyDeckRecord(() => []));
 	discards = $state<Record<DeckId, Array<CardRef>>>(emptyDeckRecord(() => []));
-	/** Current game turn, from which the danger value is derived. */
+	/** Current game turn. */
 	turn = $state(minTurn);
 	/** Every player, in turn order. Everyone is listed, dimmed until they confirm their plan. */
 	turnOrder = $state<Array<string>>([]);
@@ -621,11 +676,6 @@ export class SimulatorState {
 	/** Step being recorded, which folds the changes made while it is open into one entry. */
 	private pendingChange: { description: string; before: GameStateCopy; depth: number } | null =
 		null;
-
-	/** The current danger value, used by crisis difficulty calculations. */
-	get danger(): number {
-		return dangerForTurn(this.turn);
-	}
 
 	get canUndo(): boolean {
 		return this.history.length > 0;
@@ -842,18 +892,27 @@ export class SimulatorState {
 		if (!Number.isFinite(value)) return;
 		const turn = clamp(value, minTurn, maxTurn);
 		if (turn === this.turn) return;
-		this.transaction(`Torn ${turn}`, () => {
-			this.turn = turn;
-		});
+		this.transaction(`Torn ${turn}`, () => this.changeTurn(turn));
 	}
 
 	/** Advances to the next turn, capped at the last turn of the game. */
 	advanceTurn(): void {
 		const turn = clamp(this.turn + 1, minTurn, maxTurn);
 		if (turn === this.turn) return;
-		this.transaction(`Avança al torn ${turn}`, () => {
-			this.turn = turn;
-		});
+		this.transaction(`Avança al torn ${turn}`, () => this.changeTurn(turn));
+	}
+
+	/**
+	 * Moves the game to another turn. Every kingdom takes back the tokens it drew for its
+	 * crisis, and its bag changes as the turns passed through indicate.
+	 */
+	private changeTurn(turn: number): void {
+		const from = this.turn;
+		this.turn = turn;
+		for (const kingdom of this.kingdoms) {
+			this.returnCrisisTokens(kingdom);
+			changeCrisisBagTurn(kingdom.crisisBag, from, turn);
+		}
 	}
 
 	// Players
@@ -1032,6 +1091,8 @@ export class SimulatorState {
 				crisisDefense: 0,
 				crisisPaid: false,
 				crisisDifficulty: null,
+				// A kingdom joining later starts from the bag of the current turn.
+				crisisBag: crisisBagForTurn(this.turn),
 				cards: createOfficeRefs(),
 				fateDeck: this.drawFateDeck()
 			});
@@ -1169,37 +1230,75 @@ export class SimulatorState {
 
 	/** The difficulty fixed for the kingdom's current crisis, or null when it has none. */
 	crisisDifficulty(kingdomId: string | null): number | null {
+		const fixed = this.fixedCrisisDifficulty(kingdomId);
+		return fixed?.value ?? null;
+	}
+
+	/**
+	 * The tokens drawn from the kingdom's bag for its current crisis, in the order they were
+	 * drawn, with the danger each of them added to the difficulty.
+	 */
+	crisisDrawnTokens(kingdomId: string | null): Array<{ token: CrisisToken; danger: number }> {
+		const fixed = this.fixedCrisisDifficulty(kingdomId);
+		if (!fixed) return [];
+		return fixed.tokens.map(({ id, danger }) => ({ token: getCrisisToken(id), danger }));
+	}
+
+	/** The difficulty of the kingdom's current crisis, if the crisis still matches it. */
+	private fixedCrisisDifficulty(kingdomId: string | null): CrisisDifficulty | null {
 		if (!kingdomId) return null;
 		const kingdom = this.kingdoms.find((candidate) => candidate.id === kingdomId);
 		const ref = kingdom?.cards.find((candidate) => this.cardOf(candidate)?.type === 'crisis');
 		const fixed = kingdom?.crisisDifficulty;
-		return ref && fixed?.cardUid === ref.uid ? fixed.value : null;
+		return ref && fixed?.cardUid === ref.uid ? fixed : null;
 	}
 
 	/**
-	 * Fixes the difficulty of each kingdom's crisis the first time it is revealed, so that
-	 * later changes such as a player leaving the kingdom do not alter it. Clears it with the
-	 * crisis, so that the next one is fixed when it is revealed.
+	 * Fixes the difficulty of each kingdom's crisis the first time it is revealed, drawing a
+	 * token from the kingdom's bag for each of its members, so that later changes such as a
+	 * player leaving the kingdom do not alter it. Clears it with the crisis, returning the
+	 * drawn tokens to the bag, so that the next one is drawn when it is revealed.
 	 */
 	private fixCrisisDifficulties(): void {
 		for (const kingdom of this.kingdoms) {
 			const ref = kingdom.cards.find((candidate) => this.cardOf(candidate)?.type === 'crisis');
 			const crisis = ref ? this.cardOf(ref) : null;
 			if (!ref || crisis?.type !== 'crisis') {
-				kingdom.crisisDifficulty = null;
+				this.returnCrisisTokens(kingdom, true);
 				continue;
 			}
 			if (kingdom.crisisDifficulty?.cardUid === ref.uid) continue;
 
+			this.returnCrisisTokens(kingdom, true);
+
+			const tokens = drawFromCrisisBag(kingdom.crisisBag, this.membersOf(kingdom.id).length).map(
+				(token) => ({
+					id: token.id,
+					danger: crisisTokenDanger(token, crisis, this, kingdom)
+				})
+			);
 			kingdom.crisisDifficulty = {
 				cardUid: ref.uid,
-				value: evaluateCrisisDifficulty(crisis, {
-					members: this.membersOf(kingdom.id).length,
-					danger: this.danger,
-					stats: kingdom.stats
-				})
+				value: crisisDifficultyFromDangers(tokens.map((token) => token.danger)),
+				tokens
 			};
 		}
+	}
+
+	/**
+	 * Puts the tokens drawn for the kingdom's crisis back in its bag. They are kept in the
+	 * record so the difficulty they set can still be explained, unless it is being cleared.
+	 */
+	private returnCrisisTokens(kingdom: KingdomState, clear = false): void {
+		const fixed = kingdom.crisisDifficulty;
+		if (fixed && fixed.tokens.length > 0) {
+			returnToCrisisBag(
+				kingdom.crisisBag,
+				fixed.tokens.map((token) => token.id)
+			);
+			kingdom.crisisDifficulty = { ...fixed, tokens: [] };
+		}
+		if (clear) kingdom.crisisDifficulty = null;
 	}
 
 	/**
@@ -2549,8 +2648,13 @@ export class SimulatorState {
 					crisisPaid: kingdom.crisisPaid,
 					crisisDifficulty:
 						crisisRef && kingdom.crisisDifficulty
-							? { cardId: crisisRef.cardId, value: kingdom.crisisDifficulty.value }
+							? {
+									cardId: crisisRef.cardId,
+									value: kingdom.crisisDifficulty.value,
+									tokens: kingdom.crisisDifficulty.tokens.map((token) => ({ ...token }))
+								}
 							: undefined,
+					crisisBag: { ...kingdom.crisisBag },
 					cards: cardIds(kingdom.cards),
 					fate: cardIds(kingdom.fateDeck)
 				};
@@ -2590,17 +2694,23 @@ export class SimulatorState {
 		if (!snapshot || version < oldestSnapshotVersion || version > snapshotVersion) return;
 
 		this.turn = clamp(asNumber(snapshot.turn, minTurn), minTurn, maxTurn);
+		/** Snapshots older than the current version hold tokens that no longer exist. */
+		const legacyTokens = version < snapshotVersion;
 
 		const usedKingdomIds = new SvelteSet<string>();
 		const kingdoms: Array<KingdomState> = [];
 		/** Kingdoms from older snapshots, which are dealt a fate deck once the piles are restored. */
 		const kingdomsWithoutFate: Array<KingdomState> = [];
 		/** Fixed crisis difficulties read from the snapshot, keyed by kingdom id. */
-		const storedDifficulties = new SvelteMap<string, { cardId: string; value: number | null }>();
+		const storedDifficulties = new SvelteMap<
+			string,
+			{ cardId: string; value: number; tokens: Array<DrawnCrisisToken> }
+		>();
 		if (Array.isArray(snapshot.kingdoms)) {
 			for (const raw of snapshot.kingdoms) {
 				const record = asObject(raw);
 				if (!record) continue;
+				const bag = normalizeCrisisBag(record.crisisBag, legacyTokens);
 				const kingdom: KingdomState = {
 					id: uniqueId(record.id, usedKingdomIds),
 					name:
@@ -2611,6 +2721,8 @@ export class SimulatorState {
 					crisisDefense: normalizeCrisisDefense(record.crisisDefense),
 					crisisPaid: record.crisisPaid === true,
 					crisisDifficulty: null,
+					// Snapshots from older versions kept no bag, so they start from the first turn.
+					crisisBag: bag ?? crisisBagForTurn(this.turn),
 					// New snapshots store a general card list; older ones only kept the
 					// kingdom's unassigned offices, and the earliest had no offices at all.
 					cards: Array.isArray(record.cards)
@@ -2622,7 +2734,8 @@ export class SimulatorState {
 						? normalizeRefs(record.fate, undefined, isFateCard)
 						: []
 				};
-				const stored = normalizeCrisisDifficulty(record.crisisDifficulty);
+				// Difficulties of older snapshots were drawn from a different token set.
+				const stored = legacyTokens ? null : normalizeCrisisDifficulty(record.crisisDifficulty);
 				if (stored) storedDifficulties.set(kingdom.id, stored);
 				if (!Array.isArray(record.fate)) kingdomsWithoutFate.push(kingdom);
 				kingdoms.push(kingdom);
@@ -2686,9 +2799,23 @@ export class SimulatorState {
 							candidate.cardId === stored.cardId && this.cardOf(candidate)?.type === 'crisis'
 					)
 				: undefined;
-			kingdom.crisisDifficulty = ref && stored ? { cardUid: ref.uid, value: stored.value } : null;
+			if (!ref || !stored) {
+				// The crisis the difficulty was drawn for is gone, so its tokens are back in the bag.
+				if (stored) {
+					returnToCrisisBag(
+						kingdom.crisisBag,
+						stored.tokens.map((token) => token.id)
+					);
+				}
+				continue;
+			}
+			kingdom.crisisDifficulty = {
+				cardUid: ref.uid,
+				value: stored.value,
+				tokens: stored.tokens.map((token) => ({ ...token }))
+			};
 		}
-		// Snapshots from older versions keep no difficulty, so their revealed crisis is fixed now.
+		// Snapshots from older versions keep no bag, so their revealed crisis is drawn now.
 		this.fixCrisisDifficulties();
 	}
 }

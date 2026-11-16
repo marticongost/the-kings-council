@@ -1,9 +1,18 @@
 <script lang="ts" module>
 	import * as css from '#lib/styles';
+	import { cardTypes, type Card, type CardType } from '#lib/models/cards';
 
-	const styles = css.styles({
+	const variant = css.styleVariants<CardType>(cardTypes);
+
+	const fateCard = {
+		[variant('crisis')]: css.cards.tarot.dimensions(),
+		[variant('event')]: css.cards.tarot.dimensions()
+	};
+
+	const stylesFor = css.multipleStyles({
 		cardBack: {
-			...css.cards.standard.dimensions()
+			...css.cards.standard.dimensions(),
+			...fateCard
 		}
 	});
 
@@ -22,13 +31,13 @@
 
 <script lang="ts">
 	import { standardAttributes, type StandardAttributeProps } from '#lib/components/utils';
-	import { type Card } from '#lib/models/cards';
 
 	interface Props extends StandardAttributeProps {
 		card: Card;
 	}
 
 	const { card, ...attributes }: Props = $props();
+	const styles = $derived(stylesFor(card.type));
 </script>
 
 <div
