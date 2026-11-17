@@ -18,7 +18,9 @@
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"lint": "prettier --check . && eslint .",
 		"format": "prettier --write .",
-		"watch:svg": "node scripts/watch-svg.mjs"
+		"watch:svg": "node scripts/watch-svg.mjs",
+		"gen-image-gemini": "node --env-file-if-exists=.env scripts/generate-images.ts",
+		"gen-image-fal": "node --env-file-if-exists=.env scripts/gen-image-fal.ts"
 	},
 	"dependencies": {
 		"@emotion/css": "^11.13.5",
@@ -27,6 +29,8 @@
 	},
 	"devDependencies": {
 		"@eslint/js": "^10.0.1",
+		"@fal-ai/client": "^1.10.1",
+		"@google/genai": "^1.49.0",
 		"@sveltejs/adapter-static": "^4.0.0",
 		"@sveltejs/kit": "^3.1.0",
 		"@sveltejs/vite-plugin-svelte": "^7.1.2",
