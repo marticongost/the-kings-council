@@ -7,18 +7,27 @@
 
 	const variant = css.styleVariants<CardType>(cardTypes);
 
-	// The header artwork is 30mm tall on the standard card. It scales with the card
-	// width so that the coloured band keeps its original proportions on fate cards.
+	// The header is 30mm tall on the standard card; it scales with the card width.
 	const headerHeight = (size: css.cards.CardSize) => size.cw((30 / cardSize.width) * 100);
 
-	const fateCard = {
-		[variant('crisis')]: fateCardSize.dimensions(),
-		[variant('event')]: fateCardSize.dimensions()
+	// Fate card artwork is generated at 3:2. It is painted underneath the card background, so
+	// the type's band and its zigzag edge are drawn over the top of it while the artwork shows
+	// through below the notches. It hangs 5% of the card width below the top so that the band
+	// covers less of it, and the header spans it so that the body starts at its lower edge.
+	const fateArtworkHeight = fateCardSize.cw((2 / 3) * 100);
+	const fateArtworkOffset = fateCardSize.cw(15);
+	const fateCardBackground = {
+		...fateCardSize.dimensions(),
+		backgroundSize: `100% auto, 100% ${fateArtworkHeight}`,
+		backgroundPosition: `0 0, 0 ${fateArtworkOffset}`
 	};
-
+	const fateCard = {
+		[variant('crisis')]: fateCardBackground,
+		[variant('event')]: fateCardBackground
+	};
 	const fateHeader = {
-		[variant('crisis')]: { height: headerHeight(fateCardSize) },
-		[variant('event')]: { height: headerHeight(fateCardSize) }
+		[variant('crisis')]: { height: `calc(${fateArtworkHeight} + ${fateArtworkOffset})` },
+		[variant('event')]: { height: `calc(${fateArtworkHeight} + ${fateArtworkOffset})` }
 	};
 
 	const stylesFor = css.multipleStyles({
@@ -121,14 +130,16 @@
 		}
 	});
 
-	function getBackgroundImage(card: Card): string {
-		return `url(/svg/card-backgrounds/${getCardBackgroundName(card)}.svg)`;
+	function getBackgroundImage(card: Card, artwork: string | undefined): string {
+		const background = `url(/svg/card-backgrounds/${getCardBackgroundName(card)}.svg)`;
+		return artwork ? `${background}, url(${artwork})` : background;
 	}
 </script>
 
 <script lang="ts">
 	import { standardAttributes, type StandardAttributeProps } from '#lib/components/utils';
-	import { cardTypes, type Card, type CardType } from '#lib/models/cards';
+	import { getCardImage } from '#lib/assets/img';
+	import { cardTypes, isFateCard, type Card, type CardType } from '#lib/models/cards';
 	import CapabilityDisplay from './CapabilityDisplay.svelte';
 	import InlineSvg from './InlineSvg.svelte';
 	import { getCardIcon } from '#lib/cardattributes';
@@ -142,18 +153,21 @@
 	const { card, ...attributes }: Props = $props();
 	const icon = $derived(getCardIcon(card));
 	const styles = $derived(stylesFor(card.type));
+	const artwork = $derived(isFateCard(card) ? getCardImage(card.id) : undefined);
 </script>
 
 <div
 	{...standardAttributes(attributes, styles.card)}
 	data-type={card.type}
-	style:background-image={getBackgroundImage(card)}
+	style:background-image={getBackgroundImage(card, artwork)}
 >
 	<div class={styles.header}>
 		<div class={styles.title}>{card.title}</div>
-		<div class={styles.iconFrame}>
-			<InlineSvg class={styles.icon} src={icon} />
-		</div>
+		{#if !isFateCard(card)}
+			<div class={styles.iconFrame}>
+				<InlineSvg class={styles.icon} src={icon} />
+			</div>
+		{/if}
 	</div>
 	<div class={styles.body}>
 		{#if card.type === 'crisis'}
