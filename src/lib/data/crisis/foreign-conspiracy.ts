@@ -2,7 +2,6 @@ import type { CrisisData } from '#lib/models/cards';
 
 export default {
 	title: 'Conspiració estrangera',
-	properties: ['adversity'],
 	test: '{intrigue}',
 	fortuneEffects: {
 		text: '{danger 2}',

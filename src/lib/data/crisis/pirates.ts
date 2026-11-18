@@ -2,7 +2,6 @@ import type { CrisisData } from '#lib/models/cards';
 
 export default {
 	title: 'Pirates',
-	properties: ['adversity'],
 	test: '{strength}',
 	fortuneEffects: {
 		text: '{danger 2}',

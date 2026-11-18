@@ -2,7 +2,6 @@ import type { CrisisData } from '#lib/models/cards';
 
 export default {
 	title: 'Immigració',
-	properties: ['adversity'],
 	test: '{power} + {gold}',
 	fortuneEffects: {
 		text: '{danger 2}',

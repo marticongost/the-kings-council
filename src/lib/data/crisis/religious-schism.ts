@@ -2,7 +2,6 @@ import type { CrisisData } from '#lib/models/cards';
 
 export default {
 	title: 'Cisme religiós',
-	properties: ['adversity'],
 	test: '{faith}',
 	fortuneEffects: {
 		text: '{danger 2}',

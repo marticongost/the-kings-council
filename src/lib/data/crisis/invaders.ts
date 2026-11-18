@@ -2,7 +2,6 @@ import type { CrisisData } from '#lib/models/cards';
 
 export default {
 	title: 'Invasió',
-	properties: ['adversity'],
 	test: '{strength}',
 	fortuneEffects: {
 		text: '{wealth} - 2 (mínim 1)',

@@ -2,7 +2,6 @@ import type { CrisisData } from '#lib/models/cards';
 
 export default {
 	title: 'Tensions amb els gremis',
-	properties: ['adversity'],
 	test: '{power}',
 	fortuneEffects: {
 		text: '{danger 1}',

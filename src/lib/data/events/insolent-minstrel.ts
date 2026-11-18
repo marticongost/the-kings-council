@@ -2,7 +2,6 @@ import type { EventData } from '#lib/models/cards';
 
 export default {
 	title: 'Joglar insolent',
-	properties: ['adversity'],
 	capabilities: [
 		{
 			type: 'reaction',

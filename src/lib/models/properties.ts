@@ -25,7 +25,6 @@ const propertyData = {
 	selfishness: 'Egoïsme',
 	boost: 'Millora',
 	food: 'Menjar',
-	adversity: 'Adversitat',
 	holy: 'Sagrat',
 	privilege: 'Privilegi'
 } as const;

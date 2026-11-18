@@ -2,7 +2,6 @@ import type { CrisisData } from '#lib/models/cards';
 
 export default {
 	title: 'Rebel·lió',
-	properties: ['adversity'],
 	test: '{strength}',
 	fortuneEffects: {
 		text: '4 - {stability} (mínim 1)',
