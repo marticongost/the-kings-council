@@ -7,7 +7,7 @@ export default {
 			type: 'reaction',
 			trigger: 'whenRevealed',
 			effects:
-				'{duel} {power} entre tots els {kingdom-members}. Els vencedors guanyen {prestige 1}. Descartar aquesta carta.'
+				'{duel} {power} entre tots els {kingdom-members}. Els vencedors guanyen {prestige 1}.'
 		}
 	]
 } satisfies EventData;

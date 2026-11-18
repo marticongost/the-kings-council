@@ -7,7 +7,7 @@ export default {
 			type: 'reaction',
 			trigger: 'whenRevealed',
 			effects:
-				"El {king} revela tantes cartes com {kingdom-members}, i en dona una a cada un. El {king} escull quina carta donar a cada jugador, i s'assigna una de les cartes a si mateix. Descartar aquesta carta."
+				"El {king} revela tantes cartes com {kingdom-members}, i en dona una a cada un. El {king} escull quina carta donar a cada jugador, i s'assigna una de les cartes a si mateix."
 		}
 	]
 } satisfies EventData;

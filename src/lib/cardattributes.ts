@@ -12,9 +12,8 @@ export function getCardIcon(card: Card): string {
 		case 'goal':
 			return `goals/${card.id}.svg`;
 		case 'event':
-			return `events/${card.id}.svg`;
 		case 'crisis':
-			return `crisis/${card.id}.svg`;
+			return `keywords/fate.svg`;
 		case 'law':
 			return `laws/${card.id}.svg`;
 		case 'tactic':

@@ -5,8 +5,8 @@ export default {
 	capabilities: [
 		{
 			type: 'reaction',
-			trigger: 'turnStart',
-			effects: 'El regne guanya {stability 1}. Descartar aquesta carta.'
+			trigger: 'whenRevealed',
+			effects: 'El regne guanya {wealth 1}.'
 		}
 	]
 } satisfies EventData;
