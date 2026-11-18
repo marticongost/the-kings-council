@@ -157,7 +157,6 @@
 	}
 
 	const entries = buildEntries();
-	const movableCount = entries.filter((entry) => entry.winner !== null).length;
 </script>
 
 <div class={styles.assetsBidStep}>
@@ -195,7 +194,7 @@
 
 	<div class={styles.actions}>
 		<Button
-			disabled={movableCount === 0}
+			disabled={entries.length === 0}
 			onclick={() => simulator.resolveAssetBids(acquisitionIndex)}>Repartir actius</Button
 		>
 	</div>

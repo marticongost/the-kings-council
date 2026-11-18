@@ -227,6 +227,12 @@ export interface ResolutionState {
 	active: boolean;
 	/** Position of the presented capability within the turn. */
 	index: number;
+	/** Players that have bid for an asset during the current market phase. */
+	assetBidBidders?: Array<string>;
+	/** Players that have won at least one asset bid during the current market phase. */
+	assetBidWinners?: Array<string>;
+	/** Acquisition indexes whose asset bids have already been resolved this market phase. */
+	resolvedAssetBids?: Array<number>;
 }
 
 /** One acquisition a player plans: an asset card and the gold paid for it. */

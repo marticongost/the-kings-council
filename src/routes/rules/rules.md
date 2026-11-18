@@ -928,6 +928,10 @@ Això obre diverses possibilitats als jugadors:
 - Poden intentar optar per un premi de consolació si el seu objectiu principal falla
 - Poden intentar adquirir múltiples actius (si tenen molts diners!)
 
+Cada jugador que hagi fet com a mínim una aposta durant la {assets-bid} i no n'hagi
+guanyat cap rep 1 {favour} com a compensació. Els jugadors que no hagin apostat no
+reben aquesta compensació.
+
 Resoltes les dues rondes, les cartes que encara quedin a la primera fila es descarten,
 i es prepara el mercat de nou (fent que la segona fila passi a ser la primera, i robant
 una nova segona fila).

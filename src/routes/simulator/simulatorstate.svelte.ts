@@ -329,6 +329,28 @@ function uniqueStrings(values: unknown): Array<string> {
 	return unique;
 }
 
+/** Removes repeated entries, keeping the first occurrence of each non-negative integer. */
+function uniqueNumbers(values: unknown): Array<number> {
+	if (!Array.isArray(values)) return [];
+	const unique: Array<number> = [];
+	for (const value of values) {
+		const number = asNumber(value, Number.NaN);
+		if (Number.isInteger(number) && number >= 0 && !unique.includes(number)) {
+			unique.push(number);
+		}
+	}
+	return unique;
+}
+
+/** Appends every value of `extra` that is not already present, keeping the first occurrence of each. */
+function uniqueAppend<T>(values: ReadonlyArray<T> | undefined, extra: ReadonlyArray<T>): Array<T> {
+	const next = [...(values ?? [])];
+	for (const value of extra) {
+		if (!next.includes(value)) next.push(value);
+	}
+	return next;
+}
+
 function normalizeInputs(value: unknown): Record<string, string> {
 	const record = asObject(value);
 	const inputs: Record<string, string> = {};
@@ -507,7 +529,10 @@ function normalizeResolution(value: unknown): ResolutionState {
 	const record = asObject(value);
 	return {
 		active: record?.active === true,
-		index: clamp(asNumber(record?.index, 0), 0, Number.POSITIVE_INFINITY)
+		index: clamp(asNumber(record?.index, 0), 0, Number.POSITIVE_INFINITY),
+		assetBidBidders: uniqueStrings(record?.assetBidBidders),
+		assetBidWinners: uniqueStrings(record?.assetBidWinners),
+		resolvedAssetBids: uniqueNumbers(record?.resolvedAssetBids)
 	};
 }
 
@@ -1860,30 +1885,105 @@ export class SimulatorState {
 	/**
 	 * Resolves a bidding round: every market asset with a single winner moves to that
 	 * winner's hand, the winner pays the offer from their gold and favour, and the
-	 * asset leaves the market.
+	 * asset leaves the market. Once no bidding round is left, players that bid but won
+	 * nothing are compensated with a favour.
 	 */
 	resolveAssetBids(index: number): void {
+		if ((this.resolution.resolvedAssetBids ?? []).includes(index)) return;
+
+		const offers = this.assetBidOffers(index);
+		if (offers.length === 0) return;
+
 		const wins: Array<{ ref: CardRef; winner: PlayerState; gold: number }> = [];
 		for (const ref of this.market) {
 			const card = this.cardOf(ref);
 			if (!card) continue;
 			const winner = this.assetBidWinner(index, card.id);
 			if (!winner) continue;
-			const offer = this.assetBidOffers(index).find(
+			const offer = offers.find(
 				(candidate) => candidate.player.id === winner.id && candidate.cardId === card.id
 			);
 			if (!offer) continue;
 			wins.push({ ref, winner, gold: offer.gold });
 		}
-		if (wins.length === 0) return;
+
+		if (wins.length === 0) {
+			const bidders = new SvelteSet(this.resolution.assetBidBidders ?? []);
+			for (const offer of offers) bidders.add(offer.player.id);
+			const winners = new SvelteSet(this.resolution.assetBidWinners ?? []);
+			const hasLosers = this.players.some(
+				(player) => bidders.has(player.id) && !winners.has(player.id)
+			);
+			const resolved = [...(this.resolution.resolvedAssetBids ?? []), index];
+			const pending = [0, 1].filter(
+				(round) => !resolved.includes(round) && this.assetBidOffers(round).length > 0
+			);
+
+			// Nothing changed hands, so only the scratch state advances. Later rounds keep
+			// collecting losers, and the compensation is paid once no round is left.
+			if (pending.length > 0 || !hasLosers) {
+				this.resolution = {
+					...this.resolution,
+					resolvedAssetBids: resolved,
+					assetBidBidders: [...bidders],
+					assetBidWinners: this.resolution.assetBidWinners
+				};
+				return;
+			}
+
+			this.transaction('Compensa les apostes perdudes', () => {
+				this.resolution = {
+					...this.resolution,
+					resolvedAssetBids: resolved,
+					assetBidBidders: [...bidders],
+					assetBidWinners: this.resolution.assetBidWinners
+				};
+				this.compensateAssetBidLosers();
+			});
+			return;
+		}
 
 		this.transaction(`Reparteix ${countOf(wins.length, 'actiu', 'actius')}`, () => {
+			this.resolution = {
+				...this.resolution,
+				resolvedAssetBids: [...(this.resolution.resolvedAssetBids ?? []), index],
+				assetBidBidders: uniqueAppend(
+					this.resolution.assetBidBidders,
+					offers.map((offer) => offer.player.id)
+				),
+				assetBidWinners: uniqueAppend(
+					this.resolution.assetBidWinners,
+					wins.map((win) => win.winner.id)
+				)
+			};
+
 			this.market = this.market.filter((ref) => !wins.some((win) => win.ref.uid === ref.uid));
 			for (const { ref, winner, gold } of wins) {
 				this.payBidCost(winner, gold);
 				winner.hand.push(ref);
 			}
+
+			const pending = [0, 1].filter(
+				(round) =>
+					!(this.resolution.resolvedAssetBids ?? []).includes(round) &&
+					this.assetBidOffers(round).length > 0
+			);
+			if (pending.length === 0) this.compensateAssetBidLosers();
 		});
+	}
+
+	/**
+	 * Gives one favour to every player that bid for an asset during this market phase but
+	 * won none of their bids. Players that did not bid at all are left alone.
+	 */
+	private compensateAssetBidLosers(): void {
+		const bidders = new SvelteSet(this.resolution.assetBidBidders ?? []);
+		const winners = new SvelteSet(this.resolution.assetBidWinners ?? []);
+		for (const player of this.players) {
+			if (bidders.has(player.id) && !winners.has(player.id)) {
+				player.resources.favour += 1;
+			}
+		}
 	}
 
 	/** Pays a bid from a player's gold first, then their favour, as the rules allow. */
