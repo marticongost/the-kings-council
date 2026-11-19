@@ -6,7 +6,8 @@ export default {
 		{
 			type: 'reaction',
 			trigger: 'whenRevealed',
-			effects: 'El regne guanya {wealth 1}.'
+			effects:
+				'Els jugadors seleccionen una quantitat de recursos {gold} de la seva reserva i els revelen simultàniament. Si el total és igual o superior a {wealth}, el regne guanya {wealth 1}.'
 		}
 	]
 } satisfies EventData;

@@ -6,7 +6,8 @@ export default {
 		{
 			type: 'reaction',
 			trigger: 'whenRevealed',
-			effects: 'El regne guanya {grace 1}.'
+			effects:
+				'Els jugadors seleccionen una quantitat de recursos {faith} de la seva reserva i els revelen simultàniament. Si el total és igual o superior a {grace}, el regne guanya {grace 1}.'
 		}
 	]
 } satisfies EventData;
