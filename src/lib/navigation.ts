@@ -1,13 +1,22 @@
 import type { RouteId, ResolvedPathname } from '$app/types';
 import { resolve } from '$app/paths';
 
+/** A route that can be linked from the navigation, i.e. one that takes no parameters. */
+export type NavigationRouteId = Exclude<RouteId, `${string}[${string}]${string}`>;
+
+/**
+ * `resolve` is typed per route id, with different arguments for each of them, so TypeScript
+ * cannot resolve a union of ids. Navigation entries only hold routes that take no parameters.
+ */
+const resolveRoute = resolve as unknown as (route: NavigationRouteId) => ResolvedPathname;
+
 export interface NavigationEntryProps {
-	id: RouteId;
+	id: NavigationRouteId;
 	title: string;
 }
 
 export class NavigationEntry {
-	readonly id: RouteId;
+	readonly id: NavigationRouteId;
 	readonly title: string;
 
 	constructor({ id, title }: NavigationEntryProps) {
@@ -16,7 +25,7 @@ export class NavigationEntry {
 	}
 
 	get url(): ResolvedPathname {
-		return resolve(this.id);
+		return resolveRoute(this.id);
 	}
 
 	matches(path: string): boolean {
