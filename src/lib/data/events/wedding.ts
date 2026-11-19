@@ -6,8 +6,7 @@ export default {
 		{
 			type: 'reaction',
 			trigger: 'whenRevealed',
-			effects:
-				'{duel} {gold} entre tots els {kingdom-members}. Els guanyadors guanyen {prestige 1}.'
+			effects: '{duel} {gold} entre tots els {kingdom-members}. Els vencedors guanyen {prestige 1}.'
 		}
 	]
 } satisfies EventData;
