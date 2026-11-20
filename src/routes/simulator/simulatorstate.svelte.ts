@@ -505,9 +505,9 @@ function normalizeDrawnTokens(value: unknown): Array<DrawnCrisisToken> {
 
 /** Tokens of older snapshots, and the token each of them became, if any, in the current set. */
 const legacyCrisisTokenIds: Record<string, string | undefined> = {
-	luck: 'fortune',
-	doom: 'danger3',
-	challenge: undefined
+	luck: 'challenge',
+	fortune: 'challenge',
+	doom: 'danger3'
 };
 
 /** Reads a kingdom's crisis bag, or null when the snapshot has none (older versions). */

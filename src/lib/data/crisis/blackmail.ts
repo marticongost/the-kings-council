@@ -4,7 +4,7 @@ export default {
 	title: 'Xantatge',
 	test: '{gold} + {intrigue}',
 	highestContributionReward: 'Guanya ½ de la contribució total a la crisi (arrodonint cap a baix).',
-	fortuneEffects: {
+	challenge: {
 		text: '{danger 2}',
 		compute: () => 2
 	},

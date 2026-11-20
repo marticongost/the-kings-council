@@ -3,7 +3,7 @@ import type { CrisisData } from '#lib/models/cards';
 export default {
 	title: 'Rebel·lió',
 	test: '{strength}',
-	fortuneEffects: {
+	challenge: {
 		text: '4 - {stability} (mínim 1)',
 		compute: (_state, kingdom) => Math.max(1, 4 - kingdom.stats.stability)
 	},

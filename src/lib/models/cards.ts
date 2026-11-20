@@ -67,17 +67,17 @@ export class Event extends BaseCard {
 	override readonly type = 'event';
 }
 
-export interface CrisisFortuneEffects {
+export interface Crisischallenge {
 	/** Description shown on the card, in effect marks. */
 	text: string;
-	/** Danger the fortune token adds to the crisis, for the kingdom facing it. */
+	/** Danger the challenge token adds to the crisis, for the kingdom facing it. */
 	compute: (state: SimulatorState, kingdom: KingdomState) => number;
 }
 
 export interface CrisisData extends CardData {
 	test: string;
-	/** What a fortune token adds to the difficulty of the crisis. */
-	fortuneEffects: CrisisFortuneEffects;
+	/** What a challenge token adds to the difficulty of the crisis. */
+	challenge: Crisischallenge;
 	penalty: string;
 	highestContributionReward: string;
 }
@@ -86,17 +86,17 @@ export class Crisis extends BaseCard {
 	override readonly type = 'crisis';
 
 	readonly test: string;
-	readonly fortuneEffects: CrisisFortuneEffects;
+	readonly challenge: Crisischallenge;
 	readonly penalty: string;
 	readonly highestContributionReward: string;
 
 	constructor(
 		id: string,
-		{ test, fortuneEffects, penalty, highestContributionReward, ...base }: CrisisData
+		{ test, challenge, penalty, highestContributionReward, ...base }: CrisisData
 	) {
 		super(id, base);
 		this.test = test;
-		this.fortuneEffects = fortuneEffects;
+		this.challenge = challenge;
 		this.penalty = penalty;
 		this.highestContributionReward = highestContributionReward;
 	}

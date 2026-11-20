@@ -13,7 +13,7 @@ export function crisisTokenDanger(
 	state: SimulatorState,
 	kingdom: KingdomState
 ): number {
-	if (token.isVariable()) return crisis.fortuneEffects.compute(state, kingdom);
+	if (token.isVariable()) return crisis.challenge.compute(state, kingdom);
 
 	switch (token.id) {
 		case 'danger1':

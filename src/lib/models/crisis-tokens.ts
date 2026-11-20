@@ -6,7 +6,7 @@ const crisisTokensData = {
 	danger2: 'Perill 2',
 	danger3: 'Perill 3',
 	retribution: 'Retribució',
-	fortune: 'Fortuna'
+	challenge: 'Fortuna'
 } as const;
 
 export type CrisisTokenId = keyof typeof crisisTokensData;
@@ -28,7 +28,7 @@ export class CrisisToken {
 	}
 
 	isVariable(): this is VariableCrisisToken {
-		return this.id === 'fortune';
+		return this.id === 'challenge';
 	}
 
 	/** Whether the token's danger is told by its artwork, which shows one splash per point. */
@@ -67,7 +67,7 @@ export const initialCrisisBag: ReadonlyCounter<CrisisToken> = makeBag({
 	danger1: 5,
 	danger2: 1,
 	retribution: 3,
-	fortune: 3
+	challenge: 3
 });
 
 export interface CrisisBagChanges {

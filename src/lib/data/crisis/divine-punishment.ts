@@ -5,7 +5,7 @@ export default {
 	title: 'Càstig diví',
 	test: '{faith}',
 	highestContributionReward: '{prestige 1}, {asset} {holy} aleatori',
-	fortuneEffects: {
+	challenge: {
 		text: '5 - {grace}',
 		compute: (_state, kingdom: KingdomState) => 5 - kingdom.stats.grace
 	},

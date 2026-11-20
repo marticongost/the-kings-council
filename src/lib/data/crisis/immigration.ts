@@ -3,7 +3,7 @@ import type { CrisisData } from '#lib/models/cards';
 export default {
 	title: 'Immigració',
 	test: '{power} + {gold}',
-	fortuneEffects: {
+	challenge: {
 		text: '{danger 2}',
 		compute: () => 2
 	},

@@ -814,8 +814,7 @@ regne, i aplicar els seu valor:
   - 3: {danger 1}
   - 4: {danger 0}
   - 5: {danger -1}
-- {crisis-fortune-label}: Suma el valor indicat a la carta de crisi per aquest símbol.
-  Tendirà a ser favorable als jugadors.
+- {crisis-challenge-label}: Suma el valor indicat a la carta de crisi per aquest símbol.
 
 Un cop robades totes les fitxes, el director de joc suma tots els seus valor per
 calcular el {danger-label} total i l'anota a la casella habilitada a la carta de crisi.
@@ -825,7 +824,7 @@ El regne de Velaria s'enfronta a una crisi. Té 4 membres, així que el director
 roba 4 fitxes de crisi de la bossa del regne. Les dues primeres fitxes mostren
 {danger 1} i {danger 2}. La tercera és una fitxa de {crisis-retribution-label}, així que
 consulta la {grace-label} del regne, creuant el seu valor de 3 a la taula per obtenir un
-altre {danger 1}. Finalment, la última fitxa és una fitxa de {crisis-fortune-label}.
+altre {danger 1}. Finalment, la última fitxa és una fitxa de {crisis-challenge-label}.
 Consultant la targeta la crisi, veu que cal afegir {danger 3} al total. El
 {danger-label} final serà de 7 ({danger 1} + {danger 2} + {danger 1} + {danger 3}).
 ```

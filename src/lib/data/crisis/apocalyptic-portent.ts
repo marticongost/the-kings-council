@@ -3,7 +3,7 @@ import type { CrisisData } from '#lib/models/cards';
 export default {
 	title: 'Senyal apocalíptica',
 	test: '{faith}',
-	fortuneEffects: {
+	challenge: {
 		text: '{danger 2}. Els {kingdom-members} perden {faith 1}.',
 		compute: () => 2
 	},

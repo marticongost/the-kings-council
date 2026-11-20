@@ -41,7 +41,7 @@
 		crisisOutcomeValue: {
 			color: css.text.regularColor
 		},
-		fortuneIcon: {
+		challengeIcon: {
 			marginLeft: css.spacing.sm
 		}
 	});
@@ -61,7 +61,7 @@
 	}
 
 	const { crisis: capability, ...attributes }: Props = $props();
-	const fortune = getCrisisToken('fortune');
+	const challenge = getCrisisToken('challenge');
 </script>
 
 <div {...standardAttributes(attributes, styles.crisis)}>
@@ -69,15 +69,15 @@
 		<EffectsText effects={capability.test} />
 		≥
 		<CapabilityInput format="number" />
-		{#if capability.fortuneEffects.text}
+		{#if capability.challenge.text}
 			<InlineSvg
-				class={styles.fortuneIcon}
-				src="crisis-tokens/fortune.svg"
-				title={fortune.title}
+				class={styles.challengeIcon}
+				src="crisis-tokens/challenge.svg"
+				title={challenge.title}
 				role="img"
-				aria-label={fortune.title}
+				aria-label={challenge.title}
 			/>
-			<EffectsText effects={capability.fortuneEffects.text} />
+			<EffectsText effects={capability.challenge.text} />
 		{/if}
 	</div>
 	<div class={cx(styles.crisisOutcome, styles.reward)}>

@@ -3,7 +3,7 @@ import type { CrisisData } from '#lib/models/cards';
 export default {
 	title: 'Escàndol',
 	test: '{intrigue}',
-	fortuneEffects: {
+	challenge: {
 		text: '{danger 1}',
 		compute: () => 1
 	},

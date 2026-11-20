@@ -45,7 +45,7 @@ export interface DangerLabelChunk {
 }
 
 /** Crisis tokens whose label effect text can refer to, as `{crisis-<token>-label}`. */
-export const crisisTokenLabels = ['retribution', 'fortune'] as const;
+export const crisisTokenLabels = ['retribution', 'challenge'] as const;
 
 export type CrisisTokenLabel = (typeof crisisTokenLabels)[number];
 

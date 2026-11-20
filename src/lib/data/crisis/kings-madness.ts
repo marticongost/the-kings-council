@@ -3,7 +3,7 @@ import type { CrisisData } from '#lib/models/cards';
 export default {
 	title: 'La bogeria del rei',
 	test: '{intrigue}',
-	fortuneEffects: {
+	challenge: {
 		text: '{kingdom-members} - 1',
 		compute: (state, kingdom) => Math.max(0, state.membersOf(kingdom.id).length - 1)
 	},

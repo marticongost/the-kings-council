@@ -3,7 +3,7 @@ import type { CrisisData } from '#lib/models/cards';
 export default {
 	title: 'Invasió',
 	test: '{strength}',
-	fortuneEffects: {
+	challenge: {
 		text: '{wealth} - 2 (mínim 1)',
 		compute: (_state, kingdom) => Math.max(1, kingdom.stats.wealth - 2)
 	},
