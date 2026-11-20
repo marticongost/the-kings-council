@@ -25,11 +25,6 @@ export function isCardBackType(value: string): value is CardBackType {
 	return cardBackTypeSet.has(value);
 }
 
-/** The artwork of a card back. */
-export function getCardBackUrl(type: CardBackType): string {
-	return `/svg/card-back-backgrounds/${type}.svg`;
-}
-
 /** Dimensions of an A4 sheet, in millimetres. */
 export const sheetWidth = 210;
 export const sheetHeight = 297;

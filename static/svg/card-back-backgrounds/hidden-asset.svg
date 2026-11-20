@@ -12,6 +12,23 @@
    xmlns:xlink="http://www.w3.org/1999/xlink"
    xmlns="http://www.w3.org/2000/svg"
    xmlns:svg="http://www.w3.org/2000/svg">
+<style
+     id="grenze-font">
+    @font-face {
+      font-family: 'Grenze';
+      src: url('/fonts/grenze.woff2') format('woff2');
+      font-weight: 100 900;
+    }
+
+    /* Inkscape encodes the weight via `font-variation-settings`, which is ignored when the file
+       is loaded as an external image, so the text falls back to 400. Pin the intended 800. */
+    text,
+    tspan {
+      font-weight: 800 !important;
+      font-variation-settings: normal !important;
+    }
+  </style>
+
   <defs
      id="defs3">
     <linearGradient

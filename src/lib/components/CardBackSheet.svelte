@@ -28,7 +28,8 @@
 
 <script lang="ts">
 	import { standardAttributes, type StandardAttributeProps } from '#lib/components/utils';
-	import { getCardBackSheet, getCardBackUrl, type CardBackType } from '#lib/cardbacks';
+	import { getCardBackArtwork } from '#lib/cardback-artwork';
+	import { getCardBackSheet, type CardBackType } from '#lib/cardbacks';
 
 	interface Props extends StandardAttributeProps {
 		type: CardBackType;
@@ -37,7 +38,8 @@
 	const { type, ...attributes }: Props = $props();
 
 	const sheet = $derived(getCardBackSheet(type));
-	const artwork = $derived(getCardBackUrl(type));
+	const artwork = $derived(getCardBackArtwork(type));
+	const symbolId = $derived(`card-back-sheet-${type}`);
 
 	/** Position of the block of cards on the sheet, in millimetres. */
 	const blockX = $derived((sheetWidth - sheet.width) / 2);
@@ -53,6 +55,10 @@
 	const horizontalCuts = $derived([...cardRows, blockY + sheet.height]);
 </script>
 
+{#snippet cardBack(x: number, y: number, width: number, height: number)}
+	<use href={`#${symbolId}`} {x} {y} {width} {height} />
+{/snippet}
+
 <svg
 	{...standardAttributes(attributes, styles.sheet)}
 	width={`${sheetWidth}mm`}
@@ -60,16 +66,20 @@
 	viewBox={`0 0 ${sheetWidth} ${sheetHeight}`}
 	preserveAspectRatio="none"
 >
+	<defs>
+		<symbol
+			id={symbolId}
+			viewBox={`0 0 ${sheet.size.width} ${sheet.size.height}`}
+			preserveAspectRatio="none"
+		>
+			<!-- eslint-disable-next-line svelte/no-at-html-tags -- Trusted SVG from internal assets -->
+			{@html artwork}
+		</symbol>
+	</defs>
+
 	{#each cardRows as row (row)}
 		{#each cardColumns as column (column)}
-			<image
-				href={artwork}
-				x={column}
-				y={row}
-				width={sheet.size.width + overlap}
-				height={sheet.size.height + overlap}
-				preserveAspectRatio="none"
-			/>
+			{@render cardBack(column, row, sheet.size.width + overlap, sheet.size.height + overlap)}
 		{/each}
 	{/each}
 
@@ -85,32 +95,16 @@
 		viewBox={`${blockX - sheetGutter} ${blockY} ${sheet.width + 2 * sheetGutter} ${bleedBand}`}
 		preserveAspectRatio="none"
 	>
-		<image
-			href={artwork}
-			x={blockX - sheetGutter}
-			y={blockY}
-			width={sheet.size.width}
-			height={sheet.size.height}
-			preserveAspectRatio="none"
-		/>
+		{@render cardBack(blockX - sheetGutter, blockY, sheet.size.width, sheet.size.height)}
 		{#each cardColumns as column (column)}
-			<image
-				href={artwork}
-				x={column}
-				y={blockY}
-				width={sheet.size.width}
-				height={sheet.size.height}
-				preserveAspectRatio="none"
-			/>
+			{@render cardBack(column, blockY, sheet.size.width, sheet.size.height)}
 		{/each}
-		<image
-			href={artwork}
-			x={blockX + sheet.width + sheetGutter - sheet.size.width}
-			y={blockY}
-			width={sheet.size.width}
-			height={sheet.size.height}
-			preserveAspectRatio="none"
-		/>
+		{@render cardBack(
+			blockX + sheet.width + sheetGutter - sheet.size.width,
+			blockY,
+			sheet.size.width,
+			sheet.size.height
+		)}
 	</svg>
 
 	<svg
@@ -121,32 +115,26 @@
 		viewBox={`${blockX - sheetGutter} ${blockY + sheet.height - bleedBand} ${sheet.width + 2 * sheetGutter} ${bleedBand}`}
 		preserveAspectRatio="none"
 	>
-		<image
-			href={artwork}
-			x={blockX - sheetGutter}
-			y={blockY + sheet.height - sheet.size.height}
-			width={sheet.size.width}
-			height={sheet.size.height}
-			preserveAspectRatio="none"
-		/>
+		{@render cardBack(
+			blockX - sheetGutter,
+			blockY + sheet.height - sheet.size.height,
+			sheet.size.width,
+			sheet.size.height
+		)}
 		{#each cardColumns as column (column)}
-			<image
-				href={artwork}
-				x={column}
-				y={blockY + sheet.height - sheet.size.height}
-				width={sheet.size.width}
-				height={sheet.size.height}
-				preserveAspectRatio="none"
-			/>
+			{@render cardBack(
+				column,
+				blockY + sheet.height - sheet.size.height,
+				sheet.size.width,
+				sheet.size.height
+			)}
 		{/each}
-		<image
-			href={artwork}
-			x={blockX + sheet.width + sheetGutter - sheet.size.width}
-			y={blockY + sheet.height - sheet.size.height}
-			width={sheet.size.width}
-			height={sheet.size.height}
-			preserveAspectRatio="none"
-		/>
+		{@render cardBack(
+			blockX + sheet.width + sheetGutter - sheet.size.width,
+			blockY + sheet.height - sheet.size.height,
+			sheet.size.width,
+			sheet.size.height
+		)}
 	</svg>
 
 	<svg
@@ -157,32 +145,16 @@
 		viewBox={`${blockX} ${blockY - sheetGutter} ${bleedBand} ${sheet.height + 2 * sheetGutter}`}
 		preserveAspectRatio="none"
 	>
-		<image
-			href={artwork}
-			x={blockX}
-			y={blockY - sheetGutter}
-			width={sheet.size.width}
-			height={sheet.size.height}
-			preserveAspectRatio="none"
-		/>
+		{@render cardBack(blockX, blockY - sheetGutter, sheet.size.width, sheet.size.height)}
 		{#each cardRows as row (row)}
-			<image
-				href={artwork}
-				x={blockX}
-				y={row}
-				width={sheet.size.width}
-				height={sheet.size.height}
-				preserveAspectRatio="none"
-			/>
+			{@render cardBack(blockX, row, sheet.size.width, sheet.size.height)}
 		{/each}
-		<image
-			href={artwork}
-			x={blockX}
-			y={blockY + sheet.height + sheetGutter - sheet.size.height}
-			width={sheet.size.width}
-			height={sheet.size.height}
-			preserveAspectRatio="none"
-		/>
+		{@render cardBack(
+			blockX,
+			blockY + sheet.height + sheetGutter - sheet.size.height,
+			sheet.size.width,
+			sheet.size.height
+		)}
 	</svg>
 
 	<svg
@@ -193,32 +165,26 @@
 		viewBox={`${blockX + sheet.width - bleedBand} ${blockY - sheetGutter} ${bleedBand} ${sheet.height + 2 * sheetGutter}`}
 		preserveAspectRatio="none"
 	>
-		<image
-			href={artwork}
-			x={blockX + sheet.width - sheet.size.width}
-			y={blockY - sheetGutter}
-			width={sheet.size.width}
-			height={sheet.size.height}
-			preserveAspectRatio="none"
-		/>
+		{@render cardBack(
+			blockX + sheet.width - sheet.size.width,
+			blockY - sheetGutter,
+			sheet.size.width,
+			sheet.size.height
+		)}
 		{#each cardRows as row (row)}
-			<image
-				href={artwork}
-				x={blockX + sheet.width - sheet.size.width}
-				y={row}
-				width={sheet.size.width}
-				height={sheet.size.height}
-				preserveAspectRatio="none"
-			/>
+			{@render cardBack(
+				blockX + sheet.width - sheet.size.width,
+				row,
+				sheet.size.width,
+				sheet.size.height
+			)}
 		{/each}
-		<image
-			href={artwork}
-			x={blockX + sheet.width - sheet.size.width}
-			y={blockY + sheet.height + sheetGutter - sheet.size.height}
-			width={sheet.size.width}
-			height={sheet.size.height}
-			preserveAspectRatio="none"
-		/>
+		{@render cardBack(
+			blockX + sheet.width - sheet.size.width,
+			blockY + sheet.height + sheetGutter - sheet.size.height,
+			sheet.size.width,
+			sheet.size.height
+		)}
 	</svg>
 
 	{#each verticalCuts as cut (cut)}

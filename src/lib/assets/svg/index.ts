@@ -28,6 +28,8 @@ function namespaceSvgIds(raw: string, namespace: string): string {
 		.replace(/((?<![\w-])(?:xlink:)?href)=(["'])#(.*?)\2/g, `$1=$2#${namespace}-$3$2`);
 }
 
+export { makeIdNamespace, namespaceSvgIds };
+
 // Export as a map with normalized keys
 export const svgs = new Map<string, string>();
 for (const [key, value] of Object.entries(svgsRecord)) {
