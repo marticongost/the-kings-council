@@ -1,6 +1,7 @@
 <script lang="ts" module>
 	/* eslint-disable svelte/no-navigation-without-resolve */
 	import * as css from '#lib/styles';
+	import logoUrl from '#lib/assets/img/logo.png?url';
 
 	const styles = css.styles({
 		layout: {
@@ -10,10 +11,20 @@
 		},
 		header: {
 			...css.row('md'),
+			alignItems: 'stretch',
 			borderBottom: `2px solid ${css.palette.sandal}`,
 			backgroundColor: css.palette.ivory,
 			color: css.palette.sandal,
 			flex: '0 0 auto'
+		},
+		logoWrapper: {
+			width: '17em',
+			...css.vpadding('sm'),
+			...css.hpadding('md')
+		},
+		logo: {
+			height: '5em',
+			width: 'auto'
 		},
 		main: {
 			padding: css.spacing.md,
@@ -41,6 +52,9 @@
 
 <div class={styles.layout}>
 	<header class={styles.header}>
+		<div class={styles.logoWrapper}>
+			<img class={styles.logo} src={logoUrl} alt="The King's Council" />
+		</div>
 		<Navigation {entries} />
 	</header>
 

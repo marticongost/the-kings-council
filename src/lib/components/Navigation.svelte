@@ -6,6 +6,8 @@
 		navigation: {},
 		list: {
 			...css.row(),
+			alignItems: 'stretch',
+			height: '100%',
 			listStyleType: 'none'
 		},
 		entry: {
@@ -24,17 +26,29 @@
 		},
 		selectedEntry: {
 			fontWeight: 900,
+			color: css.palette.buccaneer,
+			boxShadow: `inset 0 0 1em 0.2em ${css.palette.sandal}a0, 0 0 0.5em rgba(0,0,0,0.15)`,
 			'a:before': {
-				backgroundColor: css.palette.sandal,
+				backgroundColor: 'currentColor',
 				width: '100%'
 			}
 		},
 		link: {
-			display: 'block',
+			...css.column(),
 			...css.vpadding('sm'),
 			...css.hpadding('md'),
-			fontSize: '1.2em'
-		}
+			width: '8em',
+			height: '100%',
+			alignItems: 'center',
+			justifyContent: 'flex-end',
+			fontSize: '1.2em',
+			border: `1px dotted ${css.palette.gurkha}`
+		},
+		icon: {
+			height: '2.4em',
+			width: 'auto'
+		},
+		title: {}
 	});
 </script>
 
@@ -43,6 +57,7 @@
 	import { standardAttributes, type StandardAttributeProps } from './utils';
 	import type { NavigationEntry } from '#lib/navigation';
 	import { cx } from '@emotion/css';
+	import InlineSvg from './InlineSvg.svelte';
 
 	interface Props extends StandardAttributeProps {
 		entries: Array<NavigationEntry>;
@@ -55,7 +70,12 @@
 	<ul class={styles.list}>
 		{#each entries as entry (entry.url)}
 			<li class={cx(styles.entry, { [styles.selectedEntry]: entry.matches(page.url.pathname) })}>
-				<a class={styles.link} href={entry.url}>{entry.title}</a>
+				<a class={styles.link} href={entry.url}>
+					<InlineSvg class={styles.icon} src="nav{entry.id}.svg" />
+					<span class={styles.title}>
+						{entry.title}
+					</span>
+				</a>
 			</li>
 		{/each}
 	</ul>
