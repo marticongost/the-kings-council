@@ -6,7 +6,7 @@ const crisisTokensData = {
 	danger2: 'Perill 2',
 	danger3: 'Perill 3',
 	retribution: 'Retribució',
-	challenge: 'Fortuna'
+	challenge: 'Repte'
 } as const;
 
 export type CrisisTokenId = keyof typeof crisisTokensData;
