@@ -15,7 +15,7 @@
 			borderBottom: `2px solid currentColor`,
 			backgroundColor: css.palette.linen,
 			backgroundImage: `linear-gradient(to bottom, transparent, ${css.palette.moonMist})`,
-			color: css.palette.tobacco,
+			color: css.palette.sandal,
 			flex: '0 0 auto'
 		},
 		logoWrapper: {

@@ -11,6 +11,7 @@
 			listStyleType: 'none'
 		},
 		entry: {
+			fontWeight: 600,
 			position: 'relative',
 			'a:before': {
 				content: '""',
@@ -28,6 +29,7 @@
 			fontWeight: 900,
 			color: css.palette.buccaneer,
 			boxShadow: `inset 0 0 1em 0.2em ${css.palette.sandal}a0, 0 0 0.5em rgba(0,0,0,0.15)`,
+			'--icon-opacity': 1,
 			'a:before': {
 				backgroundColor: 'currentColor',
 				width: '100%'
@@ -46,7 +48,9 @@
 		},
 		icon: {
 			height: '2.4em',
-			width: 'auto'
+			width: 'auto',
+			opacity: 'var(--icon-opacity, 0.7)',
+			transition: 'opacity 0.2s linear'
 		},
 		title: {}
 	});
