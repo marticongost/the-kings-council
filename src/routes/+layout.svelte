@@ -12,9 +12,10 @@
 		header: {
 			...css.row('md'),
 			alignItems: 'stretch',
-			borderBottom: `2px solid ${css.palette.sandal}`,
-			backgroundColor: css.palette.ivory,
-			color: css.palette.sandal,
+			borderBottom: `2px solid currentColor`,
+			backgroundColor: css.palette.linen,
+			backgroundImage: `linear-gradient(to bottom, transparent, ${css.palette.moonMist})`,
+			color: css.palette.tobacco,
 			flex: '0 0 auto'
 		},
 		logoWrapper: {
