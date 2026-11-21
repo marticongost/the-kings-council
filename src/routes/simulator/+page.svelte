@@ -299,10 +299,6 @@
 	}
 </script>
 
-<svelte:head>
-	<title>Simulador · El Consell del Rei</title>
-</svelte:head>
-
 <svelte:window onkeydown={keyboard.handleKeyDown} />
 
 {#if !simulator.ready}

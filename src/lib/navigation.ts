@@ -29,7 +29,20 @@ export class NavigationEntry {
 	}
 
 	matches(path: string): boolean {
-		let url = this.url;
+		let url: string = this.url;
+
+		// `resolve` produces URLs relative to the current page (e.g. `./rules` or
+		// `../rules`) during SSR and prerendering, while `page.url.pathname` is
+		// always root-absolute. Normalise so both render modes match.
+		while (url.startsWith('../')) {
+			url = url.slice(3);
+		}
+		if (url.startsWith('./')) {
+			url = url.slice(1);
+		} else if (!url.startsWith('/')) {
+			url = `/${url}`;
+		}
+
 		if (path === url) {
 			return true;
 		}
@@ -48,3 +61,8 @@ export const entries = [
 	new NavigationEntry({ id: '/fate-cards', title: 'Cartes de destí' }),
 	new NavigationEntry({ id: '/simulator', title: 'Simulador' })
 ];
+
+/** Returns the navigation entry matching the given pathname, if any. */
+export function getCurrentEntry(pathname: string): NavigationEntry | undefined {
+	return entries.find((entry) => entry.matches(pathname));
+}

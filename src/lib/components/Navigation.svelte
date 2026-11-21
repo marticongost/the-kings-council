@@ -55,7 +55,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { standardAttributes, type StandardAttributeProps } from './utils';
-	import type { NavigationEntry } from '#lib/navigation';
+	import { getCurrentEntry, type NavigationEntry } from '#lib/navigation';
 	import { cx } from '@emotion/css';
 	import InlineSvg from './InlineSvg.svelte';
 
@@ -64,12 +64,14 @@
 	}
 
 	const { entries, ...attributes }: Props = $props();
+
+	const currentEntry = $derived(getCurrentEntry(page.url.pathname));
 </script>
 
 <nav {...standardAttributes(attributes, styles.navigation)}>
 	<ul class={styles.list}>
 		{#each entries as entry (entry.url)}
-			<li class={cx(styles.entry, { [styles.selectedEntry]: entry.matches(page.url.pathname) })}>
+			<li class={cx(styles.entry, { [styles.selectedEntry]: entry === currentEntry })}>
 				<a class={styles.link} href={entry.url}>
 					<InlineSvg class={styles.icon} src="nav{entry.id}.svg" />
 					<span class={styles.title}>

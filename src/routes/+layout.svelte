@@ -37,17 +37,23 @@
 <script lang="ts">
 	import favicon from '#lib/assets/favicon.svg?url';
 	import Navigation from '#lib/components/Navigation.svelte';
-	import { entries } from '#lib/navigation';
+	import { entries, getCurrentEntry } from '#lib/navigation';
 	import { globalStyles } from '#lib/styles';
 	import { injectGlobal } from '@emotion/css';
+	import { page } from '$app/state';
 
 	injectGlobal(globalStyles);
 
 	let { children } = $props();
+
+	const siteName = 'El Consell del Rei';
+	const currentEntry = $derived(getCurrentEntry(page.url.pathname));
+	const documentTitle = $derived(currentEntry ? `${currentEntry.title} · ${siteName}` : siteName);
 </script>
 
 <svelte:head>
 	<link rel="icon" href={favicon} />
+	<title>{documentTitle}</title>
 </svelte:head>
 
 <div class={styles.layout}>
