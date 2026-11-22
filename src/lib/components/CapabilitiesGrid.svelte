@@ -3,7 +3,8 @@
 
 	const styles = css.styles({
 		cardGrid: {
-			...css.grid('md')
+			...css.grid('md'),
+			justifyContent: 'center'
 		}
 	});
 </script>

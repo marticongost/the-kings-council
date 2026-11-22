@@ -3,7 +3,8 @@
 
 	const styles = css.styles({
 		page: {
-			...css.column('lg')
+			...css.column('lg'),
+			paddingTop: css.spacing.md
 		},
 		headerActions: {
 			marginLeft: 'auto',
@@ -64,8 +65,13 @@
 			flexDirection: 'row',
 			alignItems: 'flex-start',
 			gap: css.spacing.md,
-			overflowX: 'auto',
-			paddingBottom: css.spacing.sm
+			// Horizontal scrolling is handled by the page container, so its scrollbar sits at
+			// the edge of the viewport instead of around the panels.
+			paddingBottom: css.spacing.sm,
+			// Auto margins centre the row when the panels leave free space, but collapse to zero
+			// when they overflow, keeping the first panel reachable by scrolling.
+			'& > :first-child': { marginLeft: 'auto' },
+			'& > :last-child': { marginRight: 'auto' }
 		},
 		panelColumn: {
 			// Panels keep their usual width, but grow horizontally when a player group

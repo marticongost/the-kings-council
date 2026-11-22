@@ -2,11 +2,48 @@
 	import * as css from '#lib/styles';
 
 	const styles = css.styles({
-		sidebar: {
-			...css.column('md'),
-			flex: '0 0 13em'
+		controls: {
+			display: 'flex',
+			flexDirection: 'column',
+			alignItems: 'center',
+			justifyContent: 'center',
+			gap: css.spacing.md,
+			...css.viewport.xl.orLarger().then({
+				flexDirection: 'row',
+				flexWrap: 'wrap'
+			}),
+			...css.viewport.xs.exactly().then({
+				padding: css.spacing.md
+			})
 		},
 		search: {
+			flex: '0 0 auto',
+			width: '16em',
+			height: css.forms.controlHeight,
+			...css.hpadding('sm'),
+			border: css.forms.controlBorder,
+			backgroundColor: css.forms.controlBackgroundColor,
+			color: css.text.regularColor,
+			fontFamily: css.fonts.text,
+			fontSize: '1em',
+			...css.focus.mixin,
+			...css.viewport.sm.orSmaller().then({
+				width: '100%'
+			}),
+			...css.viewport.xl.orLarger().then({
+				flexGrow: 1
+			})
+		},
+		dropdown: {
+			position: 'relative',
+			flex: '0 0 auto',
+			width: '16em',
+			...css.viewport.sm.orSmaller().then({
+				width: '100%'
+			})
+		},
+		trigger: {
+			...css.row('xs'),
 			width: '100%',
 			height: css.forms.controlHeight,
 			...css.hpadding('sm'),
@@ -15,25 +52,67 @@
 			color: css.text.regularColor,
 			fontFamily: css.fonts.text,
 			fontSize: '1em',
-			...css.focus.mixin
+			whiteSpace: 'nowrap',
+			cursor: 'pointer',
+			listStyle: 'none',
+			'&::-webkit-details-marker': {
+				display: 'none'
+			},
+			'&:focus-visible': {
+				outline: css.focus.outline
+			}
 		},
-		filterHeading: {
-			margin: 0,
-			marginBottom: css.spacing.sm,
-			fontSize: '1em',
+		triggerLabel: {
+			flex: '0 0 auto',
 			fontWeight: 900,
-			color: css.palette.sandal
+			color: css.palette.wood
 		},
-		filters: {
-			listStyleType: 'none',
+		triggerValue: {
+			flex: '1 1 auto',
+			minWidth: 0,
+			overflow: 'hidden',
+			textOverflow: 'ellipsis'
+		},
+		caret: {
+			flex: '0 0 auto',
+			fontSize: '0.8em',
+			color: css.palette.wood,
+			transition: 'transform 0.15s',
+			'details[open] &': {
+				transform: 'rotate(180deg)'
+			}
+		},
+		menu: {
+			position: 'absolute',
+			top: '100%',
+			left: 0,
+			zIndex: 10,
+			minWidth: '100%',
+			maxWidth: 'min(24em, calc(100vw - 2em))',
+			maxHeight: '20em',
+			overflowY: 'auto',
 			margin: 0,
 			padding: 0,
-			borderBottom: css.separators.regularBorder
+			listStyleType: 'none',
+			backgroundColor: css.palette.linen,
+			border: css.forms.controlBorder,
+			boxShadow: '0 0.25em 0.75em rgba(0, 0, 0, 0.25)'
 		},
-		rootFilter: {
-			borderTop: css.separators.regularBorder
+		menuRight: {
+			left: 'auto',
+			right: 0
 		},
-		nestedFilter: {
+		groupHeading: {
+			...css.vpadding('xs'),
+			...css.hpadding('sm'),
+			borderTop: css.separators.regularBorder,
+			backgroundColor: css.palette.wheat,
+			color: css.palette.sandal,
+			fontSize: '0.85em',
+			fontWeight: 900,
+			textTransform: 'uppercase'
+		},
+		filter: {
 			borderTop: css.separators.thinBorder
 		},
 		filterLabel: {
@@ -41,6 +120,7 @@
 			fontSize: '0.9em',
 			width: '100%',
 			...css.vpadding('sm'),
+			...css.hpadding('sm'),
 			cursor: 'pointer',
 			color: css.palette.wood,
 			'&:has(input:focus-visible)': {
@@ -74,6 +154,13 @@
 		},
 		dimmed: {
 			opacity: 0.4
+		},
+		resetButton: {
+			flex: '0 0 auto',
+			width: '10em',
+			...css.viewport.sm.orSmaller().then({
+				width: '100%'
+			})
 		}
 	});
 </script>
@@ -81,7 +168,12 @@
 <script lang="ts">
 	import { cx } from '@emotion/css';
 	import { standardAttributes, type StandardAttributeProps } from './utils';
-	import { filterEntries, filterableProperties, type FilterEntry } from '#lib/search';
+	import {
+		filterEntries,
+		filterableProperties,
+		findFilterOption,
+		type FilterEntry
+	} from '#lib/search';
 	import type { BrowserCardSearchState } from '#lib/browsercardsearchstate.svelte';
 	import Button from './Button.svelte';
 
@@ -91,11 +183,41 @@
 
 	let { searchState, ...attributes }: Props = $props();
 
+	let typeDropdown = $state<HTMLDetailsElement>();
+	let propertiesDropdown = $state<HTMLDetailsElement>();
+
+	function closeDropdowns() {
+		if (typeDropdown) typeDropdown.open = false;
+		if (propertiesDropdown) propertiesDropdown.open = false;
+	}
+
 	function clearFilters() {
 		searchState.search = '';
 		searchState.selectedFilter = 'all';
 		searchState.selectedProperties = [];
+		closeDropdowns();
 	}
+
+	$effect(() => {
+		function closeOnPointerDown(event: PointerEvent) {
+			for (const dropdown of [typeDropdown, propertiesDropdown]) {
+				if (dropdown?.open && !dropdown.contains(event.target as Node)) {
+					dropdown.open = false;
+				}
+			}
+		}
+
+		function closeOnEscape(event: KeyboardEvent) {
+			if (event.key === 'Escape') closeDropdowns();
+		}
+
+		document.addEventListener('pointerdown', closeOnPointerDown);
+		document.addEventListener('keydown', closeOnEscape);
+		return () => {
+			document.removeEventListener('pointerdown', closeOnPointerDown);
+			document.removeEventListener('keydown', closeOnEscape);
+		};
+	});
 
 	const visibleEntries: ReadonlyArray<FilterEntry> = $derived(
 		filterEntries.flatMap((entry): Array<FilterEntry> => {
@@ -112,9 +234,27 @@
 	const visibleProperties = $derived(
 		filterableProperties.filter((property) => searchState.visiblePropertyIds.has(property.id))
 	);
+
+	const selectedFilterTitle = $derived(
+		findFilterOption(searchState.selectedFilter)?.title ?? searchState.selectedFilter
+	);
+
+	const selectedPropertyTitles = $derived(
+		searchState.selectedProperties
+			.map((id) => filterableProperties.find((property) => property.id === id)?.title)
+			.filter((title): title is string => title !== undefined)
+	);
+
+	const propertiesTitle = $derived(
+		selectedPropertyTitles.length ? selectedPropertyTitles.join(', ') : 'Qualsevol'
+	);
 </script>
 
-<aside {...standardAttributes(attributes, styles.sidebar)}>
+<div
+	{...standardAttributes(attributes, styles.controls)}
+	role="search"
+	aria-label="Cerca i filtres de cartes"
+>
 	<input
 		class={styles.search}
 		type="search"
@@ -123,15 +263,20 @@
 		bind:value={searchState.search}
 	/>
 
-	<section>
-		<h1 class={styles.filterHeading}>Tipus de carta</h1>
+	<details class={styles.dropdown} bind:this={typeDropdown}>
+		<summary class={styles.trigger}>
+			<span class={styles.triggerLabel}>Tipus de carta:</span>
+			<span class={styles.triggerValue}>{selectedFilterTitle}</span>
+			<span class={styles.caret} aria-hidden="true">▾</span>
+		</summary>
 
-		<ul class={styles.filters}>
+		<ul class={styles.menu}>
 			{#each visibleEntries as entry (entry.id)}
 				{#if entry.kind === 'group'}
-					{#each entry.options as option, index (option.id)}
+					<li class={styles.groupHeading}>{entry.title}</li>
+					{#each entry.options as option (option.id)}
 						<li
-							class={cx(index === 0 ? styles.rootFilter : styles.nestedFilter, {
+							class={cx(styles.filter, {
 								[styles.dimmed]: (searchState.optionCounts.get(option.id) ?? 0) === 0
 							})}
 						>
@@ -142,6 +287,7 @@
 									name="card-type-filter"
 									value={option.id}
 									bind:group={searchState.selectedFilter}
+									onchange={closeDropdowns}
 								/>
 								<span
 									class={searchState.selectedFilter === option.id
@@ -154,7 +300,7 @@
 					{/each}
 				{:else}
 					<li
-						class={cx(styles.rootFilter, {
+						class={cx(styles.filter, {
 							[styles.dimmed]: (searchState.optionCounts.get(entry.id) ?? 0) === 0
 						})}
 					>
@@ -165,6 +311,7 @@
 								name="card-type-filter"
 								value={entry.id}
 								bind:group={searchState.selectedFilter}
+								onchange={closeDropdowns}
 							/>
 							<span
 								class={searchState.selectedFilter === entry.id ? styles.selectedTitle : undefined}
@@ -176,15 +323,19 @@
 				{/if}
 			{/each}
 		</ul>
-	</section>
+	</details>
 
-	<section>
-		<h1 class={styles.filterHeading}>Propietats</h1>
+	<details class={styles.dropdown} bind:this={propertiesDropdown}>
+		<summary class={styles.trigger}>
+			<span class={styles.triggerLabel}>Propietats:</span>
+			<span class={styles.triggerValue}>{propertiesTitle}</span>
+			<span class={styles.caret} aria-hidden="true">▾</span>
+		</summary>
 
-		<ul class={styles.filters}>
+		<ul class={cx(styles.menu, styles.menuRight)}>
 			{#each visibleProperties as property (property.id)}
 				<li
-					class={cx(styles.nestedFilter, {
+					class={cx(styles.filter, {
 						[styles.dimmed]: (searchState.propertyCounts.get(property.id) ?? 0) === 0
 					})}
 				>
@@ -205,7 +356,7 @@
 				</li>
 			{/each}
 		</ul>
-	</section>
+	</details>
 
-	<Button onclick={clearFilters}>Neteja els filtres</Button>
-</aside>
+	<Button class={styles.resetButton} onclick={clearFilters}>Neteja els filtres</Button>
+</div>

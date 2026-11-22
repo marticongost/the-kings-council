@@ -3,9 +3,20 @@
 	const styles = css.styles({
 		rules: {
 			margin: 'auto',
-			padding: css.spacing.xl,
 			...css.document.surface,
-			width: '46em'
+			width: '100%',
+			...css.viewport.xs.exactly().then({
+				padding: css.spacing.md
+			}),
+			...css.viewport.sm.exactly().then({
+				padding: css.spacing.lg
+			}),
+			...css.viewport.sm.larger().then({
+				padding: css.spacing.xl
+			}),
+			...css.viewport.xl.exactly().then({
+				padding: css.spacing.xxl
+			})
 		},
 		content: {
 			textAlign: 'justify'

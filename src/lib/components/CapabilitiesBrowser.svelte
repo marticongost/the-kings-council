@@ -3,8 +3,7 @@
 
 	const styles = css.styles({
 		browser: {
-			...css.row('xl'),
-			alignItems: 'flex-start'
+			...css.column('md')
 		},
 		results: {
 			...css.column('sm'),
