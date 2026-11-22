@@ -182,10 +182,10 @@ const createViewportSize = (id: ViewportSizeId, minWidth: number) => {
 };
 
 export const xs = createViewportSize('xs', 0);
-export const sm = createViewportSize('sm', 576);
-export const md = createViewportSize('md', 768);
-export const lg = createViewportSize('lg', 992);
-export const xl = createViewportSize('xl', 1200);
+export const sm = createViewportSize('sm', 600);
+export const md = createViewportSize('md', 900);
+export const lg = createViewportSize('lg', 1200);
+export const xl = createViewportSize('xl', 1440);
 
 /** Returns all defined viewport sizes. */
 export const getSizes = () => viewportSizes;

@@ -2,10 +2,7 @@
 	import * as css from '#lib/styles';
 
 	const styles = css.styles({
-		cardGrid: {
-			...css.grid('md'),
-			justifyContent: 'center'
-		}
+		cardGrid: css.cards.listing
 	});
 </script>
 
@@ -18,10 +15,16 @@
 		cardCapabilities: Array<CardCapability>;
 	}
 
-	const { cardCapabilities, ...attributes }: Props = $props();
+	const { cardCapabilities, style, ...attributes }: Props = $props();
+
+	/** Capability cards are always mini cards, so every column has the same width. */
+	const columnWidth = css.cards.mini.width;
+	const listingStyle = $derived(
+		`${css.cards.listingColumnWidth}: ${columnWidth}mm${style ? `; ${style}` : ''}`
+	);
 </script>
 
-<div {...standardAttributes(attributes, styles.cardGrid)}>
+<div {...standardAttributes({ ...attributes, style: listingStyle }, styles.cardGrid)}>
 	{#each cardCapabilities as cardCapability (cardCapability.id)}
 		<CardCapabilityFront {cardCapability} />
 	{/each}
