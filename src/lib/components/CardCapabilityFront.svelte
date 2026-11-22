@@ -2,6 +2,12 @@
 	import * as css from '#lib/styles';
 	import { getCardBackgroundName } from '#lib/cardattributes';
 
+	const cardSize = css.cards.mini;
+
+	// Header and icon frame heights, expressed relative to the card width so they scale with it.
+	const headerHeight = cardSize.cwEm((8 / cardSize.width) * 100);
+	const iconFrameSize = cardSize.cwEm((10 / cardSize.width) * 100);
+
 	const styles = css.styles({
 		card: {
 			...css.column(),
@@ -9,13 +15,13 @@
 			fontFamily: css.fonts.text,
 			backgroundColor: css.palette.white,
 			color: css.text.regularColor,
-			...css.cards.mini.dimensions()
+			...cardSize.emDimensions()
 		},
 		header: {
 			...css.column(),
 			position: 'relative',
 			color: css.palette.white,
-			height: '8mm',
+			height: headerHeight,
 			justifyContent: 'center'
 		},
 		title: {
@@ -37,8 +43,8 @@
 			position: 'absolute',
 			left: 0,
 			top: 0,
-			width: '10mm',
-			height: '10mm'
+			width: iconFrameSize,
+			height: iconFrameSize
 		},
 		icon: {
 			position: 'relative',

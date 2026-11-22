@@ -20,7 +20,7 @@
 	/** Capability cards are always mini cards, so every column has the same width. */
 	const columnWidth = css.cards.mini.width;
 	const listingStyle = $derived(
-		`${css.cards.listingColumnWidth}: ${columnWidth}mm${style ? `; ${style}` : ''}`
+		`${css.cards.listingColumnWidth}: ${columnWidth}mm; ${css.cards.listingEmWidth}: ${css.cards.mini.widthEm}${style ? `; ${style}` : ''}`
 	);
 </script>
 

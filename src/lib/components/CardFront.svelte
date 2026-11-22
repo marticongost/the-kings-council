@@ -8,16 +8,22 @@
 	const variant = css.styleVariants<CardType>(cardTypes);
 
 	// The header is 30mm tall on the standard card; it scales with the card width.
-	const headerHeight = (size: css.cards.CardSize) => size.cw((30 / cardSize.width) * 100);
+	const headerHeight = (size: css.cards.CardSize) => size.cwEm((30 / cardSize.width) * 100);
+
+	// The title band is 9.4mm tall, expressed relative to the card width so it scales with it.
+	const titleHeight = cardSize.cwEm((9.4 / cardSize.width) * 100);
+
+	// The footer is 8mm tall, expressed relative to the card width so it scales with it.
+	const footerHeight = cardSize.cwEm((8 / cardSize.width) * 100);
 
 	// Fate card artwork is generated at 3:2. It is painted underneath the card background, so
 	// the type's band and its zigzag edge are drawn over the top of it while the artwork shows
 	// through below the notches. It hangs 5% of the card width below the top so that the band
 	// covers less of it, and the header spans it so that the body starts at its lower edge.
-	const fateArtworkHeight = fateCardSize.cw((2 / 3) * 100);
-	const fateArtworkOffset = fateCardSize.cw(15);
+	const fateArtworkHeight = fateCardSize.cwEm((2 / 3) * 100);
+	const fateArtworkOffset = fateCardSize.cwEm(15);
 	const fateCardBackground = {
-		...fateCardSize.dimensions(),
+		...fateCardSize.emDimensions(),
 		backgroundSize: `100% auto, 100% ${fateArtworkHeight}`,
 		backgroundPosition: `0 0, 0 ${fateArtworkOffset}`
 	};
@@ -39,7 +45,7 @@
 			color: css.text.regularColor,
 			backgroundSize: '100% auto',
 			backgroundRepeat: 'no-repeat',
-			...cardSize.dimensions(),
+			...cardSize.emDimensions(),
 			...fateCard
 		},
 		header: {
@@ -49,7 +55,7 @@
 			height: headerHeight(cardSize),
 			...fateHeader,
 			[variant('office')]: {
-				height: '9.4mm',
+				height: titleHeight,
 				justifyContent: 'center'
 			}
 		},
@@ -57,7 +63,7 @@
 			display: 'flex',
 			alignItems: 'center',
 			justifyContent: 'center',
-			height: '9.4mm',
+			height: titleHeight,
 			width: '100%',
 			fontWeight: 900,
 			margin: 0,
@@ -74,8 +80,8 @@
 				position: 'absolute',
 				left: 0,
 				top: 0,
-				width: cardSize.cw(20),
-				height: cardSize.cw(20)
+				width: cardSize.cwEm(20),
+				height: cardSize.cwEm(20)
 			}
 		},
 		icon: {
@@ -104,7 +110,7 @@
 		footer: {
 			...css.row('sm'),
 			...css.hpadding('sm'),
-			height: '8mm',
+			height: footerHeight,
 			backgroundColor: css.palette.carrara
 		},
 		discardBonus: {

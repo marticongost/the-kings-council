@@ -24,8 +24,14 @@
 			css.cards.standard.width
 		)
 	);
+	const columnEmWidth = $derived(
+		cards.reduce(
+			(widest, card) => Math.max(widest, css.cards.getCardSize(card.type).widthEm),
+			css.cards.standard.widthEm
+		)
+	);
 	const listingStyle = $derived(
-		`${css.cards.listingColumnWidth}: ${columnWidth}mm${style ? `; ${style}` : ''}`
+		`${css.cards.listingColumnWidth}: ${columnWidth}mm; ${css.cards.listingEmWidth}: ${columnEmWidth}${style ? `; ${style}` : ''}`
 	);
 </script>
 
