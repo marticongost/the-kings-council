@@ -106,10 +106,14 @@
 			opacity: 'var(--icon-opacity, 0.7)',
 			transition: 'opacity 0.2s linear',
 			...css.viewport.md.exactly().then({
-				height: '2em'
+				height: '2.2em'
 			})
 		},
-		title: {}
+		title: {
+			...css.viewport.md.exactly().then({
+				fontSize: '0.9em'
+			})
+		}
 	});
 </script>
 
