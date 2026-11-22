@@ -36,7 +36,7 @@
 </script>
 
 <script lang="ts">
-	import favicon from '#lib/assets/favicon.svg?url';
+	import favicon from '#lib/assets/favicon.png?url';
 	import Navigation from '#lib/components/Navigation.svelte';
 	import { entries, getCurrentEntry } from '#lib/navigation';
 	import { globalStyles } from '#lib/styles';
