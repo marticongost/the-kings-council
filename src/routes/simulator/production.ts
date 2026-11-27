@@ -1,5 +1,6 @@
 import type { KingdomStatType } from '#lib/models/kingdomstats';
 import type { OfficeType } from '#lib/models/offices';
+import { productionFactor } from '#lib/models/production';
 import type { PlayerResourceType } from './types';
 
 /** Player resources a kingdom produces, in the order they are distributed. Prestige is excluded. */
@@ -25,19 +26,6 @@ export const independentProductionResourceTypes = [
 
 /** Units a kingdomless player receives during production, freely combined across resource types. */
 export const independentProductionResourceCount = 3;
-
-/** Production factors by kingdom stat value, following the production table in the rules. */
-const productionFactors = [
-	{ value: 1, factor: 0.5 },
-	{ value: 2, factor: 1 },
-	{ value: 3, factor: 1.5 },
-	{ value: 4, factor: 2 },
-	{ value: 5, factor: 2.5 }
-] as const;
-
-export function productionFactor(stat: number): number {
-	return productionFactors.find(({ value }) => value === stat)?.factor ?? 0;
-}
 
 /** The kingdom stat driving the production of a resource, evaluated to a 1-5 value. */
 export function productionStatValue(

@@ -7,7 +7,12 @@
 		layout: {
 			...css.column(),
 			height: '100vh',
-			overflow: 'hidden'
+			overflow: 'hidden',
+			'@media print': {
+				// A viewport-sized, clipped box would cut the printed document at its first page.
+				height: 'auto',
+				overflow: 'visible'
+			}
 		},
 		header: {
 			position: 'relative',
@@ -46,7 +51,11 @@
 		},
 		main: {
 			flex: '1 1 auto',
-			overflow: 'auto'
+			overflow: 'auto',
+			'@media print': {
+				// Printing paginates the document itself, so the scroll container must not clip it.
+				overflow: 'visible'
+			}
 		},
 		mainContent: {
 			...css.site.documentWidth,
