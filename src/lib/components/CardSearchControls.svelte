@@ -14,7 +14,11 @@
 			}),
 			...css.viewport.xs.exactly().then({
 				padding: css.spacing.md
-			})
+			}),
+			'@media print': {
+				// The controls are not part of the printed card sheets.
+				display: 'none'
+			}
 		},
 		search: {
 			flex: '0 0 auto',

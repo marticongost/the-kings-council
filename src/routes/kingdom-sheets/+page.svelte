@@ -27,15 +27,5 @@
 		.sheets {
 			gap: 0;
 		}
-
-		/* The site header and page padding are not part of the printed sheets. */
-		:global(header) {
-			display: none !important;
-		}
-
-		:global(main > div) {
-			margin: 0 !important;
-			padding: 0 !important;
-		}
 	}
 </style>

@@ -1,3 +1,4 @@
+import { getCardSheetLayout, type CardSheetLayout } from '#lib/cardsheets';
 import { mini, standard, tarot, type CardSize } from '#lib/styles/cards';
 
 /**
@@ -39,13 +40,6 @@ export function isCardBackType(value: string): value is CardBackType {
 	return cardBackTypeSet.has(value);
 }
 
-/** Dimensions of an A4 sheet, in millimetres. */
-export const sheetWidth = 210;
-export const sheetHeight = 297;
-
-/** Width of the bleed printed around the block of cards, in millimetres. */
-export const sheetGutter = 4;
-
 /** Capability cards are mini, fate cards are tarot-sized, and everything else is standard. */
 export function getCardBackSize(type: CardBackType): CardSize {
 	switch (type) {
@@ -58,29 +52,7 @@ export function getCardBackSize(type: CardBackType): CardSize {
 	}
 }
 
-export interface CardBackSheet {
-	readonly size: CardSize;
-	readonly columns: number;
-	readonly rows: number;
-	/** Width of the block of cards, in millimetres. */
-	readonly width: number;
-	/** Height of the block of cards, in millimetres. */
-	readonly height: number;
-	readonly count: number;
-}
-
 /** The way the backs of a card type are laid out on a single A4 sheet. */
-export function getCardBackSheet(type: CardBackType): CardBackSheet {
-	const size = getCardBackSize(type);
-	const columns = Math.floor((sheetWidth - 2 * sheetGutter) / size.width);
-	const rows = Math.floor((sheetHeight - 2 * sheetGutter) / size.height);
-
-	return {
-		size,
-		columns,
-		rows,
-		width: columns * size.width,
-		height: rows * size.height,
-		count: columns * rows
-	};
+export function getCardBackSheet(type: CardBackType): CardSheetLayout {
+	return getCardSheetLayout(getCardBackSize(type));
 }

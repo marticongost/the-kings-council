@@ -24,7 +24,11 @@
 			// Keep the header content centred within the same area as the scrolling content.
 			...css.viewport.sm.orLarger().then({
 				paddingRight: 'var(--scrollbar-width, 0px)'
-			})
+			}),
+			'@media print': {
+				// The site header is not part of any printed page.
+				display: 'none'
+			}
 		},
 		headerContent: {
 			...css.site.documentWidth,
@@ -60,10 +64,19 @@
 			...css.site.documentWidth,
 			...css.viewport.xs.larger().then({
 				marginTop: css.spacing.md
-			})
+			}),
+			'@media print': {
+				// Printed pages, and printed sheets in particular, start at the top of the paper.
+				marginTop: 0
+			}
 		},
 		mainContentFullBleed: {
-			...css.site.fluidWidth
+			...css.site.fluidWidth,
+			'@media print': {
+				// Printed sheets use the whole width of the paper.
+				paddingLeft: 0,
+				paddingRight: 0
+			}
 		},
 		pageHeaderBar: {
 			...css.site.documentWidth,

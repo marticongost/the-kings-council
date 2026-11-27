@@ -80,6 +80,9 @@ const columns = (size: viewport.ViewportSizeId): string =>
  * Layout of a listing of cards. The listing is centred on the document, but is allowed to grow
  * beyond it so that the intended number of cards fits in each row at every viewport size. Cards
  * are left aligned within a row, so a trailing row that is not full starts at the same edge.
+ *
+ * When printed, the cards are laid out on A4 sheets instead (see `CardSheet`): the listing stops
+ * being a grid and the sheets take over the pagination.
  */
 export const listing: CSSObject = {
 	display: 'grid',
@@ -108,5 +111,13 @@ export const listing: CSSObject = {
 	}),
 	...viewport.md.orLarger().then({ gridTemplateColumns: columns('md') }),
 	...viewport.lg.orLarger().then({ gridTemplateColumns: columns('lg') }),
-	...viewport.xl.orLarger().then({ gridTemplateColumns: columns('xl') })
+	...viewport.xl.orLarger().then({ gridTemplateColumns: columns('xl') }),
+	'@media print': {
+		display: 'block',
+		position: 'static',
+		left: 'auto',
+		transform: 'none',
+		width: 'auto',
+		maxWidth: 'none'
+	}
 };

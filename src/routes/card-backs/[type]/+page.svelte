@@ -14,14 +14,9 @@
 			margin: 0;
 		}
 
-		/* The site header and page padding are not part of the printed sheet. */
-		:global(header) {
-			display: none !important;
-		}
-
-		:global(main) {
-			padding: 0 !important;
-			overflow: visible !important;
+		/* The sheet fills the whole page, so the document width does not apply to it. */
+		:global(main > div) {
+			max-width: none !important;
 		}
 	}
 </style>

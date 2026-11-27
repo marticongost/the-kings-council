@@ -1,12 +1,6 @@
 <script lang="ts" module>
 	import * as css from '#lib/styles';
-	import { sheetGutter, sheetHeight, sheetWidth } from '#lib/cardbacks';
-
-	/** Width of the cut marks, in millimetres. */
-	const cutMarkWidth = 0.3;
-
-	/** Length of the cut marks: half of the gutter, so they sit at the edge of the gutter. */
-	const cutMarkLength = sheetGutter / 2;
+	import { sheetGutter, sheetHeight, sheetWidth } from '#lib/cardsheets';
 
 	/** Thickness of the band of artwork whose edge is repeated into the gutter, in millimetres. */
 	const bleedBand = 0.5;
@@ -42,8 +36,8 @@
 	const symbolId = $derived(`card-back-sheet-${type}`);
 
 	/** Position of the block of cards on the sheet, in millimetres. */
-	const blockX = $derived((sheetWidth - sheet.width) / 2);
-	const blockY = $derived((sheetHeight - sheet.height) / 2);
+	const blockX = $derived(sheet.x);
+	const blockY = $derived(sheet.y);
 
 	const cardColumns = $derived(
 		Array.from({ length: sheet.columns }, (_, index) => blockX + index * sheet.size.width)
@@ -51,8 +45,6 @@
 	const cardRows = $derived(
 		Array.from({ length: sheet.rows }, (_, index) => blockY + index * sheet.size.height)
 	);
-	const verticalCuts = $derived([...cardColumns, blockX + sheet.width]);
-	const horizontalCuts = $derived([...cardRows, blockY + sheet.height]);
 </script>
 
 {#snippet cardBack(x: number, y: number, width: number, height: number)}
@@ -186,37 +178,4 @@
 			sheet.size.height
 		)}
 	</svg>
-
-	{#each verticalCuts as cut (cut)}
-		<rect
-			x={cut - cutMarkWidth / 2}
-			y={blockY - sheetGutter}
-			width={cutMarkWidth}
-			height={cutMarkLength}
-			fill={css.palette.white}
-		/>
-		<rect
-			x={cut - cutMarkWidth / 2}
-			y={blockY + sheet.height + sheetGutter - cutMarkLength}
-			width={cutMarkWidth}
-			height={cutMarkLength}
-			fill={css.palette.white}
-		/>
-	{/each}
-	{#each horizontalCuts as cut (cut)}
-		<rect
-			x={blockX - sheetGutter}
-			y={cut - cutMarkWidth / 2}
-			width={cutMarkLength}
-			height={cutMarkWidth}
-			fill={css.palette.white}
-		/>
-		<rect
-			x={blockX + sheet.width + sheetGutter - cutMarkLength}
-			y={cut - cutMarkWidth / 2}
-			width={cutMarkLength}
-			height={cutMarkWidth}
-			fill={css.palette.white}
-		/>
-	{/each}
 </svg>
