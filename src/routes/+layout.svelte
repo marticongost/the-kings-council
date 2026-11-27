@@ -1,5 +1,4 @@
 <script lang="ts" module>
-	/* eslint-disable svelte/no-navigation-without-resolve */
 	import * as css from '#lib/styles';
 	import logoUrl from '#lib/assets/img/logo.png?url';
 
@@ -66,6 +65,53 @@
 		mainContentFullBleed: {
 			...css.site.fluidWidth
 		},
+		pageHeaderBar: {
+			...css.site.documentWidth,
+			'@media print': {
+				display: 'none'
+			}
+		},
+		pageHeader: {
+			...css.column('xs'),
+			paddingTop: css.spacing.md,
+			paddingBottom: css.spacing.md,
+			...css.viewport.xs.exactly().then({
+				...css.hpadding('md')
+			}),
+			'@media print': {
+				display: 'none'
+			}
+		},
+		breadcrumbList: {
+			...css.row('xs'),
+			flexWrap: 'wrap',
+			listStyleType: 'none',
+			fontSize: '0.85em',
+			color: css.palette.tobacco
+		},
+		breadcrumbItem: {
+			...css.row('xs'),
+			'&:not(:last-child):after': {
+				content: '"›"',
+				color: css.palette.gurkha
+			}
+		},
+		breadcrumbLink: {
+			color: 'inherit',
+			'&:hover': {
+				color: css.palette.buccaneer,
+				textDecoration: 'underline'
+			}
+		},
+		breadcrumbCurrent: {
+			color: css.palette.wood,
+			fontWeight: 600
+		},
+		pageTitle: {
+			...css.document.titleTypography,
+			color: css.palette.wood,
+			marginBottom: css.spacing.md
+		},
 		backdrop: {
 			display: 'none',
 			...css.viewport.sm.orSmaller().then({
@@ -85,7 +131,7 @@
 <script lang="ts">
 	import favicon from '#lib/assets/favicon.png?url';
 	import Navigation from '#lib/components/Navigation.svelte';
-	import { entries, getCurrentEntry } from '#lib/navigation';
+	import { entries, getCurrentTrail } from '#lib/navigation';
 	import { globalStyles } from '#lib/styles';
 	import { injectGlobal } from '@emotion/css';
 	import { page } from '$app/state';
@@ -95,7 +141,8 @@
 	let { children } = $props();
 
 	const siteName = 'El Consell del Rei';
-	const currentEntry = $derived(getCurrentEntry(page.url.pathname));
+	const trail = $derived(getCurrentTrail(page.url.pathname));
+	const currentEntry = $derived(trail.at(-1));
 	const documentTitle = $derived(currentEntry ? `${currentEntry.title} · ${siteName}` : siteName);
 	const fullBleed = $derived(page.data.fullBleed === true);
 	let unfolded = $state(false);
@@ -124,6 +171,35 @@
 	});
 </script>
 
+{#snippet pageHeader()}
+	{#if currentEntry}
+		<div class={styles.pageHeader}>
+			{#if trail.length > 1}
+				<nav aria-label="Fil d'Ariadna">
+					<ol class={styles.breadcrumbList}>
+						{#each trail as entry, index (index)}
+							<li class={styles.breadcrumbItem}>
+								{#if index === trail.length - 1}
+									<span class={styles.breadcrumbCurrent} aria-current="page">
+										{entry.title}
+									</span>
+								{:else if entry.url}
+									<a class={styles.breadcrumbLink} href={entry.url}>
+										{entry.title}
+									</a>
+								{:else}
+									<span>{entry.title}</span>
+								{/if}
+							</li>
+						{/each}
+					</ol>
+				</nav>
+			{/if}
+			<h1 class={styles.pageTitle}>{currentEntry.title}</h1>
+		</div>
+	{/if}
+{/snippet}
+
 <svelte:head>
 	<link rel="icon" href={favicon} />
 	<title>{documentTitle}</title>
@@ -149,10 +225,18 @@
 	{/if}
 
 	<main class={styles.main} bind:this={mainElement}>
+		{#if fullBleed}
+			<div class={styles.pageHeaderBar}>
+				{@render pageHeader()}
+			</div>
+		{/if}
 		<div
 			class={fullBleed ? styles.mainContentFullBleed : styles.mainContent}
 			bind:this={contentElement}
 		>
+			{#if !fullBleed}
+				{@render pageHeader()}
+			{/if}
 			{@render children()}
 		</div>
 	</main>

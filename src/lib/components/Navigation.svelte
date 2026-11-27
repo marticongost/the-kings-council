@@ -1,6 +1,14 @@
 <script lang="ts" module>
-	/* eslint-disable svelte/no-navigation-without-resolve */
 	import * as css from '#lib/styles';
+
+	/** Size of the icon slot of a menu entry. */
+	const menuIconSize = '1.3em';
+
+	/** Icon plus the gap before its label, the amount a child level is indented. */
+	const menuIndentStep = '1.8em';
+
+	/** Left padding of a menu entry, so each level starts under its parent's label. */
+	const menuIndent = (depth: number) => `calc(${css.spacing.sm} + ${depth} * ${menuIndentStep})`;
 
 	const styles = css.styles({
 		navigation: {
@@ -29,31 +37,14 @@
 			height: '0.18em',
 			backgroundColor: 'currentColor'
 		},
-		list: {
+		desktopList: {
 			...css.row(),
 			alignItems: 'stretch',
 			height: '100%',
 			listStyleType: 'none',
 			flex: '1 1 auto',
 			minWidth: 0,
-			...css.viewport.sm.orSmaller().then({
-				display: 'none'
-			})
-		},
-		unfoldedList: {
-			...css.viewport.sm.orSmaller().then({
-				display: 'grid',
-				gridTemplateColumns: 'repeat(2, 1fr)',
-				position: 'absolute',
-				top: '100%',
-				left: 0,
-				right: 0,
-				height: 'auto',
-				backgroundColor: css.palette.linen,
-				border: `1px solid ${css.palette.gurkha}`,
-				boxShadow: `0 0.5em 1em rgba(0, 0, 0, 0.2)`,
-				zIndex: 100
-			})
+			...css.viewport.sm.orSmaller().hide()
 		},
 		entry: {
 			fontWeight: 600,
@@ -82,6 +73,13 @@
 				width: '100%'
 			}
 		},
+		group: {
+			position: 'relative',
+			height: '100%',
+			'&:hover > ul, &:focus-within > ul': {
+				display: 'block'
+			}
+		},
 		link: {
 			...css.column(),
 			...css.vpadding('sm'),
@@ -92,10 +90,6 @@
 			justifyContent: 'flex-end',
 			fontSize: '1.2em',
 			border: `1px dotted ${css.palette.gurkha}`,
-			...css.viewport.sm.orSmaller().then({
-				height: 'auto',
-				justifyContent: 'center'
-			}),
 			...css.viewport.md.exactly().then({
 				fontSize: '1em'
 			})
@@ -113,6 +107,84 @@
 			...css.viewport.md.exactly().then({
 				fontSize: '0.9em'
 			})
+		},
+		popover: {
+			position: 'absolute',
+			top: '100%',
+			left: 0,
+			zIndex: 100,
+			display: 'none',
+			minWidth: '13em',
+			listStyleType: 'none',
+			backgroundColor: css.palette.linen,
+			border: `1px solid ${css.palette.gurkha}`,
+			boxShadow: '0 0.5em 1em rgba(0, 0, 0, 0.2)'
+		},
+		popoverLast: {
+			left: 'auto',
+			right: 0
+		},
+		popoverLink: {
+			display: 'flex',
+			alignItems: 'center',
+			gap: css.spacing.sm,
+			padding: `${css.spacing.xs} ${css.spacing.sm}`,
+			fontSize: '0.95em',
+			fontWeight: 600,
+			color: css.palette.sandal,
+			whiteSpace: 'nowrap',
+			'&:hover': {
+				backgroundColor: css.palette.moonMist
+			}
+		},
+		popoverGroup: {
+			display: 'flex',
+			alignItems: 'center',
+			gap: css.spacing.sm,
+			padding: `${css.spacing.xs} ${css.spacing.sm}`,
+			fontSize: '0.95em',
+			fontWeight: 600,
+			color: css.palette.sandal,
+			whiteSpace: 'nowrap'
+		},
+		popoverChildren: {
+			listStyleType: 'none'
+		},
+		popoverSelected: {
+			color: css.palette.buccaneer,
+			fontWeight: 900,
+			'--icon-opacity': 1,
+			'&:hover': {
+				backgroundColor: 'transparent'
+			}
+		},
+		popoverIcon: {
+			height: menuIconSize,
+			width: menuIconSize,
+			flex: '0 0 auto',
+			opacity: 'var(--icon-opacity, 0.7)'
+		},
+		treePanel: {
+			display: 'none',
+			...css.viewport.sm.orSmaller().then({
+				position: 'absolute',
+				top: '100%',
+				left: 0,
+				right: 0,
+				maxHeight: '80vh',
+				overflowY: 'auto',
+				backgroundColor: css.palette.linen,
+				boxShadow: '0 0.5em 1em rgba(0, 0, 0, 0.2)',
+				zIndex: 100
+			})
+		},
+		treePanelOpen: {
+			...css.viewport.sm.orSmaller().then({
+				display: 'block'
+			})
+		},
+		treeList: {
+			listStyleType: 'none'
 		}
 	});
 </script>
@@ -120,7 +192,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { standardAttributes, type StandardAttributeProps } from './utils';
-	import { getCurrentEntry, type NavigationEntry } from '#lib/navigation';
+	import type { NavigationEntry } from '#lib/navigation';
 	import { cx } from '@emotion/css';
 	import InlineSvg from './InlineSvg.svelte';
 
@@ -131,8 +203,77 @@
 
 	let { entries, unfolded = $bindable(false), ...attributes }: Props = $props();
 
-	const currentEntry = $derived(getCurrentEntry(page.url.pathname));
+	const pathname = $derived(page.url.pathname);
+
+	/** A section is highlighted while it or any of its child pages is current. */
+	function isCurrent(entry: NavigationEntry, path: string): boolean {
+		return entry.children.length > 0 ? entry.contains(path) : entry.matches(path);
+	}
 </script>
+
+{#snippet popoverItems(nodes: ReadonlyArray<NavigationEntry>, depth: number)}
+	{#each nodes as node (node.title)}
+		<li>
+			{#if node.url}
+				<a
+					class={cx(styles.popoverLink, {
+						[styles.popoverSelected]: isCurrent(node, pathname)
+					})}
+					style="padding-left: {menuIndent(depth)}"
+					href={node.url}
+				>
+					<InlineSvg class={styles.popoverIcon} src={node.icon ?? 'nav/chevron.svg'} />
+					{node.title}
+				</a>
+			{:else}
+				<span class={styles.popoverGroup} style="padding-left: {menuIndent(depth)}">
+					<InlineSvg class={styles.popoverIcon} src={node.icon ?? 'nav/chevron.svg'} />
+					{node.title}
+				</span>
+			{/if}
+			{#if node.children.length > 0}
+				<ul class={styles.popoverChildren}>
+					{@render popoverItems(node.children, depth + 1)}
+				</ul>
+			{/if}
+		</li>
+	{/each}
+{/snippet}
+
+{#snippet treeItems(nodes: ReadonlyArray<NavigationEntry>, depth: number)}
+	{#each nodes as node (node.title)}
+		<li>
+			{#if node.url}
+				<a
+					class={cx(styles.popoverLink, {
+						[styles.popoverSelected]: isCurrent(node, pathname)
+					})}
+					style="padding-left: {menuIndent(depth)}"
+					href={node.url}
+					onclick={() => (unfolded = false)}
+				>
+					<InlineSvg class={styles.popoverIcon} src={node.icon ?? 'nav/chevron.svg'} />
+					{node.title}
+				</a>
+			{:else}
+				<span
+					class={cx(styles.popoverGroup, {
+						[styles.popoverSelected]: node.contains(pathname)
+					})}
+					style="padding-left: {menuIndent(depth)}"
+				>
+					<InlineSvg class={styles.popoverIcon} src={node.icon ?? 'nav/chevron.svg'} />
+					{node.title}
+				</span>
+			{/if}
+			{#if node.children.length > 0}
+				<ul class={styles.popoverChildren}>
+					{@render treeItems(node.children, depth + 1)}
+				</ul>
+			{/if}
+		</li>
+	{/each}
+{/snippet}
 
 <nav {...standardAttributes(attributes, styles.navigation)}>
 	<button
@@ -150,16 +291,48 @@
 		</span>
 	</button>
 
-	<ul id="navigation-menu" class={cx(styles.list, { [styles.unfoldedList]: unfolded })}>
-		{#each entries as entry (entry.url)}
-			<li class={cx(styles.entry, { [styles.selectedEntry]: entry === currentEntry })}>
-				<a class={styles.link} href={entry.url} onclick={() => (unfolded = false)}>
-					<InlineSvg class={styles.icon} src="nav{entry.id}.svg" />
-					<span class={styles.title}>
-						{entry.title}
-					</span>
-				</a>
+	<ul class={styles.desktopList}>
+		{#each entries as entry, index (entry.title)}
+			<li
+				class={cx(styles.entry, {
+					[styles.selectedEntry]: entry.contains(pathname)
+				})}
+			>
+				{#if entry.children.length > 0}
+					<div class={styles.group}>
+						<a class={styles.link} href={entry.url}>
+							{#if entry.icon}
+								<InlineSvg class={styles.icon} src={entry.icon} />
+							{/if}
+							<span class={styles.title}>
+								{entry.title}
+							</span>
+						</a>
+						<ul
+							class={cx(styles.popover, {
+								[styles.popoverLast]: index === entries.length - 1
+							})}
+						>
+							{@render popoverItems(entry.children, 0)}
+						</ul>
+					</div>
+				{:else}
+					<a class={styles.link} href={entry.url}>
+						{#if entry.icon}
+							<InlineSvg class={styles.icon} src={entry.icon} />
+						{/if}
+						<span class={styles.title}>
+							{entry.title}
+						</span>
+					</a>
+				{/if}
 			</li>
 		{/each}
 	</ul>
+
+	<div id="navigation-menu" class={cx(styles.treePanel, { [styles.treePanelOpen]: unfolded })}>
+		<ul class={styles.treeList}>
+			{@render treeItems(entries, 0)}
+		</ul>
+	</div>
 </nav>

@@ -19,6 +19,20 @@ export const cardBackTypes = [
 
 export type CardBackType = (typeof cardBackTypes)[number];
 
+/** Human-readable title of every card back type, for menus and headings. */
+export const cardBackTypeTitles: Record<CardBackType, string> = {
+	asset: 'Actiu visible',
+	capability: 'Targeta de capacitat',
+	'collective-goal': 'Objectiu col·lectiu',
+	fate: 'Destí',
+	'hidden-asset': 'Actiu ocult',
+	house: 'Casa',
+	law: 'Llei',
+	office: 'Càrrec',
+	'personal-goal': 'Objectiu personal',
+	tactic: 'Tàctica'
+};
+
 const cardBackTypeSet: ReadonlySet<string> = new Set(cardBackTypes);
 
 export function isCardBackType(value: string): value is CardBackType {
