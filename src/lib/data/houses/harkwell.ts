@@ -4,6 +4,6 @@ import { biggestHoarderHouseReward } from '../reusable-definitions';
 export default {
 	title: 'Casa Harkwell',
 	capabilities: [
-		biggestHoarderHouseReward('Guardians del coneixement', 'magic', ['power', 'intrigue'])
+		biggestHoarderHouseReward('Guardians del coneixement', 'knowledge', ['power', 'intrigue'])
 	]
 } satisfies HouseData;
