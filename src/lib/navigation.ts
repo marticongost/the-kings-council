@@ -98,7 +98,7 @@ export const entries = [
 			new NavigationEntry({ id: '/cards', title: 'Cartes', icon: 'nav/cards.svg' }),
 			new NavigationEntry({
 				id: '/capabilities',
-				title: 'Targetes',
+				title: 'Capacitats',
 				icon: 'nav/capabilities.svg'
 			}),
 			new NavigationEntry({
@@ -117,7 +117,7 @@ export const entries = [
 			new NavigationEntry({
 				id: '/kingdom-sheets',
 				title: 'Fitxes de regne',
-				icon: 'nav/rules.svg'
+				icon: 'nav/kingdom-sheets.svg'
 			}),
 			new NavigationEntry({
 				id: '/card-backs',
