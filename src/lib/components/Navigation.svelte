@@ -114,7 +114,7 @@
 			left: 0,
 			zIndex: 100,
 			display: 'none',
-			minWidth: '13em',
+			minWidth: '100%',
 			listStyleType: 'none',
 			backgroundColor: css.palette.linen,
 			border: `1px solid ${css.palette.gurkha}`,
@@ -134,7 +134,7 @@
 			color: css.palette.sandal,
 			whiteSpace: 'nowrap',
 			'&:hover': {
-				backgroundColor: css.palette.moonMist
+				backgroundColor: css.palette.ivory
 			}
 		},
 		popoverGroup: {
