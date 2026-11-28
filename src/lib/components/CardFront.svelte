@@ -72,10 +72,12 @@
 		},
 		iconFrame: {
 			position: 'relative',
-			alignSelf: 'flex-start',
 			display: 'flex',
 			alignItems: 'center',
 			justifyContent: 'center',
+			// Span the card so the icon's percentage width resolves against the card width
+			// instead of the icon's intrinsic size, which would cap it on scaled-up cards.
+			width: '100%',
 			[variant('office')]: {
 				position: 'absolute',
 				left: 0,
