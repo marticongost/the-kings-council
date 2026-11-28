@@ -15,6 +15,9 @@
 			borderLeftWidth: '3px',
 			marginTop: css.spacing.xs
 		},
+		greaterEqual: {
+			...css.hpadding('sm')
+		},
 		crisisOutcome: {
 			...css.row('sm'),
 			alignItems: 'flex-start',
@@ -67,7 +70,7 @@
 <div {...standardAttributes(attributes, styles.crisis)}>
 	<div class={styles.crisisTest}>
 		<EffectsText effects={capability.test} />
-		≥
+		<span class={styles.greaterEqual}>≥</span>
 		<CapabilityInput format="number" />
 		{#if capability.challenge.text}
 			<InlineSvg
