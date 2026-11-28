@@ -5,9 +5,11 @@
 		cutMarkGap,
 		cutMarkLength,
 		cutMarkWidth,
+		sheetColumnGapVar,
 		sheetColumnWidthVar,
 		sheetColumnsVar,
 		sheetHeight,
+		sheetRowGapVar,
 		sheetRowHeightVar,
 		sheetRowsVar,
 		sheetWidth
@@ -24,9 +26,10 @@
 				// that its cards sit where the matching card backs are printed.
 				gridTemplateColumns: `repeat(var(${sheetColumnsVar}), var(${sheetColumnWidthVar}))`,
 				gridTemplateRows: `repeat(var(${sheetRowsVar}), var(${sheetRowHeightVar}))`,
+				columnGap: `var(${sheetColumnGapVar})`,
+				rowGap: `var(${sheetRowGapVar})`,
 				justifyContent: 'center',
 				alignContent: 'center',
-				gap: 0,
 				width: `${sheetWidth}mm`,
 				height: `${sheetHeight}mm`,
 				overflow: 'hidden',
@@ -72,22 +75,52 @@
 	/** Columns and rows taken by the cards on this sheet; the last sheet is usually not full. */
 	const usedColumns = $derived(Math.min(layout.columns, cardCount));
 	const rows = $derived(Math.ceil(cardCount / layout.columns));
-	const blockWidth = $derived(usedColumns * layout.size.width);
-	/** Cut marks follow the cards, which start at the first row and column of a full sheet. */
-	const blockY = $derived(layout.y);
-	const blockHeight = $derived(rows * layout.size.height);
 
-	const verticalCuts = $derived(
-		Array.from({ length: usedColumns + 1 }, (_, index) => layout.x + index * layout.size.width)
+	/** Cards fill each sheet in rows, so the last row and the last column can be short. */
+	const columnCardCounts = $derived(
+		Array.from(
+			{ length: usedColumns },
+			(_, column) => Math.floor((cardCount - 1 - column) / layout.columns) + 1
+		)
 	);
-	const horizontalCuts = $derived(
-		Array.from({ length: rows + 1 }, (_, index) => blockY + index * layout.size.height)
+	const rowCardCounts = $derived(
+		Array.from({ length: rows }, (_, row) =>
+			Math.min(layout.columns, cardCount - row * layout.columns)
+		)
+	);
+
+	/**
+	 * Both edges of every card, so that each gap between cards is marked once per card edge and
+	 * the marks line up exactly with the cards. `bottom` and `right` are where the marks on the
+	 * far side of the sheet belong.
+	 */
+	const verticalMarks = $derived(
+		columnCardCounts.flatMap((columnCards, column) => {
+			const left = layout.x + column * layout.pitchX;
+			const bottom = layout.y + (columnCards - 1) * layout.pitchY + layout.size.height;
+
+			return [
+				{ x: left, bottom },
+				{ x: left + layout.size.width, bottom }
+			];
+		})
+	);
+	const horizontalMarks = $derived(
+		rowCardCounts.flatMap((rowCards, row) => {
+			const top = layout.y + row * layout.pitchY;
+			const right = layout.x + (rowCards - 1) * layout.pitchX + layout.size.width;
+
+			return [
+				{ y: top, right },
+				{ y: top + layout.size.height, right }
+			];
+		})
 	);
 </script>
 
 <div
 	class={styles.sheet}
-	style={`${sheetColumnsVar}: ${layout.columns}; ${sheetColumnWidthVar}: ${layout.size.width}mm; ${sheetRowsVar}: ${layout.rows}; ${sheetRowHeightVar}: ${layout.size.height}mm`}
+	style={`${sheetColumnsVar}: ${layout.columns}; ${sheetColumnWidthVar}: ${layout.size.width}mm; ${sheetColumnGapVar}: ${layout.gap}mm; ${sheetRowsVar}: ${layout.rows}; ${sheetRowHeightVar}: ${layout.size.height}mm; ${sheetRowGapVar}: ${layout.gap}mm`}
 >
 	{@render children()}
 
@@ -98,30 +131,30 @@
 		height={`${sheetHeight}mm`}
 		viewBox={`0 0 ${sheetWidth} ${sheetHeight}`}
 	>
-		{#each verticalCuts as cut (cut)}
+		{#each verticalMarks as mark, index (index)}
 			<rect
-				x={cut - cutMarkWidth / 2}
-				y={blockY - cutMarkGap - cutMarkLength}
+				x={mark.x - cutMarkWidth / 2}
+				y={layout.y - cutMarkGap - cutMarkLength}
 				width={cutMarkWidth}
 				height={cutMarkLength}
 			/>
 			<rect
-				x={cut - cutMarkWidth / 2}
-				y={blockY + blockHeight + cutMarkGap}
+				x={mark.x - cutMarkWidth / 2}
+				y={mark.bottom + cutMarkGap}
 				width={cutMarkWidth}
 				height={cutMarkLength}
 			/>
 		{/each}
-		{#each horizontalCuts as cut (cut)}
+		{#each horizontalMarks as mark, index (index)}
 			<rect
 				x={layout.x - cutMarkGap - cutMarkLength}
-				y={cut - cutMarkWidth / 2}
+				y={mark.y - cutMarkWidth / 2}
 				width={cutMarkLength}
 				height={cutMarkWidth}
 			/>
 			<rect
-				x={layout.x + blockWidth + cutMarkGap}
-				y={cut - cutMarkWidth / 2}
+				x={mark.right + cutMarkGap}
+				y={mark.y - cutMarkWidth / 2}
 				width={cutMarkLength}
 				height={cutMarkWidth}
 			/>
