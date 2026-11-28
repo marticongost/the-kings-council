@@ -2,7 +2,7 @@ import type { AssetData } from '#lib/models/cards';
 
 export default {
 	title: 'Alquimista',
-	properties: ['magic', 'retinue'],
+	properties: ['magic', 'retinue', 'knowledge'],
 	hidden: true,
 	capabilities: [
 		{
