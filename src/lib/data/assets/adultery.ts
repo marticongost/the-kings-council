@@ -1,8 +1,8 @@
 import type { AssetData } from '#lib/models/cards';
 
 export default {
-	title: 'Adulteri',
-	properties: ['illicit'],
+	title: 'Amant',
+	properties: ['illicit', 'retinue'],
 	hidden: true,
 	capabilities: [
 		{
