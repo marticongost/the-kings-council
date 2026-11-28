@@ -2,7 +2,7 @@ import type { AssetData } from '#lib/models/cards';
 
 export default {
 	title: 'Menjars selectes',
-	properties: ['object', 'food'],
+	properties: ['object', 'food', 'luxury'],
 	hidden: false,
 	capabilities: [
 		{
