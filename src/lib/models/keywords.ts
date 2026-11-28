@@ -21,6 +21,7 @@ export const keywords = {
 	execute: 'executar',
 	executed: 'executat',
 	discard: 'Descartar',
+	reveal: 'Revelar',
 	exhaust: 'Exhaurir',
 	disable: 'Inhabilitar',
 	assets: 'actius',

@@ -6,6 +6,7 @@ const triggerData: Record<string, TriggerData> = {
 	afterDuelDeclared: { title: 'En declarar-se un duel' },
 	afterResolvingAggression: { title: 'Després de resoldre una agressió' },
 	afterResolvingCrisis: { title: 'Després de resoldre una crisi' },
+	whenAcquired: { title: 'En ser adquirida' },
 	whenInstigatingDuel: { title: 'Quan declaris un duel' },
 	whenRevealed: { title: 'En ser revelada' },
 	eventRevealed: { title: 'Quan es reveli un esdeveniment' },
