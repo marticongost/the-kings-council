@@ -138,13 +138,21 @@ function findTrail(entry: NavigationEntry, pathname: string): Array<NavigationEn
 	return entry.matches(pathname) ? [entry] : undefined;
 }
 
-/** Returns the entries from the top-level one down to the page matching the pathname. */
-export function getCurrentTrail(pathname: string): ReadonlyArray<NavigationEntry> {
-	for (const entry of entries) {
+/** Returns the entries of the given tree from its top level down to the page matching the pathname. */
+export function getTrail(
+	tree: ReadonlyArray<NavigationEntry>,
+	pathname: string
+): ReadonlyArray<NavigationEntry> {
+	for (const entry of tree) {
 		const trail = findTrail(entry, pathname);
 		if (trail) return trail;
 	}
 	return [];
+}
+
+/** Returns the entries from the top-level one down to the page matching the pathname. */
+export function getCurrentTrail(pathname: string): ReadonlyArray<NavigationEntry> {
+	return getTrail(entries, pathname);
 }
 
 /** Returns the navigation entry matching the given pathname, if any. */

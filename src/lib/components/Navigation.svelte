@@ -118,7 +118,11 @@
 			listStyleType: 'none',
 			backgroundColor: css.palette.linen,
 			border: `1px solid ${css.palette.gurkha}`,
-			boxShadow: '0 0.5em 1em rgba(0, 0, 0, 0.2)'
+			boxShadow: '0 0.5em 1em rgba(0, 0, 0, 0.2)',
+			// A separator between every pair of adjacent entries, at every level.
+			'li:not(:first-child)': {
+				borderTop: `1px dotted ${css.palette.moonMist}`
+			}
 		},
 		popoverLast: {
 			left: 'auto',
@@ -164,6 +168,32 @@
 			flex: '0 0 auto',
 			opacity: 'var(--icon-opacity, 0.7)'
 		},
+		treeGroup: {
+			display: 'flex',
+			alignItems: 'center',
+			gap: css.spacing.sm,
+			width: '100%',
+			padding: `${css.spacing.xs} ${css.spacing.sm}`,
+			fontSize: '0.95em',
+			fontWeight: 600,
+			color: css.palette.sandal,
+			textAlign: 'left',
+			whiteSpace: 'nowrap',
+			'&:hover': {
+				backgroundColor: css.palette.ivory
+			}
+		},
+		treeChevron: {
+			height: menuIconSize,
+			width: menuIconSize,
+			flex: '0 0 auto',
+			marginLeft: 'auto',
+			opacity: 0.7,
+			transition: 'transform 0.2s linear'
+		},
+		treeChevronOpen: {
+			transform: 'rotate(90deg)'
+		},
 		treePanel: {
 			display: 'none',
 			...css.viewport.sm.orSmaller().then({
@@ -184,7 +214,11 @@
 			})
 		},
 		treeList: {
-			listStyleType: 'none'
+			listStyleType: 'none',
+			// A separator between every pair of adjacent entries, at every level.
+			'li:not(:first-child)': {
+				borderTop: `1px dotted ${css.palette.moonMist}`
+			}
 		}
 	});
 </script>
@@ -192,8 +226,9 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { standardAttributes, type StandardAttributeProps } from './utils';
-	import type { NavigationEntry } from '#lib/navigation';
+	import { getTrail, type NavigationEntry } from '#lib/navigation';
 	import { cx } from '@emotion/css';
+	import { slide } from 'svelte/transition';
 	import InlineSvg from './InlineSvg.svelte';
 
 	interface Props extends StandardAttributeProps {
@@ -204,6 +239,51 @@
 	let { entries, unfolded = $bindable(false), ...attributes }: Props = $props();
 
 	const pathname = $derived(page.url.pathname);
+
+	/** Entries leading to the current page, all of them unfolded in the small-screen menu. */
+	const defaultSections = $derived(getTrail(entries, pathname).slice(0, -1));
+
+	/** Sections the user unfolded in the small-screen menu, when different from the default. */
+	let chosenSections = $state<ReadonlyArray<NavigationEntry> | undefined>(undefined);
+
+	const expandedSections = $derived(chosenSections ?? defaultSections);
+
+	$effect(() => {
+		// Closing the menu drops the user's choice, so reopening it unfolds the current page again.
+		if (!unfolded) chosenSections = undefined;
+	});
+
+	function isExpanded(entry: NavigationEntry): boolean {
+		return expandedSections.includes(entry);
+	}
+
+	/** The sections from the top level down to the parent of the given entry. */
+	function ancestorsOf(target: NavigationEntry): Array<NavigationEntry> {
+		let ancestors: Array<NavigationEntry> = [];
+
+		const visit = (nodes: ReadonlyArray<NavigationEntry>): boolean => {
+			for (const node of nodes) {
+				if (node === target) return true;
+				if (visit(node.children)) {
+					ancestors = [node, ...ancestors];
+					return true;
+				}
+			}
+			return false;
+		};
+
+		return visit(entries) ? ancestors : [];
+	}
+
+	function toggleSection(entry: NavigationEntry): void {
+		if (isExpanded(entry)) {
+			chosenSections = expandedSections.filter((other) => other !== entry);
+			return;
+		}
+
+		// Only the opened section and the ones leading to it stay unfolded.
+		chosenSections = [...ancestorsOf(entry), entry];
+	}
 
 	/** A section is highlighted while it or any of its child pages is current. */
 	function isCurrent(entry: NavigationEntry, path: string): boolean {
@@ -242,8 +322,26 @@
 
 {#snippet treeItems(nodes: ReadonlyArray<NavigationEntry>, depth: number)}
 	{#each nodes as node (node.title)}
+		{@const open = isExpanded(node)}
 		<li>
-			{#if node.url}
+			{#if node.children.length > 0}
+				<button
+					class={cx(styles.treeGroup, {
+						[styles.popoverSelected]: isCurrent(node, pathname)
+					})}
+					type="button"
+					style="padding-left: {menuIndent(depth)}"
+					aria-expanded={open}
+					onclick={() => toggleSection(node)}
+				>
+					<InlineSvg class={styles.popoverIcon} src={node.icon ?? 'nav/chevron.svg'} />
+					{node.title}
+					<InlineSvg
+						class={cx(styles.treeChevron, { [styles.treeChevronOpen]: open })}
+						src="nav/chevron.svg"
+					/>
+				</button>
+			{:else}
 				<a
 					class={cx(styles.popoverLink, {
 						[styles.popoverSelected]: isCurrent(node, pathname)
@@ -255,19 +353,9 @@
 					<InlineSvg class={styles.popoverIcon} src={node.icon ?? 'nav/chevron.svg'} />
 					{node.title}
 				</a>
-			{:else}
-				<span
-					class={cx(styles.popoverGroup, {
-						[styles.popoverSelected]: node.contains(pathname)
-					})}
-					style="padding-left: {menuIndent(depth)}"
-				>
-					<InlineSvg class={styles.popoverIcon} src={node.icon ?? 'nav/chevron.svg'} />
-					{node.title}
-				</span>
 			{/if}
-			{#if node.children.length > 0}
-				<ul class={styles.popoverChildren}>
+			{#if open && node.children.length > 0}
+				<ul class={styles.popoverChildren} transition:slide={{ duration: 200 }}>
 					{@render treeItems(node.children, depth + 1)}
 				</ul>
 			{/if}
